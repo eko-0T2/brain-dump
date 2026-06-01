@@ -3,632 +3,508 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump</title>
+<title>Brain Dump v1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  :root {
-    --bg: #0f0f13;
-    --surface: #1a1a23;
-    --surface2: #22222e;
-    --border: #2e2e3e;
-    --text: #e8e8f0;
-    --text-dim: #7a7a9a;
-    --text-dimmer: #4a4a6a;
-    --accent: #7c6af7;
-    --accent-glow: rgba(124, 106, 247, 0.15);
-    --red: #f87171;
-    --orange: #fb923c;
-    --blue: #60a5fa;
-    --purple: #c084fc;
-    --pink: #f472b6;
-    --teal: #34d399;
-    --amber: #fbbf24;
-    --gray: #6b7280;
-    --green: #4ade80;
-  }
+/* ── THEMES ── */
+body.theme-purple {
+  --bg: #faf8ff; --surface: #ffffff; --surface2: #f3f0ff;
+  --border: #e0d8f8; --border2: #c8bef0;
+  --text: #2d1f4e; --text-dim: #7a6a9a; --text-dimmer: #b0a0d0;
+  --accent: #7c6af7; --accent2: #a78bfa; --accent-text: #ffffff;
+  --btn-bg: linear-gradient(135deg, #7c6af7, #a78bfa);
+  --red: #dc2626; --orange: #d97706; --blue: #2563eb;
+  --purple: #7c3aed; --pink: #be185d; --teal: #0d9488;
+  --amber: #b45309; --gray: #6b7280; --green: #16a34a;
+  --card-urgent: #fff1f2; --card-soon: #fffbeb; --card-someday: #eff6ff;
+  --card-health: #faf5ff; --card-family: #fff0f6; --card-creative: #f0fdfa;
+  --card-research: #fffbeb; --card-noise: #f9fafb; --card-cal: #eff6ff;
+  --card-check: #fffbeb; --card-overnight: #faf5ff;
+  --fm-bg: #2d1f4e; --fm-text: #ffffff; --fm-sub: rgba(255,255,255,0.6);
+  --fm-note: rgba(255,255,255,0.35); --fm-border: rgba(255,255,255,0.1);
+}
+body.theme-light {
+  --bg: #f8f7f4; --surface: #ffffff; --surface2: #f2f0ec;
+  --border: #e8e5df; --border2: #d0ccc4;
+  --text: #1a1a1a; --text-dim: #666660; --text-dimmer: #aaa9a4;
+  --accent: #2d2d2d; --accent2: #555; --accent-text: #ffffff;
+  --btn-bg: linear-gradient(135deg, #2d2d2d, #555555);
+  --red: #dc2626; --orange: #d97706; --blue: #2563eb;
+  --purple: #7c3aed; --pink: #be185d; --teal: #0d9488;
+  --amber: #b45309; --gray: #6b7280; --green: #16a34a;
+  --card-urgent: #fff1f2; --card-soon: #fffbeb; --card-someday: #eff6ff;
+  --card-health: #faf5ff; --card-family: #fff0f6; --card-creative: #f0fdfa;
+  --card-research: #fffbeb; --card-noise: #f9fafb; --card-cal: #eff6ff;
+  --card-check: #fffbeb; --card-overnight: #f5f3ff;
+  --fm-bg: #1a1a1a; --fm-text: #ffffff; --fm-sub: rgba(255,255,255,0.6);
+  --fm-note: rgba(255,255,255,0.35); --fm-border: rgba(255,255,255,0.1);
+}
+body.theme-warm {
+  --bg: #1c1612; --surface: #241e18; --surface2: #2e2620;
+  --border: #3a3028; --border2: #4a3e34;
+  --text: #f0e6d3; --text-dim: #9a8a78; --text-dimmer: #6a5a48;
+  --accent: #c97941; --accent2: #e8a060; --accent-text: #ffffff;
+  --btn-bg: linear-gradient(135deg, #c97941, #e8a060);
+  --red: #f87171; --orange: #fb923c; --blue: #60a5fa;
+  --purple: #c084fc; --pink: #f472b6; --teal: #34d399;
+  --amber: #fbbf24; --gray: #9ca3af; --green: #4ade80;
+  --card-urgent: #2a1a1a; --card-soon: #2a2010; --card-someday: #1a2030;
+  --card-health: #241830; --card-family: #2a1820; --card-creative: #182824;
+  --card-research: #282010; --card-noise: #222222; --card-cal: #182030;
+  --card-check: #282010; --card-overnight: #201830;
+  --fm-bg: #0e0c0a; --fm-text: #f0e6d3; --fm-sub: rgba(240,230,211,0.55);
+  --fm-note: rgba(240,230,211,0.3); --fm-border: rgba(240,230,211,0.1);
+}
+body.theme-blue {
+  --bg: #f0f4f8; --surface: #ffffff; --surface2: #e8f0f8;
+  --border: #d0e0f0; --border2: #b0ccec;
+  --text: #1e3a5f; --text-dim: #5a7a9a; --text-dimmer: #90aac4;
+  --accent: #2a6db5; --accent2: #4a90d9; --accent-text: #ffffff;
+  --btn-bg: linear-gradient(135deg, #2a6db5, #4a90d9);
+  --red: #dc2626; --orange: #d97706; --blue: #1d4ed8;
+  --purple: #7c3aed; --pink: #be185d; --teal: #0d9488;
+  --amber: #b45309; --gray: #6b7280; --green: #16a34a;
+  --card-urgent: #fff1f2; --card-soon: #fffbeb; --card-someday: #eff6ff;
+  --card-health: #faf5ff; --card-family: #fff0f6; --card-creative: #f0fdfa;
+  --card-research: #fffbeb; --card-noise: #f8fafc; --card-cal: #eff6ff;
+  --card-check: #fffbeb; --card-overnight: #f5f0ff;
+  --fm-bg: #1e3a5f; --fm-text: #ffffff; --fm-sub: rgba(255,255,255,0.6);
+  --fm-note: rgba(255,255,255,0.35); --fm-border: rgba(255,255,255,0.1);
+}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  transition: background 0.3s, color 0.3s;
+}
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-    padding: 0;
-    overflow-x: hidden;
-  }
+.app { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
 
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: radial-gradient(ellipse at 20% 20%, rgba(124,106,247,0.08) 0%, transparent 60%),
-                radial-gradient(ellipse at 80% 80%, rgba(96,165,250,0.05) 0%, transparent 60%);
-    pointer-events: none;
-    z-index: 0;
-  }
+/* Header */
+.header { text-align: center; padding: 28px 0 24px; position: relative; }
+.header-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 34px;
+  color: var(--text);
+  margin-bottom: 4px;
+  letter-spacing: -0.3px;
+}
+.header-sub { font-size: 12px; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; font-weight: 400; }
+.version-tag { font-size: 10px; color: var(--text-dimmer); margin-top: 4px; }
 
-  .app { position: relative; z-index: 1; max-width: 640px; margin: 0 auto; padding: 24px 16px 60px; }
+/* Theme switcher */
+.theme-bar { display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 20px; }
+.theme-bar-label { font-size: 11px; color: var(--text-dimmer); margin-right: 4px; }
+.theme-dot { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.15s, border-color 0.15s; }
+.theme-dot:hover { transform: scale(1.15); }
+.theme-dot.active { border-color: var(--accent); transform: scale(1.15); }
+.theme-dot.td-purple { background: linear-gradient(135deg, #7c6af7, #a78bfa); }
+.theme-dot.td-light { background: linear-gradient(135deg, #f8f7f4, #2d2d2d); border: 2px solid #ddd; }
+.theme-dot.td-warm { background: linear-gradient(135deg, #1c1612, #c97941); }
+.theme-dot.td-blue { background: linear-gradient(135deg, #f0f4f8, #2a6db5); }
 
-  .header { text-align: center; padding: 32px 0 28px; }
-  .header-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 36px;
-    letter-spacing: -0.5px;
-    background: linear-gradient(135deg, #e8e8f0 0%, #7c6af7 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin-bottom: 6px;
-  }
-  .header-sub { font-size: 13px; color: var(--text-dim); font-weight: 300; letter-spacing: 0.03em; }
+/* Cards/surfaces */
+.surface { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; }
+.surface2 { background: var(--surface2); border: 1px solid var(--border); border-radius: 14px; }
 
-  /* Setup screen */
-  .setup-screen {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 28px 24px;
-    margin-bottom: 20px;
-  }
-  .setup-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 22px;
-    margin-bottom: 8px;
-  }
-  .setup-desc { font-size: 13px; color: var(--text-dim); line-height: 1.7; margin-bottom: 24px; }
-  .setup-field { margin-bottom: 18px; }
-  .setup-label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 6px; display: block; }
-  .setup-hint { font-size: 11px; color: var(--text-dimmer); margin-top: 5px; line-height: 1.5; }
+/* Setup */
+.setup-screen { padding: 24px; margin-bottom: 16px; }
+.setup-title { font-family: 'DM Serif Display', serif; font-size: 22px; color: var(--text); margin-bottom: 6px; }
+.setup-desc { font-size: 13px; color: var(--text-dim); line-height: 1.7; margin-bottom: 22px; }
+.field { margin-bottom: 16px; }
+.field-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 6px; }
+.field-hint { font-size: 11px; color: var(--text-dimmer); margin-top: 5px; line-height: 1.5; }
+input[type=text], input[type=password] {
+  width: 100%; background: var(--surface2); border: 1.5px solid var(--border);
+  border-radius: 10px; padding: 11px 14px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+  transition: border-color 0.2s;
+}
+input:focus { border-color: var(--accent); }
+input::placeholder { color: var(--text-dimmer); }
 
-  input[type="text"], input[type="password"] {
-    width: 100%;
-    background: var(--surface2);
-    border: 1.5px solid var(--border);
-    border-radius: 10px;
-    padding: 12px 14px;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    outline: none;
-    transition: border-color 0.2s;
-  }
-  input:focus { border-color: var(--accent); }
-  input::placeholder { color: var(--text-dimmer); }
+/* Buttons */
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 20px; border-radius: 12px; border: none; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; transition: all 0.18s; width: 100%; }
+.btn-primary { background: var(--btn-bg); color: var(--accent-text); }
+.btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+.btn-secondary { background: var(--surface2); color: var(--text-dim); border: 1.5px solid var(--border); font-size: 13px; padding: 10px 18px; margin-top: 8px; }
+.btn-secondary:hover { border-color: var(--border2); color: var(--text); }
+.btn-google { background: var(--surface2); color: var(--text); border: 1.5px solid var(--border); margin-bottom: 10px; }
+.btn-google:hover { border-color: var(--border2); }
 
-  .setup-divider { height: 1px; background: var(--border); margin: 24px 0; opacity: 0.5; }
+/* Auth */
+.auth-section { padding: 24px; text-align: center; margin-bottom: 16px; }
+.auth-section p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6; }
 
-  /* Auth section */
-  .auth-section {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 20px;
-    text-align: center;
-  }
-  .auth-section p { font-size: 13px; color: var(--text-dim); margin-bottom: 16px; line-height: 1.6; }
+/* Status */
+.status-bar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: var(--surface2); border-radius: 10px; margin-bottom: 14px; font-size: 12px; color: var(--text-dim); border: 1px solid var(--border); }
+.sdot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sdot.on { background: var(--green); }
+.sdot.off { background: var(--text-dimmer); }
 
-  /* Mode selector */
-  .mode-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 20px; }
-  .mode-btn {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 12px;
-    padding: 12px 8px;
-    cursor: pointer;
-    transition: all 0.2s;
-    text-align: center;
-    color: var(--text-dim);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .mode-btn .mode-icon { font-size: 20px; display: block; margin-bottom: 4px; }
-  .mode-btn:hover { border-color: var(--accent); color: var(--text); }
-  .mode-btn.active { border-color: var(--accent); background: var(--accent-glow); color: var(--text); }
+/* Mode */
+.mode-selector { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+.mode-btn { background: var(--surface); border: 1.5px solid var(--border); border-radius: 12px; padding: 11px 6px; cursor: pointer; text-align: center; color: var(--text-dim); font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 500; transition: all 0.15s; }
+.mode-btn .mi { font-size: 18px; display: block; margin-bottom: 3px; }
+.mode-btn:hover { border-color: var(--border2); color: var(--text); }
+.mode-btn.active { border-color: var(--accent); background: var(--surface2); color: var(--text); }
 
-  .dump-container {
-    background: var(--surface);
-    border: 1.5px solid var(--border);
-    border-radius: 16px;
-    overflow: hidden;
-    margin-bottom: 16px;
-    transition: border-color 0.2s;
-  }
-  .dump-container:focus-within { border-color: var(--accent); }
-  .dump-label { padding: 14px 18px 0; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-dimmer); }
+/* Dump */
+.dump-wrap { background: var(--surface); border: 1.5px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 14px; transition: border-color 0.2s; }
+.dump-wrap:focus-within { border-color: var(--accent); }
+.dump-lbl { padding: 12px 16px 0; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dimmer); }
+textarea { width: 100%; background: transparent; border: none; outline: none; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; font-weight: 300; line-height: 1.7; padding: 10px 16px 16px; resize: none; min-height: 150px; }
+textarea::placeholder { color: var(--text-dimmer); }
 
-  textarea {
-    width: 100%;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
-    font-weight: 300;
-    line-height: 1.7;
-    padding: 12px 18px 18px;
-    resize: none;
-    min-height: 160px;
-  }
-  textarea::placeholder { color: var(--text-dimmer); }
+/* Error */
+.err { background: rgba(220,38,38,0.08); border: 1px solid rgba(220,38,38,0.25); border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--red); margin-bottom: 14px; line-height: 1.6; display: none; }
+.err.on { display: block; }
 
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 14px 24px;
-    border-radius: 12px;
-    border: none;
-    cursor: pointer;
-    font-family: 'DM Sans', sans-serif;
-    font-size: 14px;
-    font-weight: 600;
-    transition: all 0.2s;
-    width: 100%;
-  }
-  .btn-primary {
-    background: linear-gradient(135deg, #7c6af7, #60a5fa);
-    color: white;
-    box-shadow: 0 4px 20px rgba(124,106,247,0.3);
-  }
-  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(124,106,247,0.4); }
-  .btn-primary:active { transform: translateY(0); }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-  .btn-google {
-    background: var(--surface2);
-    color: var(--text);
-    border: 1.5px solid var(--border);
-    margin-bottom: 10px;
-  }
-  .btn-google:hover { border-color: var(--accent); }
-  .btn-secondary {
-    background: var(--surface2);
-    color: var(--text-dim);
-    border: 1.5px solid var(--border);
-    font-size: 13px;
-    padding: 10px 18px;
-    margin-top: 8px;
-  }
-  .btn-secondary:hover { border-color: var(--border); color: var(--text); }
+/* Settings link */
+.settings-link { text-align: center; margin-top: 12px; }
+.settings-link button { background: none; border: none; color: var(--text-dimmer); font-size: 11px; cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: underline; }
+.settings-link button:hover { color: var(--text-dim); }
 
-  .status-bar {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
-    background: var(--surface2);
-    border-radius: 10px;
-    margin-bottom: 16px;
-    font-size: 12px;
-    color: var(--text-dim);
-  }
-  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dimmer); flex-shrink: 0; }
-  .status-dot.connected { background: var(--green); box-shadow: 0 0 6px var(--green); }
+/* Loading */
+.loading { text-align: center; padding: 60px 24px; display: none; }
+.loading.on { display: block; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-txt { font-size: 14px; color: var(--text-dim); font-weight: 300; }
+.load-sub { font-size: 12px; color: var(--text-dimmer); margin-top: 5px; }
 
-  .loading { text-align: center; padding: 48px 24px; display: none; }
-  .loading.active { display: block; }
-  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .loading-text { font-size: 14px; color: var(--text-dim); font-weight: 300; }
-  .loading-sub { font-size: 12px; color: var(--text-dimmer); margin-top: 6px; }
+/* Output */
+.output { display: none; }
+.output.on { display: block; }
+.out-meta { font-size: 12px; color: var(--text-dimmer); margin-bottom: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 
-  .output-section { display: none; }
-  .output-section.active { display: block; }
-  .output-meta { font-size: 12px; color: var(--text-dimmer); margin-bottom: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Output cards */
+.ocard { border-radius: 13px; padding: 16px; margin-bottom: 10px; border-left: 4px solid; animation: fadeUp 0.3s ease forwards; opacity: 0; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+.ocard.urgent { background: var(--card-urgent); border-left-color: var(--red); }
+.ocard.soon { background: var(--card-soon); border-left-color: var(--orange); }
+.ocard.someday { background: var(--card-someday); border-left-color: var(--blue); }
+.ocard.health { background: var(--card-health); border-left-color: var(--purple); }
+.ocard.family { background: var(--card-family); border-left-color: var(--pink); }
+.ocard.creative { background: var(--card-creative); border-left-color: var(--teal); }
+.ocard.research { background: var(--card-research); border-left-color: var(--amber); }
+.ocard.noise { background: var(--card-noise); border-left-color: var(--gray); }
+.ocard.cal { background: var(--card-cal); border-left-color: var(--blue); }
+.ocard.check { background: var(--card-check); border-left-color: var(--amber); }
+.ocard.overnight { background: var(--card-overnight); border-left-color: var(--purple); }
 
-  .card {
-    background: var(--surface);
-    border-radius: 14px;
-    padding: 18px;
-    margin-bottom: 12px;
-    border-left: 4px solid var(--border);
-    animation: fadeUp 0.3s ease forwards;
-    opacity: 0;
-  }
-  @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.ocard-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 5px; }
+.ocard-title { font-family: 'DM Serif Display', serif; font-size: 17px; color: var(--text); margin-bottom: 10px; }
+.oitem { display: flex; align-items: flex-start; gap: 9px; padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.5; color: var(--text); }
+.oitem:last-child { border-bottom: none; }
+.odot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+.odot.red { background: var(--red); }
+.odot.orange { background: var(--orange); }
+.odot.blue { background: var(--blue); }
+.odot.purple { background: var(--purple); }
+.odot.pink { background: var(--pink); }
+.odot.teal { background: var(--teal); }
+.odot.amber { background: var(--amber); }
+.odot.gray { background: var(--gray); }
+.oitem-body { flex: 1; }
+.oitem-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; font-weight: 300; line-height: 1.5; }
 
-  .card.red { border-left-color: var(--red); }
-  .card.orange { border-left-color: var(--orange); }
-  .card.blue { border-left-color: var(--blue); }
-  .card.purple { border-left-color: var(--purple); }
-  .card.pink { border-left-color: var(--pink); }
-  .card.teal { border-left-color: var(--teal); }
-  .card.amber { border-left-color: var(--amber); }
-  .card.gray { border-left-color: var(--gray); }
-  .card.green { border-left-color: var(--green); }
-  .card.accent { border-left-color: var(--accent); }
+.badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; margin-left: 5px; vertical-align: middle; }
+.badge-cal { background: rgba(37,99,235,0.1); color: var(--blue); }
+.badge-real { background: rgba(22,163,74,0.1); color: var(--green); }
+.badge-3am { background: rgba(180,83,9,0.1); color: var(--amber); }
+.badge-saved { background: rgba(13,148,136,0.1); color: var(--teal); }
 
-  .card-label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dimmer); margin-bottom: 6px; }
-  .card-title { font-family: 'DM Serif Display', serif; font-size: 18px; margin-bottom: 12px; color: var(--text); }
+/* Reality check note */
+.note-rc { border-radius: 10px; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 10px; animation: fadeUp 0.3s ease forwards; opacity: 0; background: var(--card-check); border: 1px solid rgba(180,83,9,0.15); color: var(--amber); }
+.note-rc strong { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px; opacity: 0.7; }
 
-  .item { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); font-size: 14px; line-height: 1.55; color: var(--text); }
-  .item:last-child { border-bottom: none; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
-  .dot.red { background: var(--red); }
-  .dot.orange { background: var(--orange); }
-  .dot.blue { background: var(--blue); }
-  .dot.purple { background: var(--purple); }
-  .dot.pink { background: var(--pink); }
-  .dot.teal { background: var(--teal); }
-  .dot.amber { background: var(--amber); }
-  .dot.gray { background: var(--gray); }
-  .dot.green { background: var(--green); }
-  .dot.accent { background: var(--accent); }
+/* Stream 2 saved */
+.note-s2 { border-radius: 10px; padding: 12px 16px; font-size: 13px; line-height: 1.6; margin-bottom: 10px; animation: fadeUp 0.3s ease forwards; opacity: 0; background: var(--card-creative); border: 1px solid rgba(13,148,136,0.15); color: var(--teal); }
+.note-s2 strong { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 5px; opacity: 0.7; }
+.note-s2 .s2item { padding: 3px 0; border-bottom: 1px solid rgba(13,148,136,0.1); font-size: 13px; }
+.note-s2 .s2item:last-child { border-bottom: none; }
 
-  .item-body { flex: 1; }
-  .item-sub { font-size: 12px; color: var(--text-dim); margin-top: 3px; font-weight: 300; line-height: 1.5; }
+/* First move */
+.first-move { background: var(--fm-bg); border-radius: 14px; padding: 26px 22px; text-align: center; margin-top: 4px; animation: fadeUp 0.3s ease forwards; opacity: 0; }
+.fm-lbl { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent2); margin-bottom: 10px; opacity: 0.8; }
+.fm-action { font-family: 'DM Serif Display', serif; font-size: 22px; line-height: 1.3; color: var(--fm-text); margin-bottom: 8px; }
+.fm-why { font-size: 13px; color: var(--fm-sub); line-height: 1.6; font-weight: 300; margin-bottom: 12px; }
+.fm-note { font-size: 12px; color: var(--fm-note); font-style: italic; border-top: 1px solid var(--fm-border); padding-top: 10px; }
 
-  .badge { display: inline-block; font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
-  .badge.cal { background: rgba(96,165,250,0.15); color: var(--blue); }
-  .badge.check { background: rgba(251,191,36,0.15); color: var(--amber); }
-  .badge.saved { background: rgba(52,211,153,0.15); color: var(--teal); }
-  .badge.freq { background: rgba(196,132,252,0.15); color: var(--purple); }
+.new-dump { margin-top: 18px; background: var(--surface); border: 1.5px solid var(--border); color: var(--text-dim); border-radius: 12px; padding: 12px; width: 100%; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.15s; }
+.new-dump:hover { border-color: var(--border2); color: var(--text); }
 
-  .first-move {
-    background: linear-gradient(135deg, #1e1b3a, #1a2535);
-    border: 1px solid rgba(124,106,247,0.3);
-    border-radius: 16px;
-    padding: 28px 24px;
-    text-align: center;
-    margin-top: 6px;
-    animation: fadeUp 0.3s ease 0.35s forwards;
-    opacity: 0;
-  }
-  .fm-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; opacity: 0.8; }
-  .fm-action { font-family: 'DM Serif Display', serif; font-size: 24px; line-height: 1.3; color: var(--text); margin-bottom: 10px; }
-  .fm-why { font-size: 13px; color: var(--text-dim); line-height: 1.6; font-weight: 300; margin-bottom: 14px; }
-  .fm-note { font-size: 12px; color: var(--text-dimmer); font-style: italic; border-top: 1px solid var(--border); padding-top: 12px; }
-
-  .error-box { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); border-radius: 12px; padding: 16px; font-size: 13px; color: var(--red); margin-bottom: 16px; display: none; line-height: 1.6; }
-  .error-box.active { display: block; }
-
-  .new-dump-btn { margin-top: 20px; background: var(--surface); border: 1.5px solid var(--border); color: var(--text-dim); border-radius: 12px; padding: 12px; width: 100%; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; transition: all 0.2s; }
-  .new-dump-btn:hover { border-color: var(--accent); color: var(--text); }
-
-  .reality-check { background: rgba(251,191,36,0.07); border: 1px solid rgba(251,191,36,0.2); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #d4a843; line-height: 1.6; margin-bottom: 12px; animation: fadeUp 0.3s ease forwards; opacity: 0; }
-  .reality-check strong { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; opacity: 0.7; }
-
-  .stream2-saved { background: rgba(52,211,153,0.07); border: 1px solid rgba(52,211,153,0.2); border-radius: 12px; padding: 14px 16px; font-size: 13px; color: #3ab882; line-height: 1.6; margin-bottom: 12px; animation: fadeUp 0.3s ease forwards; opacity: 0; }
-  .stream2-saved strong { display: block; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; opacity: 0.7; }
-
-  .settings-link { text-align: center; margin-top: 16px; }
-  .settings-link button { background: none; border: none; color: var(--text-dimmer); font-size: 12px; cursor: pointer; font-family: 'DM Sans', sans-serif; text-decoration: underline; }
-  .settings-link button:hover { color: var(--text-dim); }
-
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 </style>
 </head>
-<body>
+<body class="theme-purple">
 <div class="app">
 
   <div class="header">
     <div class="header-title">Brain Dump</div>
     <div class="header-sub">sort the noise · find the signal · one first move</div>
+    <div class="version-tag">v1.0</div>
   </div>
 
-  <!-- SCREEN 1: Setup -->
-  <div id="screenSetup">
-    <div class="setup-screen">
+  <!-- Theme switcher -->
+  <div class="theme-bar">
+    <span class="theme-bar-label">Theme</span>
+    <div class="theme-dot td-purple active" title="Soft purple" onclick="setTheme('purple',this)"></div>
+    <div class="theme-dot td-light" title="Clean light" onclick="setTheme('light',this)"></div>
+    <div class="theme-dot td-warm" title="Warm dark" onclick="setTheme('warm',this)"></div>
+    <div class="theme-dot td-blue" title="Fresh blue" onclick="setTheme('blue',this)"></div>
+  </div>
+
+  <!-- SETUP -->
+  <div id="screenSetup" style="display:none">
+    <div class="surface setup-screen">
       <div class="setup-title">First time setup</div>
       <div class="setup-desc">Enter your keys below. They are saved only on this device — never uploaded anywhere. You only need to do this once.</div>
-
-      <div class="setup-field">
-        <label class="setup-label">Anthropic API Key</label>
-        <input type="password" id="inputApiKey" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="setup-hint">From console.anthropic.com → API Keys</div>
+      <div class="field">
+        <label class="field-label">Anthropic API Key</label>
+        <input type="password" id="inApiKey" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <div class="field-hint">From console.anthropic.com → API Keys</div>
       </div>
-
-      <div class="setup-field">
-        <label class="setup-label">Google OAuth Client ID</label>
-        <input type="text" id="inputClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="setup-hint">From Google Cloud Console → APIs & Services → Credentials</div>
+      <div class="field">
+        <label class="field-label">Google OAuth Client ID</label>
+        <input type="text" id="inClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <div class="field-hint">From Google Cloud Console → APIs & Services → Credentials</div>
       </div>
-
-      <div class="setup-field">
-        <label class="setup-label">Google Doc ID (Stream 2 idea library)</label>
-        <input type="text" id="inputDocId" placeholder="1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgVE2upms" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <div class="setup-hint">The long string in your Google Doc URL between /d/ and /edit</div>
+      <div class="field">
+        <label class="field-label">Google Doc ID — Stream 2 idea library</label>
+        <input type="text" id="inDocId" placeholder="Paste the long ID from your Google Doc URL" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+        <div class="field-hint">The string between /d/ and /edit in your doc's URL</div>
       </div>
-
-      <div class="error-box" id="setupError"></div>
-
+      <div class="err" id="setupErr"></div>
       <button class="btn btn-primary" onclick="saveSetup()">Save & continue</button>
     </div>
   </div>
 
-  <!-- SCREEN 2: Google Auth -->
+  <!-- AUTH -->
   <div id="screenAuth" style="display:none">
-    <div class="auth-section">
+    <div class="surface auth-section">
       <p>Connect your Google account so the app can read your calendar and save tasks and ideas automatically.</p>
       <button class="btn btn-google" onclick="handleAuth()">
-        <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+        <svg width="17" height="17" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
         Connect Google Account
       </button>
-      <button class="btn btn-secondary" onclick="showSetup()">← Back to settings</button>
+      <button class="btn btn-secondary" onclick="showScreen('setup')">← Back to settings</button>
     </div>
   </div>
 
-  <!-- SCREEN 3: Main app -->
+  <!-- MAIN -->
   <div id="screenMain" style="display:none">
-
     <div class="status-bar">
-      <span class="status-dot connected"></span>
+      <span class="sdot on"></span>
       <span id="statusText">Google connected · ready</span>
     </div>
-
     <div class="mode-selector">
-      <button class="mode-btn" id="mode-morning" onclick="setMode('morning')">
-        <span class="mode-icon">🌅</span>Morning
-      </button>
-      <button class="mode-btn active" id="mode-spike" onclick="setMode('spike')">
-        <span class="mode-icon">⚡</span>Anytime
-      </button>
-      <button class="mode-btn" id="mode-evening" onclick="setMode('evening')">
-        <span class="mode-icon">🌙</span>Evening
-      </button>
+      <button class="mode-btn" id="mode-morning" onclick="setMode('morning')"><span class="mi">🌅</span>Morning</button>
+      <button class="mode-btn active" id="mode-spike" onclick="setMode('spike')"><span class="mi">⚡</span>Anytime</button>
+      <button class="mode-btn" id="mode-evening" onclick="setMode('evening')"><span class="mi">🌙</span>Evening</button>
     </div>
-
-    <div class="dump-container">
-      <div class="dump-label">What's in your head right now</div>
-      <textarea id="dumpText" placeholder="Just start typing... messy is fine. Everything goes here — tasks, worries, ideas, things you can't stop thinking about. Don't organize it. That's what this is for." rows="7"></textarea>
+    <div class="dump-wrap">
+      <div class="dump-lbl">What's in your head right now</div>
+      <textarea id="dumpText" placeholder="Just start typing... messy is fine. Tasks, worries, ideas, things you can't stop thinking about. Don't organise it — that's what this is for." rows="7"></textarea>
     </div>
-
-    <div class="error-box" id="errorBox"></div>
-
-    <button class="btn btn-primary" id="submitBtn" onclick="processDump()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-      Sort my brain
-    </button>
-
-    <div class="settings-link">
-      <button onclick="showSetup()">⚙ Update settings</button>
-    </div>
+    <div class="err" id="mainErr"></div>
+    <button class="btn btn-primary" onclick="processDump()">Sort my brain</button>
+    <div class="settings-link"><button onclick="showSetup()">⚙ Settings</button></div>
   </div>
 
-  <!-- Loading -->
+  <!-- LOADING -->
   <div class="loading" id="loading">
     <div class="spinner"></div>
-    <div class="loading-text" id="loadingText">Reading your calendar...</div>
-    <div class="loading-sub" id="loadingSub">sorting signal from noise</div>
+    <div class="load-txt" id="loadTxt">Reading your calendar...</div>
+    <div class="load-sub" id="loadSub">sorting signal from noise</div>
   </div>
 
-  <!-- Output -->
-  <div class="output-section" id="outputSection">
-    <div class="output-meta" id="outputMeta"></div>
-    <div id="outputCards"></div>
-    <button class="new-dump-btn" onclick="resetApp()">↩ New dump</button>
+  <!-- OUTPUT -->
+  <div class="output" id="output">
+    <div class="out-meta" id="outMeta"></div>
+    <div id="outCards"></div>
+    <button class="new-dump" onclick="resetApp()">↩ New dump</button>
   </div>
 
 </div>
-
 <script>
-  // ─── STATE ────────────────────────────────────────────────
-  let currentMode = 'spike';
-  let googleToken = null;
-  let CONFIG = { apiKey: '', clientId: '', docId: '' };
-  const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
+const VERSION = '1.0';
+let mode = 'spike';
+let gToken = null;
+let CFG = { apiKey:'', clientId:'', docId:'' };
+const SCOPES = 'https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
+const LOAD_MSGS = [
+  ['Reading your calendar...','checking what is actually scheduled'],
+  ['Sorting your tasks...','signal vs noise'],
+  ['Thinking it through...','separating real from anxiety'],
+  ['Almost there...','finding your first move']
+];
+let loadTimer;
 
-  // ─── INIT ─────────────────────────────────────────────────
-  window.addEventListener('load', () => {
-    // Load saved config
-    CONFIG.apiKey = localStorage.getItem('bd_api_key') || '';
-    CONFIG.clientId = localStorage.getItem('bd_client_id') || '';
-    CONFIG.docId = localStorage.getItem('bd_doc_id') || '';
+// ── THEME ──
+function setTheme(name, el) {
+  document.body.className = 'theme-' + name;
+  document.querySelectorAll('.theme-dot').forEach(d => d.classList.remove('active'));
+  if (el) el.classList.add('active');
+  localStorage.setItem('bd_theme', name);
+}
 
-    // Check for OAuth callback
-    const hash = window.location.hash;
-    if (hash.includes('access_token')) {
-      const params = new URLSearchParams(hash.substring(1));
-      googleToken = params.get('access_token');
-      localStorage.setItem('bd_google_token', googleToken);
-      window.history.replaceState({}, document.title, window.location.pathname);
-    } else {
-      googleToken = localStorage.getItem('bd_google_token');
-    }
+// ── INIT ──
+window.addEventListener('load', () => {
+  const savedTheme = localStorage.getItem('bd_theme') || 'purple';
+  const dot = document.querySelector('.td-' + savedTheme);
+  setTheme(savedTheme, dot);
 
-    // Route to correct screen
-    if (!CONFIG.apiKey || !CONFIG.clientId || !CONFIG.docId) {
-      showScreen('setup');
-    } else if (!googleToken) {
-      showScreen('auth');
-    } else {
-      showScreen('main');
-    }
+  CFG.apiKey = localStorage.getItem('bd_api_key') || '';
+  CFG.clientId = localStorage.getItem('bd_client_id') || '';
+  CFG.docId = localStorage.getItem('bd_doc_id') || '';
+
+  const hash = window.location.hash;
+  if (hash.includes('access_token')) {
+    const p = new URLSearchParams(hash.substring(1));
+    gToken = p.get('access_token');
+    localStorage.setItem('bd_google_token', gToken);
+    window.history.replaceState({}, document.title, window.location.pathname);
+  } else {
+    gToken = localStorage.getItem('bd_google_token');
+  }
+
+  if (!CFG.apiKey || !CFG.clientId || !CFG.docId) { showSetup(); }
+  else if (!gToken) { showScreen('auth'); }
+  else { showScreen('main'); }
+});
+
+// ── SCREENS ──
+function showScreen(name) {
+  ['setup','auth','main'].forEach(s => {
+    document.getElementById('screen' + s.charAt(0).toUpperCase() + s.slice(1)).style.display = s === name ? 'block' : 'none';
   });
+  document.getElementById('loading').classList.remove('on');
+  document.getElementById('output').classList.remove('on');
+}
+function showSetup() {
+  document.getElementById('inApiKey').value = CFG.apiKey || '';
+  document.getElementById('inClientId').value = CFG.clientId || '';
+  document.getElementById('inDocId').value = CFG.docId || '';
+  showScreen('setup');
+}
 
-  // ─── SCREENS ──────────────────────────────────────────────
-  function showScreen(name) {
-    document.getElementById('screenSetup').style.display = name === 'setup' ? 'block' : 'none';
-    document.getElementById('screenAuth').style.display = name === 'auth' ? 'block' : 'none';
-    document.getElementById('screenMain').style.display = name === 'main' ? 'block' : 'none';
-    document.getElementById('loading').classList.remove('active');
-    document.getElementById('outputSection').classList.remove('active');
-  }
+// ── SETUP ──
+function saveSetup() {
+  const k = document.getElementById('inApiKey').value.trim();
+  const c = document.getElementById('inClientId').value.trim();
+  const d = document.getElementById('inDocId').value.trim();
+  const e = document.getElementById('setupErr');
+  e.classList.remove('on');
+  if (!k.startsWith('sk-ant-')) { e.textContent = 'API key should start with sk-ant-'; e.classList.add('on'); return; }
+  if (!c.includes('googleusercontent.com')) { e.textContent = 'Client ID should end in .apps.googleusercontent.com'; e.classList.add('on'); return; }
+  if (d.length < 20) { e.textContent = 'Doc ID looks too short — copy the full string from the URL'; e.classList.add('on'); return; }
+  localStorage.setItem('bd_api_key', k);
+  localStorage.setItem('bd_client_id', c);
+  localStorage.setItem('bd_doc_id', d);
+  CFG = { apiKey:k, clientId:c, docId:d };
+  gToken ? showScreen('main') : showScreen('auth');
+}
 
-  function showSetup() {
-    // Pre-fill fields if already set
-    document.getElementById('inputApiKey').value = CONFIG.apiKey || '';
-    document.getElementById('inputClientId').value = CONFIG.clientId || '';
-    document.getElementById('inputDocId').value = CONFIG.docId || '';
-    showScreen('setup');
-  }
+// ── AUTH ──
+function handleAuth() {
+  const uri = window.location.href.split('?')[0].split('#')[0];
+  const p = new URLSearchParams({ client_id: CFG.clientId, redirect_uri: uri, response_type: 'token', scope: SCOPES, prompt: 'consent' });
+  window.location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + p;
+}
 
-  // ─── SETUP ────────────────────────────────────────────────
-  function saveSetup() {
-    const apiKey = document.getElementById('inputApiKey').value.trim();
-    const clientId = document.getElementById('inputClientId').value.trim();
-    const docId = document.getElementById('inputDocId').value.trim();
-    const errBox = document.getElementById('setupError');
+// ── MODE ──
+function setMode(m) {
+  mode = m;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('mode-' + m).classList.add('active');
+}
 
-    if (!apiKey.startsWith('sk-ant-')) {
-      errBox.textContent = 'API key should start with sk-ant- — check you copied the full key.';
-      errBox.style.display = 'block';
-      return;
-    }
-    if (!clientId.includes('googleusercontent.com')) {
-      errBox.textContent = 'Google Client ID should end in .apps.googleusercontent.com';
-      errBox.style.display = 'block';
-      return;
-    }
-    if (docId.length < 20) {
-      errBox.textContent = 'Google Doc ID looks too short — copy the full string from the URL.';
-      errBox.style.display = 'block';
-      return;
-    }
+// ── GOOGLE ──
+async function fetchCal() {
+  try {
+    const now = new Date(), end = new Date(now.getTime() + 7*86400000);
+    const r = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=20`, { headers:{ Authorization:'Bearer '+gToken } });
+    if (r.status===401) { gToken=null; localStorage.removeItem('bd_google_token'); showScreen('auth'); throw new Error('Token expired'); }
+    if (!r.ok) throw new Error('Cal failed');
+    return (await r.json()).items || [];
+  } catch(e) { console.error(e); return []; }
+}
+async function fetchTasks() {
+  try {
+    const r = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', { headers:{ Authorization:'Bearer '+gToken } });
+    if (!r.ok) throw new Error();
+    const lists = await r.json();
+    if (!lists.items?.length) return { listId:null, tasks:[] };
+    const lid = lists.items[0].id;
+    const tr = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks?showCompleted=false&maxResults=50`, { headers:{ Authorization:'Bearer '+gToken } });
+    if (!tr.ok) throw new Error();
+    return { listId:lid, tasks:(await tr.json()).items||[] };
+  } catch(e) { console.error(e); return { listId:null, tasks:[] }; }
+}
+async function addTask(lid, title) {
+  if (!lid) return false;
+  try { await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks`, { method:'POST', headers:{ Authorization:'Bearer '+gToken,'Content-Type':'application/json' }, body:JSON.stringify({ title }) }); return true; } catch(e) { return false; }
+}
+async function appendDoc(content) {
+  try {
+    const gr = await fetch(`https://docs.googleapis.com/v1/documents/${CFG.docId}`, { headers:{ Authorization:'Bearer '+gToken } });
+    if (!gr.ok) throw new Error();
+    const doc = await gr.json();
+    const idx = doc.body.content[doc.body.content.length-1].endIndex - 1;
+    await fetch(`https://docs.googleapis.com/v1/documents/${CFG.docId}:batchUpdate`, { method:'POST', headers:{ Authorization:'Bearer '+gToken,'Content-Type':'application/json' }, body:JSON.stringify({ requests:[{ insertText:{ location:{ index:idx }, text:'\n'+content } }] }) });
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
 
-    errBox.style.display = 'none';
-    localStorage.setItem('bd_api_key', apiKey);
-    localStorage.setItem('bd_client_id', clientId);
-    localStorage.setItem('bd_doc_id', docId);
-    CONFIG = { apiKey, clientId, docId };
+// ── LOADING ──
+function startLoad() {
+  let i=0;
+  document.getElementById('loadTxt').textContent = LOAD_MSGS[0][0];
+  document.getElementById('loadSub').textContent = LOAD_MSGS[0][1];
+  loadTimer = setInterval(() => { i=(i+1)%LOAD_MSGS.length; document.getElementById('loadTxt').textContent=LOAD_MSGS[i][0]; document.getElementById('loadSub').textContent=LOAD_MSGS[i][1]; }, 2200);
+}
+function stopLoad() { clearInterval(loadTimer); }
 
-    // If already have a token go straight to main
-    if (googleToken) {
-      showScreen('main');
-    } else {
-      showScreen('auth');
-    }
-  }
+// ── PROCESS ──
+async function processDump() {
+  const txt = document.getElementById('dumpText').value.trim();
+  if (!txt) return;
+  document.getElementById('mainErr').classList.remove('on');
+  document.getElementById('screenMain').style.display = 'none';
+  document.getElementById('loading').classList.add('on');
+  startLoad();
 
-  // ─── AUTH ─────────────────────────────────────────────────
-  function handleAuth() {
-    const redirectUri = window.location.href.split('?')[0].split('#')[0];
-    const params = new URLSearchParams({
-      client_id: CONFIG.clientId,
-      redirect_uri: redirectUri,
-      response_type: 'token',
-      scope: GOOGLE_SCOPES,
-      prompt: 'consent'
-    });
-    window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params}`;
-  }
+  try {
+    const [cal, tr] = await Promise.all([fetchCal(), fetchTasks()]);
+    const { listId, tasks } = tr;
+    const calTxt = cal.length ? cal.map(e => { const s=e.start.dateTime||e.start.date; return `- ${e.summary} (${new Date(s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})})`; }).join('\n') : 'No events in next 7 days';
+    const tasksTxt = tasks.length ? tasks.map(t=>`- ${t.title}`).join('\n') : 'No existing tasks';
+    const today = new Date().toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
 
-  // ─── MODE ─────────────────────────────────────────────────
-  function setMode(mode) {
-    currentMode = mode;
-    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('mode-' + mode).classList.add('active');
-  }
+    const sys = `You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety. Separate signal from noise, cross-reference her calendar and tasks, give her a clear actionable output.
 
-  // ─── GOOGLE APIs ─────────────────────────────────────────
-  async function fetchCalendar() {
-    try {
-      const now = new Date();
-      const end = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=20`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${googleToken}` } });
-      if (res.status === 401) { googleToken = null; localStorage.removeItem('bd_google_token'); showScreen('auth'); throw new Error('Google token expired'); }
-      if (!res.ok) throw new Error('Calendar fetch failed');
-      const data = await res.json();
-      return data.items || [];
-    } catch (e) { console.error('Calendar:', e); return []; }
-  }
+Today: ${today}. Mode: ${mode.toUpperCase()}.
 
-  async function fetchTasks() {
-    try {
-      const res = await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists', { headers: { Authorization: `Bearer ${googleToken}` } });
-      if (!res.ok) throw new Error('Tasks list failed');
-      const lists = await res.json();
-      if (!lists.items || lists.items.length === 0) return { listId: null, tasks: [] };
-      const listId = lists.items[0].id;
-      const tasksRes = await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks?showCompleted=false&maxResults=50`, { headers: { Authorization: `Bearer ${googleToken}` } });
-      if (!tasksRes.ok) throw new Error('Tasks fetch failed');
-      const td = await tasksRes.json();
-      return { listId, tasks: td.items || [] };
-    } catch (e) { console.error('Tasks:', e); return { listId: null, tasks: [] }; }
-  }
+Google Calendar (next 7 days):
+${calTxt}
 
-  async function addTask(listId, title, notes) {
-    if (!listId) return false;
-    try {
-      await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${listId}/tasks`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, notes: notes || '' })
-      });
-      return true;
-    } catch (e) { console.error('Add task:', e); return false; }
-  }
+Existing Google Tasks:
+${tasksTxt}
 
-  async function appendToDoc(content) {
-    try {
-      const getRes = await fetch(`https://docs.googleapis.com/v1/documents/${CONFIG.docId}`, { headers: { Authorization: `Bearer ${googleToken}` } });
-      if (!getRes.ok) throw new Error('Doc fetch failed');
-      const doc = await getRes.json();
-      const endIndex = doc.body.content[doc.body.content.length - 1].endIndex - 1;
-      await fetch(`https://docs.googleapis.com/v1/documents/${CONFIG.docId}:batchUpdate`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${googleToken}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ requests: [{ insertText: { location: { index: endIndex }, text: '\n' + content } }] })
-      });
-      return true;
-    } catch (e) { console.error('Doc append:', e); return false; }
-  }
-
-  // ─── LOADING ──────────────────────────────────────────────
-  const loadingMessages = [
-    ['Reading your calendar...', 'checking what is actually scheduled'],
-    ['Sorting your tasks...', 'signal vs noise'],
-    ['Thinking it through...', 'separating real from anxiety'],
-    ['Almost there...', 'finding your first move']
-  ];
-  let loadingInterval;
-
-  function startLoading() {
-    let i = 0;
-    document.getElementById('loadingText').textContent = loadingMessages[0][0];
-    document.getElementById('loadingSub').textContent = loadingMessages[0][1];
-    loadingInterval = setInterval(() => {
-      i = (i + 1) % loadingMessages.length;
-      document.getElementById('loadingText').textContent = loadingMessages[i][0];
-      document.getElementById('loadingSub').textContent = loadingMessages[i][1];
-    }, 2000);
-  }
-  function stopLoading() { clearInterval(loadingInterval); }
-
-  // ─── PROCESS ──────────────────────────────────────────────
-  async function processDump() {
-    const dumpText = document.getElementById('dumpText').value.trim();
-    if (!dumpText) return;
-
-    document.getElementById('errorBox').classList.remove('active');
-    showScreen('loading-only');
-    document.getElementById('screenMain').style.display = 'none';
-    document.getElementById('loading').classList.add('active');
-    startLoading();
-
-    try {
-      const [calEvents, tasksResult] = await Promise.all([fetchCalendar(), fetchTasks()]);
-      const { listId, tasks } = tasksResult;
-
-      const calText = calEvents.length > 0
-        ? calEvents.map(e => { const s = e.start.dateTime || e.start.date; return `- ${e.summary} (${new Date(s).toLocaleDateString('en-CA', {weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})})`; }).join('\n')
-        : 'No events found in next 7 days';
-
-      const tasksText = tasks.length > 0 ? tasks.map(t => `- ${t.title}`).join('\n') : 'No existing tasks';
-      const today = new Date().toLocaleDateString('en-CA', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
-
-      const systemPrompt = `You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety. Your job is to separate signal from noise, cross-reference her calendar and tasks, and give her a clear output she can actually use.
-
-Today is ${today}. Mode: ${currentMode.toUpperCase()}.
-
-Her Google Calendar (next 7 days):
-${calText}
-
-Her existing Google Tasks:
-${tasksText}
-
-OUTPUT FORMAT: Respond ONLY with a valid JSON object, no markdown, no preamble, no trailing text. Use this exact structure:
+Respond ONLY with valid JSON, no markdown, no preamble:
 {
-  "mode": "${currentMode}",
-  "meta": "one short sentence: mode detected, sources status, how many stream2 items saved",
+  "mode": "${mode}",
+  "meta": "one sentence: mode, sources status, stream2 count",
   "overnight": [],
   "needs_confirmation": [],
   "calendar_confirmed": [],
@@ -639,151 +515,127 @@ OUTPUT FORMAT: Respond ONLY with a valid JSON object, no markdown, no preamble, 
   "stream1_for_tasks": [],
   "stream2_for_doc": []
 }
+Array items: {"text":"...","sub":"optional 1-sentence context","cal":false}
+overnight items also include "real": true/false
+stream1_for_tasks: flat string array, only NEW items not already in tasks
+stream2_for_doc: flat string array formatted "[CATEGORY] item"
+reality_check: short warm paragraph on emotional reality. Empty string if nothing notable.
+Keep sub-notes brief. Never lecture. Name anxiety with compassion.`;
 
-Each item in arrays is an object: {"text": "description", "sub": "optional 1-sentence context", "cal": false}
-overnight items also have: "real": true or false
-stream1_for_tasks: flat array of strings — only NEW tasks not already in her task list
-stream2_for_doc: flat array of strings formatted as "[CATEGORY] item description"
-reality_check: short paragraph on the emotional reality of the dump. Empty string if nothing notable.
-Keep notes brief and warm. Never lecture. Name anxiety noise with compassion.`;
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type':'application/json', 'x-api-key':CFG.apiKey, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:2000, system:sys, messages:[{ role:'user', content:'Brain dump:\n\n'+txt }] })
+    });
+    if (!res.ok) { const err=await res.json(); throw new Error(err.error?.message||'API error'); }
+    const result = JSON.parse((await res.json()).content[0].text.replace(/```json|```/g,'').trim());
 
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': CONFIG.apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 2000,
-          system: systemPrompt,
-          messages: [{ role: 'user', content: `Here is my brain dump:\n\n${dumpText}` }]
-        })
-      });
+    let tasksAdded=0;
+    if (listId && result.stream1_for_tasks?.length) for (const t of result.stream1_for_tasks) if (await addTask(listId,t)) tasksAdded++;
 
-      if (!response.ok) { const err = await response.json(); throw new Error(err.error?.message || 'API error'); }
-      const apiData = await response.json();
-      const rawText = apiData.content[0].text.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(rawText);
-
-      // Write tasks
-      let tasksAdded = 0;
-      if (listId && result.stream1_for_tasks && result.stream1_for_tasks.length > 0) {
-        for (const task of result.stream1_for_tasks) {
-          if (await addTask(listId, task, '')) tasksAdded++;
-        }
-      }
-
-      // Write to doc
-      let docUpdated = false;
-      if (result.stream2_for_doc && result.stream2_for_doc.length > 0) {
-        const d = new Date().toISOString().split('T')[0];
-        docUpdated = await appendToDoc(result.stream2_for_doc.map(i => `[${d}] ${i}`).join('\n'));
-      }
-
-      stopLoading();
-      document.getElementById('loading').classList.remove('active');
-      renderOutput(result, tasksAdded, docUpdated);
-
-    } catch (err) {
-      stopLoading();
-      document.getElementById('loading').classList.remove('active');
-      document.getElementById('screenMain').style.display = 'block';
-      const eb = document.getElementById('errorBox');
-      eb.textContent = `Something went wrong: ${err.message}`;
-      eb.classList.add('active');
+    let docOk=false;
+    if (result.stream2_for_doc?.length) {
+      const d=new Date().toISOString().split('T')[0];
+      docOk = await appendDoc(result.stream2_for_doc.map(i=>`[${d}] ${i}`).join('\n'));
     }
+
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    render(result, tasksAdded, docOk);
+
+  } catch(err) {
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    document.getElementById('screenMain').style.display='block';
+    const e=document.getElementById('mainErr');
+    e.textContent='Something went wrong: '+err.message;
+    e.classList.add('on');
+  }
+}
+
+// ── RENDER ──
+function render(r, tasksAdded, docOk) {
+  const container = document.getElementById('outCards');
+  container.innerHTML = '';
+  let delay = 0;
+
+  const mLabels = { morning:'🌅 Morning', spike:'⚡ Anytime', evening:'🌙 Evening' };
+  document.getElementById('outMeta').innerHTML =
+    `<span>${mLabels[r.mode]||r.mode}</span><span style="opacity:.4">·</span><span>${r.meta}</span>` +
+    (tasksAdded>0 ? `<span class="badge badge-saved">+${tasksAdded} tasks added</span>` : '') +
+    (docOk ? `<span class="badge badge-saved">ideas saved</span>` : '');
+
+  function card(cls, lbl, title, items) {
+    if (!items?.length) return;
+    const c = document.createElement('div');
+    c.className = 'ocard ' + cls;
+    c.style.animationDelay = delay + 's';
+    delay += 0.07;
+    const dotMap = { urgent:'red', soon:'orange', someday:'blue', health:'purple', family:'pink', creative:'teal', research:'amber', noise:'gray', cal:'blue', check:'amber', overnight:'purple' };
+    const dot = dotMap[cls] || 'gray';
+    c.innerHTML = `<div class="ocard-lbl">${lbl}</div><div class="ocard-title">${title}</div>` +
+      items.map(it => {
+        const i = typeof it==='string' ? {text:it} : it;
+        const cb = i.cal ? `<span class="badge badge-cal">📅 confirmed</span>` : '';
+        const rb = i.real===true ? `<span class="badge badge-real">probably real</span>` : i.real===false ? `<span class="badge badge-3am">3am brain</span>` : '';
+        const sub = i.sub ? `<div class="oitem-sub">${i.sub}</div>` : '';
+        return `<div class="oitem"><span class="odot ${dot}"></span><div class="oitem-body"><div>${i.text}${cb}${rb}</div>${sub}</div></div>`;
+      }).join('');
+    container.appendChild(c);
   }
 
-  // ─── RENDER ───────────────────────────────────────────────
-  function renderOutput(result, tasksAdded, docUpdated) {
-    const container = document.getElementById('outputCards');
-    container.innerHTML = '';
-    let delay = 0;
-
-    const modeLabels = { morning: '🌅 Morning', spike: '⚡ Anytime', evening: '🌙 Evening' };
-    document.getElementById('outputMeta').innerHTML =
-      `<span>${modeLabels[result.mode] || result.mode}</span>
-       <span style="color:var(--text-dimmer)">·</span>
-       <span>${result.meta}</span>
-       ${tasksAdded > 0 ? `<span class="badge saved">+${tasksAdded} tasks added</span>` : ''}
-       ${docUpdated ? `<span class="badge saved">ideas saved</span>` : ''}`;
-
-    function card(colorClass, label, title, items) {
-      if (!items || items.length === 0) return;
-      const c = document.createElement('div');
-      c.className = `card ${colorClass}`;
-      c.style.animationDelay = `${delay}s`;
-      delay += 0.07;
-      const dotColor = colorClass.split(' ')[0];
-      c.innerHTML = `<div class="card-label">${label}</div><div class="card-title">${title}</div>` +
-        items.map(item => {
-          const i = typeof item === 'string' ? {text:item} : item;
-          const calB = i.cal ? `<span class="badge cal">📅 confirmed</span>` : '';
-          const realB = i.real === true ? `<span class="badge saved">probably real</span>` : i.real === false ? `<span class="badge check">3am brain</span>` : '';
-          const sub = i.sub ? `<div class="item-sub">${i.sub}</div>` : '';
-          return `<div class="item"><span class="dot ${dotColor}"></span><div class="item-body"><div>${i.text}${calB}${realB}</div>${sub}</div></div>`;
-        }).join('');
-      container.appendChild(c);
-    }
-
-    function note(bgVar, borderVar, textColor, labelHtml, bodyHtml) {
-      const n = document.createElement('div');
-      n.style.cssText = `background:${bgVar};border:1px solid ${borderVar};border-radius:12px;padding:14px 16px;font-size:13px;color:${textColor};line-height:1.6;margin-bottom:12px;animation:fadeUp 0.3s ease forwards;opacity:0;animation-delay:${delay}s`;
-      delay += 0.07;
-      n.innerHTML = `<strong style="display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;opacity:.7">${labelHtml}</strong>${bodyHtml}`;
-      container.appendChild(n);
-    }
-
-    if (result.overnight?.length > 0) card('accent', '🌙 Overnight thoughts', 'Things your brain had at 2am', result.overnight);
-    if (result.needs_confirmation?.length > 0) card('amber', '⚠️ Needs a check', 'Verify before moving on', result.needs_confirmation);
-    if (result.calendar_confirmed?.length > 0) card('blue', '📅 On your calendar', 'Confirmed scheduled', result.calendar_confirmed);
-    if (result.reality_check) note('rgba(251,191,36,0.07)', 'rgba(251,191,36,0.2)', '#d4a843', '🧭 Reality check', result.reality_check);
-
-    const s1 = result.stream1 || {};
-    if (s1.urgent?.length > 0) card('red', '🔴 Urgent — this week', 'Needs action soon', s1.urgent);
-    if (s1.soon?.length > 0) card('orange', '🟡 Soon — this month', "Real, don't let it drift", s1.soon);
-    if (s1.someday?.length > 0) card('blue', '🔵 Someday', 'Weeks or months away', s1.someday);
-
-    const s2 = result.stream2 || {};
-    const s2Items = [
-      ...(s2.health||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'health'})),
-      ...(s2.family||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'family'})),
-      ...(s2.creative||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'creative'})),
-      ...(s2.home||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'home'})),
-      ...(s2.research||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'research'})),
-    ];
-
-    if (s2Items.length > 0) {
-      const catLabels = {health:'💜 Health',family:'🩷 Family',creative:'🩵 Creative',home:'🟡 Home',research:'🔍 Research'};
-      const itemList = s2Items.map(i=>`<div style="padding:4px 0;border-bottom:1px solid rgba(52,211,153,0.1);font-size:13px">${catLabels[i.cat]||''} — ${i.text}</div>`).join('');
-      note('rgba(52,211,153,0.07)', 'rgba(52,211,153,0.2)', '#3ab882', '💭 Saved to your idea library — no action needed', itemList);
-    }
-
-    if (s2.anxiety_noise?.length > 0) card('gray', '🧠 Anxiety noise — named and set down', 'Real feelings, not actionable right now', s2.anxiety_noise);
-
-    if (result.first_move) {
-      const fm = document.createElement('div');
-      fm.className = 'first-move';
-      fm.innerHTML = `<div class="fm-label">Your one first move</div><div class="fm-action">${result.first_move.action}</div><div class="fm-why">${result.first_move.why}</div><div class="fm-note">Can't do this now? Everything is saved. Your brain can let go. Come back to this when you have a moment.</div>`;
-      container.appendChild(fm);
-    }
-
-    document.getElementById('outputSection').classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  function note(cls, lbl, body) {
+    const n = document.createElement('div');
+    n.className = cls;
+    n.style.animationDelay = delay + 's';
+    delay += 0.07;
+    n.innerHTML = `<strong>${lbl}</strong>${body}`;
+    container.appendChild(n);
   }
 
-  // ─── RESET ────────────────────────────────────────────────
-  function resetApp() {
-    document.getElementById('outputSection').classList.remove('active');
-    document.getElementById('outputCards').innerHTML = '';
-    document.getElementById('dumpText').value = '';
-    showScreen('main');
-    document.getElementById('screenMain').style.display = 'block';
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (r.overnight?.length) card('overnight','🌙 Overnight thoughts','Things your 2am brain flagged',r.overnight);
+  if (r.needs_confirmation?.length) card('check','⚠️ Needs a check','Verify before moving on',r.needs_confirmation);
+  if (r.calendar_confirmed?.length) card('cal','📅 On your calendar','Confirmed scheduled',r.calendar_confirmed);
+  if (r.reality_check) note('note-rc','🧭 Reality check — ',r.reality_check);
+
+  const s1=r.stream1||{};
+  if (s1.urgent?.length) card('urgent','🔴 Urgent — this week','Needs action soon',s1.urgent);
+  if (s1.soon?.length) card('soon','🟡 Soon — this month',"Real, don't let it drift",s1.soon);
+  if (s1.someday?.length) card('someday','🔵 Someday','Weeks or months away',s1.someday);
+
+  const s2=r.stream2||{};
+  const s2all=[
+    ...(s2.health||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'health'})),
+    ...(s2.family||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'family'})),
+    ...(s2.creative||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'creative'})),
+    ...(s2.home||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'home'})),
+    ...(s2.research||[]).map(i=>({...(typeof i==='string'?{text:i}:i),cat:'research'})),
+  ];
+  const catLbls={health:'💜 Health',family:'🩷 Family',creative:'🩵 Creative',home:'🟡 Home',research:'🔍 Research'};
+  if (s2all.length) note('note-s2','💭 Saved to your idea library — no action needed','<div style="margin-top:6px">'+s2all.map(i=>`<div class="s2item">${catLbls[i.cat]||''} — ${i.text}</div>`).join('')+'</div>');
+  if (s2.anxiety_noise?.length) card('noise','🧠 Anxiety noise — named and set down','Real feelings, not actionable right now',s2.anxiety_noise);
+
+  if (r.first_move) {
+    const fm=document.createElement('div');
+    fm.className='first-move';
+    fm.style.animationDelay=delay+'s';
+    fm.innerHTML=`<div class="fm-lbl">Your one first move</div><div class="fm-action">${r.first_move.action}</div><div class="fm-why">${r.first_move.why}</div><div class="fm-note">Can't do this now? Everything is saved. Your brain can let go. Come back when you have a moment.</div>`;
+    container.appendChild(fm);
   }
+
+  document.getElementById('output').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── RESET ──
+function resetApp() {
+  document.getElementById('output').classList.remove('on');
+  document.getElementById('outCards').innerHTML='';
+  document.getElementById('dumpText').value='';
+  showScreen('main');
+  document.getElementById('screenMain').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
 </script>
 </body>
 </html>
