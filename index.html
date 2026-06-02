@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.0.1</title>
+<title>Brain Dump v1.0.3</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,6 +25,9 @@ body.theme-purple {
   --fm-bg:#2d1f4e; --fm-text:#ffffff; --fm-sub:rgba(255,255,255,0.6);
   --fm-note:rgba(255,255,255,0.35); --fm-border:rgba(255,255,255,0.1);
   --sug-border:#c8bef0; --sug-bg:#f8f5ff;
+  --btn-start-bg:#f0ecff; --btn-start-color:#7a6a9a; --btn-start-border:#c8bef0;
+  --btn-rethink-bg:#e8e0ff; --btn-rethink-color:#6040e0; --btn-rethink-border:#a090d0;
+  --btn-save-bg:linear-gradient(135deg,#16a34a,#22c55e); --btn-save-color:#ffffff;
 }
 body.theme-light {
   --bg:#f8f7f4; --surface:#ffffff; --surface2:#f2f0ec;
@@ -42,6 +45,9 @@ body.theme-light {
   --fm-bg:#1a1a1a; --fm-text:#ffffff; --fm-sub:rgba(255,255,255,0.6);
   --fm-note:rgba(255,255,255,0.35); --fm-border:rgba(255,255,255,0.1);
   --sug-border:#d0ccc4; --sug-bg:#f8f7f4;
+  --btn-start-bg:#e8e5df; --btn-start-color:#555550; --btn-start-border:#c8c5bf;
+  --btn-rethink-bg:#d8d5cf; --btn-rethink-color:#333330; --btn-rethink-border:#a0a09a;
+  --btn-save-bg:linear-gradient(135deg,#15803d,#16a34a); --btn-save-color:#ffffff;
 }
 body.theme-warm {
   --bg:#1c1612; --surface:#241e18; --surface2:#2e2620;
@@ -59,6 +65,9 @@ body.theme-warm {
   --fm-bg:#0e0c0a; --fm-text:#f0e6d3; --fm-sub:rgba(240,230,211,0.55);
   --fm-note:rgba(240,230,211,0.3); --fm-border:rgba(240,230,211,0.1);
   --sug-border:#4a3e34; --sug-bg:#2a2218;
+  --btn-start-bg:#3a3028; --btn-start-color:#c8b8a8; --btn-start-border:#5a4e44;
+  --btn-rethink-bg:#3d2e1e; --btn-rethink-color:#e8a060; --btn-rethink-border:#c97941;
+  --btn-save-bg:linear-gradient(135deg,#0d9488,#14b8a6); --btn-save-color:#ffffff;
 }
 body.theme-blue {
   --bg:#f0f4f8; --surface:#ffffff; --surface2:#e8f0f8;
@@ -76,6 +85,9 @@ body.theme-blue {
   --fm-bg:#1e3a5f; --fm-text:#ffffff; --fm-sub:rgba(255,255,255,0.6);
   --fm-note:rgba(255,255,255,0.35); --fm-border:rgba(255,255,255,0.1);
   --sug-border:#b0ccec; --sug-bg:#e8f4ff;
+  --btn-start-bg:#d8e8f4; --btn-start-color:#3a6a8a; --btn-start-border:#a0c0dc;
+  --btn-rethink-bg:#c0d8f0; --btn-rethink-color:#1a4a7a; --btn-rethink-border:#2a6db5;
+  --btn-save-bg:linear-gradient(135deg,#0d9488,#0f766e); --btn-save-color:#ffffff;
 }
 
 body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background 0.3s,color 0.3s; }
@@ -268,13 +280,14 @@ input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); flex
 /* Review action bar */
 .review-actions { background:var(--bg); padding:14px 0 4px; border-top:1px solid var(--border); margin-top:8px; position:sticky; bottom:0; }
 .review-hint { font-size:11px; color:var(--text-dimmer); margin-bottom:10px; text-align:center; }
-.action-btns { display:grid; grid-template-columns:1fr 1fr 2fr; gap:8px; }
-.abtn { padding:12px 10px; border-radius:11px; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; transition:all 0.15s; text-align:center; }
-.abtn-start { background:var(--surface); border:1.5px solid var(--border); color:var(--text-dim); }
-.abtn-start:hover { border-color:var(--border2); color:var(--text); }
-.abtn-resort { background:var(--surface2); border:1.5px solid var(--sug-border); color:var(--accent); }
+.action-btns { display:grid; grid-template-columns:1fr 1.8fr 1.8fr; gap:8px; }
+.abtn { padding:12px 10px; border-radius:11px; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; transition:all 0.15s; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+.abtn-start { background:var(--btn-start-bg); border:1.5px solid var(--btn-start-border); color:var(--btn-start-color); }
+.abtn-start:hover { opacity:0.85; }
+.abtn-resort { background:var(--btn-rethink-bg); border:1.5px solid var(--btn-rethink-border); color:var(--btn-rethink-color); }
 .abtn-resort:hover { opacity:0.85; }
-.abtn-save { background:var(--btn-bg); color:var(--accent-text); }
+.abtn-resort-hint { font-size:10px; font-weight:400; font-style:italic; line-height:1.3; opacity:0.75; }
+.abtn-save { background:var(--btn-save-bg); color:var(--btn-save-color); border:none; }
 .abtn-save:hover { opacity:0.9; }
 
 /* Output */
@@ -351,7 +364,7 @@ input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); flex
   </div>
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.0.1</div>
+  <div class="version-tag">v1.0.3</div>
 </div>
 
 <!-- SETUP -->
@@ -426,27 +439,21 @@ input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); flex
 
   <!-- LAPTOP layout -->
   <div class="laptop-only">
-    <div class="laptop-input-row">
-      <div class="dump-wrap" style="margin-bottom:0">
-        <div class="dump-lbl">What's in your head right now</div>
-        <textarea id="dumpLaptop" placeholder="Just start typing... messy is fine. Tasks, worries, ideas, things you can't stop thinking about. Don't organise it — that's what this is for." rows="8"></textarea>
-      </div>
-      <div class="laptop-voice-col">
-        <div style="text-align:center">
-          <button class="mic-btn-small" id="micLaptop" onclick="toggleSpeech('laptop')" title="Click to speak">
-            <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 17.93V21h2v-2.07A8 8 0 0 0 20 11h-2a6 6 0 0 1-12 0H4a8 8 0 0 0 7 7.93z"/></svg>
-          </button>
-          <div class="voice-col-lbl" style="margin-top:4px">speak</div>
-        </div>
-        <div style="text-align:center">
-          <button class="upload-btn-small" onclick="triggerUpload()" title="Upload audio">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </button>
-          <div class="voice-col-lbl" style="margin-top:4px">upload</div>
-        </div>
-      </div>
+    <div class="dump-wrap" style="margin-bottom:10px">
+      <div class="dump-lbl">What's in your head right now</div>
+      <textarea id="dumpLaptop" placeholder="Just start typing... messy is fine. Tasks, worries, ideas, things you can't stop thinking about. Don't organise it — that's what this is for." rows="8"></textarea>
     </div>
-    <div class="rec-indicator" id="recLaptop" style="margin-top:8px"><div class="rec-dot"></div><span>Listening... click mic to stop</span></div>
+    <div style="display:flex;gap:10px;margin-bottom:12px;align-items:center">
+      <button class="mic-btn-small" id="micLaptop" onclick="toggleSpeech('laptop')" title="Click to speak">
+        <svg viewBox="0 0 24 24"><path d="M12 1a4 4 0 0 1 4 4v6a4 4 0 0 1-8 0V5a4 4 0 0 1 4-4zm-1 17.93V21h2v-2.07A8 8 0 0 0 20 11h-2a6 6 0 0 1-12 0H4a8 8 0 0 0 7 7.93z"/></svg>
+      </button>
+      <span class="voice-col-lbl">Click to speak</span>
+      <button class="upload-btn-small" onclick="triggerUpload()" title="Upload audio" style="margin-left:8px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </button>
+      <span class="voice-col-lbl">Upload audio</span>
+    </div>
+    <div class="rec-indicator" id="recLaptop"><div class="rec-dot"></div><span>Listening... click mic to stop</span></div>
   </div>
 
   <input type="file" id="audioUpload" accept="audio/*" style="display:none" onchange="handleAudioUpload(event)">
@@ -502,7 +509,7 @@ input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); flex
     <div class="review-hint">Nothing saves until you hit Save & done</div>
     <div class="action-btns">
       <button class="abtn abtn-start" onclick="startOver()">↺ Start over</button>
-      <button class="abtn abtn-resort" onclick="reSort()">⟳ Re-sort</button>
+      <button class="abtn abtn-resort" onclick="reSort()">⟳ Rethink everything<span class="abtn-resort-hint">small edits don't need this — use the pencil</span></button>
       <button class="abtn abtn-save" onclick="saveAndDone()">✓ Save & done</button>
     </div>
   </div>
@@ -516,7 +523,7 @@ input[type=checkbox] { width:16px; height:16px; accent-color:var(--accent); flex
 </div>
 
 <script>
-const VERSION = '1.0.1';
+const VERSION = '1.0.3';
 let mode = 'spike';
 let gToken = null;
 let CFG = { apiKey:'', clientId:'', docId:'' };
@@ -779,7 +786,7 @@ Array items: {"text":"...","sub":"optional 1-sentence context","cal":false}
 overnight items also include "real": true/false
 stream1_for_tasks: flat string array, only NEW tasks not already in existing tasks list
 stream2_for_doc: flat string array formatted "[CATEGORY] item" — no duplicates from stream1
-context_suggestions: flat string array of facts noticed in the dump worth remembering (e.g. "Shannon can drive, Jennifer cannot")
+context_suggestions: flat string array of STABLE RECURRING FACTS only — things that would still be true and useful in a month (e.g. "Shannon can drive, Jennifer cannot"). Write in second person ("You have a..."). NEVER suggest one-time events, trips, purchases, returns, or anything temporary. If nothing qualifies, return empty array.
 category_suggestions: flat string array of category splits worth considering (only suggest if a category seems to have many related items)
 reality_check: short warm paragraph on emotional reality. Empty string if nothing notable.`;
 
