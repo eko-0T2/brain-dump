@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.2</title>
+<title>Brain Dump v1.2.3</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -381,7 +381,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.2</div>
+  <div class="version-tag">v1.2.3</div>
 </div>
 
 <!-- SETUP -->
@@ -458,11 +458,7 @@ textarea::placeholder { color:var(--text-dimmer); }
     </div>
   </div>
   <div class="status-bar"><span class="sdot"></span><span id="statusText">Google connected · ready</span></div>
-  <div class="mode-selector">
-    <button class="mode-btn" id="mode-checkin" onclick="setMode('checkin')"><span class="mi">📋</span>Check in</button>
-    <button class="mode-btn active" id="mode-quick" onclick="setMode('quick')"><span class="mi">⚡</span>Quick dump</button>
-    <button class="mode-btn" id="mode-full" onclick="setMode('full')"><span class="mi">🧠</span>Full dump</button>
-  </div>
+
   <!-- Mode picker shown by default -->
   <div id="modePicker" style="display:block">
     <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px">
@@ -570,7 +566,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.2';
+const VERSION='1.2.3';
 let mode='quick', gToken=null, taskListId=null, currentResult=null;
 let CFG={apiKey:'',clientId:'',docId:''};
 const SCOPES='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
@@ -591,6 +587,74 @@ function getDateLabels(){
   const fmt=d=>d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
   const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
   return{today:fmt(today),tomorrow:fmt(tom),thisWeek:'by Sun '+fmt(sun),nextWeek:fmt(mon),thisMonth:'by '+fmt(lastDay),nextMonth:fmt(nm)};
+}
+
+function buildCiDateDD(ddId,slId,cpId,ciId,taskId,listId){
+  const L=getDateLabels();
+  const write=(label,dueDate)=>{
+    if(taskId&&listId&&dueDate)updateTaskDue(listId,taskId,dueDate);
+  };
+  // Build date options with write-back
+  return`<div class="dd" id="${ddId}">
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Today','${L.today}','${taskId}','${listId}','today')"><i class="ti ti-sun" style="font-size:14px" aria-hidden="true"></i>Today<span class="dd-hint">${L.today}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Tomorrow','${L.tomorrow}','${taskId}','${listId}','tomorrow')"><i class="ti ti-arrow-right" style="font-size:14px" aria-hidden="true"></i>Tomorrow<span class="dd-hint">${L.tomorrow}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','This week','${L.thisWeek}','${taskId}','${listId}','this_week')"><i class="ti ti-calendar-week" style="font-size:14px" aria-hidden="true"></i>This week<span class="dd-hint">${L.thisWeek}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Next week','${L.nextWeek}','${taskId}','${listId}','next_week')"><i class="ti ti-calendar" style="font-size:14px" aria-hidden="true"></i>Next week<span class="dd-hint">${L.nextWeek}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','This month','${L.thisMonth}','${taskId}','${listId}','this_month')"><i class="ti ti-calendar-month" style="font-size:14px" aria-hidden="true"></i>This month<span class="dd-hint">${L.thisMonth}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Next month','${L.nextMonth}','${taskId}','${listId}','next_month')"><i class="ti ti-calendar-month" style="font-size:14px" aria-hidden="true"></i>Next month<span class="dd-hint">${L.nextMonth}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','No date','','${taskId}','${listId}','none')"><i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>No date</div>
+    <div class="dd-opt dd-pick" onclick="showCiCustomDP('${ddId}','${cpId}','${taskId}','${listId}')"><i class="ti ti-calendar-plus" style="font-size:14px" aria-hidden="true"></i>Pick a date...</div>
+  </div>
+  <div class="custom-dp" id="${cpId}"><input type="date" id="${ciId}"><button onclick="confirmCiDP('${cpId}','${slId}','${ciId}','${taskId}','${listId}')">Set</button></div>
+  <div class="date-set" id="${slId}"></div>`;
+}
+
+function setCiDate(ddId,slId,label,hint,taskId,listId,key){
+  document.getElementById(ddId).classList.remove('open');
+  const sl=document.getElementById(slId);
+  if(label==='No date'){
+    sl.textContent='📅 No due date set';
+  } else {
+    sl.textContent='📅 '+label+' — '+hint+' ✓ saved';
+  }
+  sl.classList.add('show');
+  // Write to Google Tasks immediately
+  if(taskId&&listId&&key!=='none'){
+    const now=new Date();
+    let dueDate='';
+    if(key==='today')dueDate=now.toISOString().split('T')[0];
+    else if(key==='tomorrow'){const d=new Date(now);d.setDate(d.getDate()+1);dueDate=d.toISOString().split('T')[0];}
+    else if(key==='this_week'){const d=new Date(now);const dow=d.getDay();d.setDate(d.getDate()+(dow===0?0:7-dow));dueDate=d.toISOString().split('T')[0];}
+    else if(key==='next_week'){const d=new Date(now);const dow=d.getDay();d.setDate(d.getDate()+(dow===0?1:8-dow));dueDate=d.toISOString().split('T')[0];}
+    else if(key==='this_month'){const d=new Date(now.getFullYear(),now.getMonth()+1,0);dueDate=d.toISOString().split('T')[0];}
+    else if(key==='next_month'){const d=new Date(now.getFullYear(),now.getMonth()+1,1);dueDate=d.toISOString().split('T')[0];}
+    if(dueDate)updateTaskDue(listId,taskId,dueDate).then(()=>{
+      sl.textContent='📅 '+label+' — '+hint+' ✓ saved to Tasks';
+    });
+  }
+}
+
+function showCiCustomDP(ddId,cpId,taskId,listId){
+  document.getElementById(ddId).classList.remove('open');
+  const cp=document.getElementById(cpId);
+  cp.classList.add('show');
+  cp.querySelector('input').focus();
+}
+
+function confirmCiDP(cpId,slId,ciId,taskId,listId){
+  const val=document.getElementById(ciId).value;
+  if(!val)return;
+  const d=new Date(val+'T00:00:00');
+  const fmt=d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById(cpId).classList.remove('show');
+  const sl=document.getElementById(slId);
+  sl.textContent='📅 '+fmt+' ✓ saving...';
+  sl.classList.add('show');
+  if(taskId&&listId){
+    updateTaskDue(listId,taskId,val).then(()=>{
+      sl.textContent='📅 '+fmt+' ✓ saved to Tasks';
+    });
+  }
 }
 
 function buildDateDD(ddId,slId,cpId,ciId){
@@ -722,8 +786,11 @@ function showSetup(){
   document.getElementById('inDocId').value=CFG.docId||'';
   const mq=localStorage.getItem('bd_model_quick')||'claude-haiku-4-5-20251001';
   const mf=localStorage.getItem('bd_model_full')||'claude-sonnet-4-6';
-  document.getElementById('modelQuick').value=mq;
-  document.getElementById('modelFull').value=mf;
+  const mqEl=document.getElementById('modelQuick');
+  const mfEl=document.getElementById('modelFull');
+  if(mqEl)mqEl.value=mq;
+  if(mfEl)mfEl.value=mf;
+  // Always read fresh from localStorage
   const lastRefresh=localStorage.getItem('bd_annual_refresh_month');
   const statusEl=document.getElementById('annualContextStatus');
   if(statusEl)statusEl.textContent=lastRefresh?'Last refreshed: '+lastRefresh:'Never refreshed';
@@ -809,7 +876,13 @@ async function fetchCal(){
       try{
         const enc=encodeURIComponent(calId);
         const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
-        if(r.ok){const d=await r.json();allEvents.push(...(d.items||[]));}
+        if(r.ok){
+          const d=await r.json();
+          // Tag each event with the calendar id so we can display it
+          const calLabel=calId==='primary'?'':calId.includes('#')?(calId.split('@')[0].replace('.',' ')):'';
+          (d.items||[]).forEach(ev=>{ev.calendar_name=calLabel;});
+          allEvents.push(...(d.items||[]));
+        }
       }catch(e){console.error('Cal fetch for',calId,e);}
     }));
     // Deduplicate by id and sort by start time
@@ -933,17 +1006,55 @@ function buildCheckin(cal,tasks,listId){
     const s=new Date(e.start.dateTime||e.start.date);
     return s.toDateString()===todayStr;
   });
-  if(todayEvents.length){
+  // Build full 7-day calendar section with all-day first, show calendar name
+  const todayStr2=today.toDateString();
+  const allDayEvts=cal.filter(e=>!e.start.dateTime&&new Date(e.start.date).toDateString()===todayStr2);
+  const timedEvts=cal.filter(e=>e.start.dateTime&&new Date(e.start.dateTime).toDateString()===todayStr2);
+  const upcomingEvts=cal.filter(e=>{
+    const s=new Date(e.start.dateTime||e.start.date);
+    return s.toDateString()!==todayStr2;
+  }).slice(0,8);
+
+  if(allDayEvts.length||timedEvts.length||upcomingEvts.length){
     const card=document.createElement('div');
     card.className='ci-card';
     card.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
-    todayEvents.forEach(e=>{
-      const s=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+
+    // All-day events first
+    allDayEvts.forEach(e=>{
+      const calName=e.organizer?.displayName||e.calendar_name||'';
       const row=document.createElement('div');
       row.className='ci-row';
-      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${e.location?`<div class="ci-sub">${e.location.split(',')[0]}</div>`:''}</div><span class="ci-badge cb-blue">${s}</span>`;
+      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub">${calName}</div>`:''}</div><span class="ci-badge cb-gray">all day</span>`;
       card.appendChild(row);
     });
+
+    // Timed events
+    timedEvts.forEach(e=>{
+      const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+      const calName=e.organizer?.displayName||e.calendar_name||'';
+      const row=document.createElement('div');
+      row.className='ci-row';
+      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub">${calName}</div>`:''}</div><span class="ci-badge cb-blue">${s}</span>`;
+      card.appendChild(row);
+    });
+
+    // Upcoming this week
+    if(upcomingEvts.length){
+      const upDiv=document.createElement('div');
+      upDiv.innerHTML='<div class="ci-lbl" style="padding-top:10px;border-top:1px solid var(--border)">Coming up</div>';
+      card.appendChild(upDiv);
+      upcomingEvts.forEach(e=>{
+        const s=new Date(e.start.dateTime||e.start.date);
+        const dayLabel=s.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        const timeLabel=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'';
+        const calName=e.organizer?.displayName||e.calendar_name||'';
+        const row=document.createElement('div');
+        row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon ic-gray"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub">${calName}${timeLabel?' · '+timeLabel:''}</div>`:(timeLabel?`<div class="ci-sub">${timeLabel}</div>`:'')}</div><span class="ci-badge cb-gray">${dayLabel}</span>`;
+        card.appendChild(row);
+      });
+    }
     container.appendChild(card);
   }
 
@@ -970,7 +1081,7 @@ function buildCheckin(cal,tasks,listId){
           <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
           <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
           <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>
-          ${buildDateDD(ddId,slId,cpId,ciId)}
+          ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
         </div>`;
       card.appendChild(wrap);
     });
@@ -1002,7 +1113,7 @@ function buildCheckin(cal,tasks,listId){
           <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
           <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button>
           <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Remove</button>
-          ${buildDateDD(ddId,slId,cpId,ciId)}
+          ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
         </div>`;
       card.appendChild(wrap);
     });
@@ -1262,16 +1373,32 @@ function addBackAnnual(btn,title){
 }
 async function saveAnnualContext(){
   const items=[];
-  document.querySelectorAll('#annualCards .diff-item:not([style*="display: none"])').forEach(el=>{
+  document.querySelectorAll('#annualCards .diff-item').forEach(el=>{
+    // Skip excluded items (hidden)
+    if(el.style.display==='none')return;
     const body=el.querySelector('.diff-body');
-    if(body)items.push(body.childNodes[0].textContent.trim()+' — '+(el.querySelector('.diff-body-sub')?.textContent||''));
+    if(!body)return;
+    const title=body.childNodes[0]?.textContent?.trim()||'';
+    const sub=body.querySelector('.diff-body-sub')?.textContent?.trim()||'';
+    if(title)items.push(title+(sub?' — '+sub:''));
   });
   const contextText=items.join('\n');
-  localStorage.setItem('bd_annual_context',contextText);
   const currentMonth=new Date().toISOString().substring(0,7);
+  // Save to localStorage first
+  localStorage.setItem('bd_annual_context',contextText);
   localStorage.setItem('bd_annual_refresh_month',currentMonth);
   localStorage.setItem('bd_annual_excluded',JSON.stringify(annualExcluded));
-  await appendDoc('[ANNUAL CONTEXT — '+currentMonth+']\n'+contextText+'\n');
+  // Show saving state
+  document.querySelectorAll('.save-ctx-btn').forEach(b=>{b.textContent='Saving...';b.disabled=true;});
+  // Append to doc
+  try{
+    await appendDoc('[ANNUAL CONTEXT — '+currentMonth+']\n'+contextText+'\n');
+  }catch(e){
+    console.error('Doc append failed:',e);
+  }
+  // Update settings display
+  const statusEl=document.getElementById('annualContextStatus');
+  if(statusEl)statusEl.textContent='Last refreshed: '+currentMonth;
   resetToMain();
 }
 
@@ -1495,7 +1622,7 @@ function buildMiniCheckin(tasks,listId){
         <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
         <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
         <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>
-        ${buildDateDD(ddId,slId,cpId,ciId)}
+        ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
       </div>`;
     card.appendChild(wrap);
   });
