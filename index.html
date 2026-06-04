@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.1</title>
+<title>Brain Dump v1.2.2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -45,23 +45,23 @@ body.theme-light {
   --status-task-bg:#eff6ff; --status-task-border:#2563eb; --status-task-color:#1d4ed8;
   --status-idea-bg:#faf5ff; --status-idea-border:#7c3aed; --status-idea-color:#6d28d9;
 }
-body.theme-warm {
-  --bg:#2a1f14; --surface:#352616; --surface2:#3e2e1c;
-  --border:#5a4030; --border2:#7a5840;
-  --text:#f0e6d3; --text-dim:#c8a888; --text-dimmer:#8a6848;
-  --accent:#c97941; --accent2:#e8a060; --accent-text:#ffffff;
-  --btn-bg:linear-gradient(135deg,#c97941,#e8a060);
+body.theme-dark {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a;
+  --border:#2e3348; --border2:#3d4460;
+  --text:#e8eaf6; --text-dim:#9099c0; --text-dimmer:#545a80;
+  --accent:#7c6af7; --accent2:#a78bfa; --accent-text:#ffffff;
+  --btn-bg:linear-gradient(135deg,#7c6af7,#a78bfa);
   --red:#f87171; --orange:#fb923c; --blue:#60a5fa;
-  --purple:#c084fc; --teal:#34d399; --green:#4ade80; --gray:#9ca3af;
-  --card-urgent:#3a1a1a; --card-soon:#3a2a10; --card-someday:#1a2a3a;
-  --card-s2:#2a1838; --card-existing:#182a18; --card-noise:#2a2a2a;
-  --fm-bg:#180e08; --fm-text:#f0e6d3; --fm-sub:rgba(240,230,211,0.65);
-  --fm-note:rgba(240,230,211,0.4); --fm-border:rgba(240,230,211,0.15);
-  --btn-start-bg:#4a3828; --btn-start-color:#d8c8b8; --btn-start-border:#6a5040;
-  --btn-rethink-bg:#4d3a20; --btn-rethink-color:#e8a060; --btn-rethink-border:#c97941;
-  --btn-save-bg:linear-gradient(135deg,#0d9488,#14b8a6); --btn-save-color:#ffffff;
-  --status-task-bg:#1a2a3a; --status-task-border:#60a5fa; --status-task-color:#93c5fd;
-  --status-idea-bg:#2a1838; --status-idea-border:#c084fc; --status-idea-color:#d8b4fe;
+  --purple:#c084fc; --teal:#34d399; --green:#4ade80; --gray:#6b7280;
+  --card-urgent:#2a1a1a; --card-soon:#2a2010; --card-someday:#1a2030;
+  --card-s2:#1e1838; --card-existing:#182a18; --card-noise:#1e2030;
+  --fm-bg:#0a0c14; --fm-text:#e8eaf6; --fm-sub:rgba(232,234,246,0.65);
+  --fm-note:rgba(232,234,246,0.35); --fm-border:rgba(232,234,246,0.1);
+  --btn-start-bg:#22263a; --btn-start-color:#9099c0; --btn-start-border:#3d4460;
+  --btn-rethink-bg:#2a2848; --btn-rethink-color:#a78bfa; --btn-rethink-border:#7c6af7;
+  --btn-save-bg:linear-gradient(135deg,#16a34a,#22c55e); --btn-save-color:#ffffff;
+  --status-task-bg:#1a2030; --status-task-border:#60a5fa; --status-task-color:#93c5fd;
+  --status-idea-bg:#1e1838; --status-idea-border:#c084fc; --status-idea-color:#d8b4fe;
 }
 body.theme-blue {
   --bg:#f0f4f8; --surface:#ffffff; --surface2:#e8f0f8;
@@ -365,6 +365,14 @@ textarea::placeholder { color:var(--text-dimmer); }
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.mode-card{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.15s;text-align:left;font-family:'DM Sans',sans-serif;width:100%;}
+.mode-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.mode-card-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;}
+.mode-card-body{flex:1;}
+.mode-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.mode-card-sub{font-size:12px;color:var(--text-dimmer);}
+.mode-card-arrow{color:var(--text-dimmer);font-size:18px;flex-shrink:0;}
 </style>
 </head>
 <body class="theme-purple">
@@ -373,7 +381,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.1</div>
+  <div class="version-tag">v1.2.2</div>
 </div>
 
 <!-- SETUP -->
@@ -389,7 +397,7 @@ textarea::placeholder { color:var(--text-dimmer); }
       <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
         <button onclick="setTheme('purple',this)" id="t-purple" title="Soft purple" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7c6af7,#a78bfa);border:3px solid var(--accent);cursor:pointer;flex-shrink:0;padding:0"></button>
         <button onclick="setTheme('light',this)" id="t-light" title="Clean light" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f8f7f4,#555);border:1.5px solid #ccc;cursor:pointer;flex-shrink:0;padding:0"></button>
-        <button onclick="setTheme('warm',this)" id="t-warm" title="Warm dark" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#2a1f14,#c97941);border:1.5px solid #6a5040;cursor:pointer;flex-shrink:0;padding:0"></button>
+        <button onclick="setTheme('dark',this)" id="t-dark" title="True dark" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0f1117,#7c6af7);border:1.5px solid #3d4460;cursor:pointer;flex-shrink:0;padding:0"></button>
         <button onclick="setTheme('blue',this)" id="t-blue" title="Fresh blue" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f0f4f8,#2a6db5);border:1.5px solid #a0c0dc;cursor:pointer;flex-shrink:0;padding:0"></button>
       </div>
     </div>
@@ -423,6 +431,7 @@ textarea::placeholder { color:var(--text-dimmer); }
     </div>
     <div class="err" id="setupErr"></div>
     <button class="btn btn-primary" onclick="saveSetup()">Save & continue</button>
+    <button class="btn btn-secondary" onclick="cancelSetup()" style="margin-top:8px">Cancel — go back</button>
   </div>
 </div>
 
@@ -454,19 +463,48 @@ textarea::placeholder { color:var(--text-dimmer); }
     <button class="mode-btn active" id="mode-quick" onclick="setMode('quick')"><span class="mi">⚡</span>Quick dump</button>
     <button class="mode-btn" id="mode-full" onclick="setMode('full')"><span class="mi">🧠</span>Full dump</button>
   </div>
-  <div id="modeCheckin" style="display:none">
-    <button class="btn btn-primary" onclick="runCheckin()" style="margin-bottom:8px"><i class="ti ti-list-check" style="font-size:16px" aria-hidden="true"></i> Show what's on my plate</button>
-    <div style="font-size:12px;color:var(--text-dimmer);text-align:center;margin-bottom:4px">Free · no API credits used</div>
+  <!-- Mode picker shown by default -->
+  <div id="modePicker" style="display:block">
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px">
+      <button class="mode-card" onclick="launchMode('checkin')">
+        <div class="mode-card-icon ic-green"><i class="ti ti-list-check" aria-hidden="true"></i></div>
+        <div class="mode-card-body">
+          <div class="mode-card-title">Check in</div>
+          <div class="mode-card-sub">What's on my plate — free, no AI</div>
+        </div>
+        <i class="ti ti-chevron-right mode-card-arrow" aria-hidden="true"></i>
+      </button>
+      <button class="mode-card" onclick="launchMode('quick')">
+        <div class="mode-card-icon ic-blue"><i class="ti ti-bolt" aria-hidden="true"></i></div>
+        <div class="mode-card-body">
+          <div class="mode-card-title">Quick dump</div>
+          <div class="mode-card-sub">A few things on your mind</div>
+        </div>
+        <i class="ti ti-chevron-right mode-card-arrow" aria-hidden="true"></i>
+      </button>
+      <button class="mode-card" onclick="launchMode('full')">
+        <div class="mode-card-icon ic-purple"><i class="ti ti-brain" aria-hidden="true"></i></div>
+        <div class="mode-card-body">
+          <div class="mode-card-title">Full dump</div>
+          <div class="mode-card-sub">Everything in your head</div>
+        </div>
+        <i class="ti ti-chevron-right mode-card-arrow" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
   </div>
-  <div id="modeDump" style="display:block">
+
+  <!-- Dump input shown after mode selected -->
+  <div id="modeDump" style="display:none">
+    <button onclick="backToModePicker()" style="background:none;border:none;color:var(--text-dimmer);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px;padding:0">← Back</button>
     <div class="dump-wrap">
       <div class="dump-lbl" id="dumpLabel">What's on your mind?</div>
       <textarea id="dumpText" placeholder="A few things... tasks, something that came up, a quick worry." rows="5"></textarea>
     </div>
     <div class="err" id="mainErr"></div>
     <button class="btn btn-primary" id="sortBtn" onclick="processDump()"><i class="ti ti-bolt" style="font-size:16px" aria-hidden="true"></i> Sort it</button>
+    <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
   </div>
-  <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
 
 <!-- LOADING -->
@@ -479,8 +517,9 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div class="fm-lbl">Best next action</div>
     <div class="fm-action" id="ciFMText"></div>
   </div>
-  <button class="new-dump" onclick="resetToMain()" style="margin-top:10px">↩ Back</button>
+  <button class="new-dump" onclick="saveCiAndBack()" style="margin-top:10px">✓ Save & back</button>
   <div style="font-size:11px;color:var(--text-dimmer);text-align:center;margin-top:6px">Free · no credits used</div>
+  <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
 
 <!-- ANNUAL REFRESH -->
@@ -531,7 +570,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.1';
+const VERSION='1.2.2';
 let mode='quick', gToken=null, taskListId=null, currentResult=null;
 let CFG={apiKey:'',clientId:'',docId:''};
 const SCOPES='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
@@ -671,6 +710,11 @@ function showScreen(name){
     const el=document.getElementById(id);
     if(el){el.classList.remove('on');el.style.display='';}
   });
+  if(name==='main')checkMonthlyBanner();
+}
+function cancelSetup(){
+  if(gToken)resetToMain();
+  else showScreen('auth');
 }
 function showSetup(){
   document.getElementById('inApiKey').value=CFG.apiKey||'';
@@ -713,19 +757,20 @@ function handleAuth(){
 // MODE
 function setMode(m){
   mode=m;
-  document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('mode-'+m).classList.add('active');
-  const dumpArea=document.getElementById('modeDump');
-  const ciArea=document.getElementById('modeCheckin');
+}
+function launchMode(m){
+  mode=m;
+  const picker=document.getElementById('modePicker');
+  const dump=document.getElementById('modeDump');
   const lbl=document.getElementById('dumpLabel');
   const btn=document.getElementById('sortBtn');
   const ta=document.getElementById('dumpText');
   if(m==='checkin'){
-    dumpArea.style.display='none';
-    ciArea.style.display='block';
+    picker.style.display='none';
+    runCheckin();
   } else {
-    dumpArea.style.display='block';
-    ciArea.style.display='none';
+    picker.style.display='none';
+    dump.style.display='block';
     if(m==='quick'){
       lbl.textContent="What's on your mind?";
       ta.placeholder="A few things... tasks, something that came up, a quick worry.";
@@ -739,23 +784,58 @@ function setMode(m){
     }
   }
 }
+function backToModePicker(){
+  document.getElementById('modeDump').style.display='none';
+  document.getElementById('modePicker').style.display='block';
+}
 
 // GOOGLE APIs
+async function fetchAllCalendarIds(){
+  try{
+    const r=await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList',{headers:{Authorization:'Bearer '+gToken}});
+    if(r.status===401){saveDumpAndReauth();throw new Error('Token expired');}
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    return(data.items||[]).filter(c=>c.selected!==false).map(c=>c.id);
+  }catch(e){console.error('CalList:',e);return['primary'];}
+}
+
 async function fetchCal(){
   try{
     const now=new Date(),end=new Date(now.getTime()+7*86400000);
-    const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=20`,{headers:{Authorization:'Bearer '+gToken}});
-    if(r.status===401){saveDumpAndReauth();throw new Error('Token expired');}
-    if(!r.ok)throw new Error();
-    return(await r.json()).items||[];
+    const calIds=await fetchAllCalendarIds();
+    const allEvents=[];
+    await Promise.all(calIds.map(async calId=>{
+      try{
+        const enc=encodeURIComponent(calId);
+        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
+        if(r.ok){const d=await r.json();allEvents.push(...(d.items||[]));}
+      }catch(e){console.error('Cal fetch for',calId,e);}
+    }));
+    // Deduplicate by id and sort by start time
+    const seen=new Set();
+    const unique=allEvents.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+    unique.sort((a,b)=>new Date(a.start.dateTime||a.start.date)-new Date(b.start.dateTime||b.start.date));
+    return unique;
   }catch(e){console.error('Cal:',e);return[];}
 }
+
 async function fetchCalYear(){
   try{
     const now=new Date(),end=new Date(now.getTime()+365*86400000);
-    const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=200`,{headers:{Authorization:'Bearer '+gToken}});
-    if(!r.ok)throw new Error();
-    return(await r.json()).items||[];
+    const calIds=await fetchAllCalendarIds();
+    const allEvents=[];
+    await Promise.all(calIds.map(async calId=>{
+      try{
+        const enc=encodeURIComponent(calId);
+        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=200`,{headers:{Authorization:'Bearer '+gToken}});
+        if(r.ok){const d=await r.json();allEvents.push(...(d.items||[]));}
+      }catch(e){}
+    }));
+    const seen=new Set();
+    const unique=allEvents.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+    unique.sort((a,b)=>new Date(a.start.dateTime||a.start.date)-new Date(b.start.dateTime||b.start.date));
+    return unique;
   }catch(e){return[];}
 }
 async function fetchTasks(){
@@ -1016,6 +1096,37 @@ async function ciMakeTask(text,listId){
   }catch(e){return false;}
 }
 function selAsk(el){el.closest('.ask-again').querySelectorAll('.ask-chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+
+async function saveCiAndBack(){
+  // Write all pending date changes from check-in Still on it selections
+  const promises=[];
+  document.querySelectorAll('.date-set.show').forEach(sl=>{
+    const text=sl.textContent.replace('📅 Due: ','').trim();
+    if(!text||text==='No date')return;
+    // Find associated task id from the ta-row parent
+    const taRow=sl.previousElementSibling?.previousElementSibling;
+    if(!taRow)return;
+    // Get task id from the done button onclick
+    const doneBtn=taRow.querySelector('.ta-done');
+    if(!doneBtn)return;
+    const match=doneBtn.getAttribute('onclick')?.match(/'([^']+)','([^']+)'\)$/);
+    if(!match)return;
+    const taskId=match[1],listId=match[2];
+    // Parse date
+    let dueDate='';
+    const now=new Date();
+    const L=getDateLabels();
+    if(text.includes('Today'))dueDate=now.toISOString().split('T')[0];
+    else if(text.includes('Tomorrow')){const d=new Date(now);d.setDate(d.getDate()+1);dueDate=d.toISOString().split('T')[0];}
+    else if(text.includes('This week')){const d=new Date(now);const dow=d.getDay();d.setDate(d.getDate()+(dow===0?0:7-dow));dueDate=d.toISOString().split('T')[0];}
+    else if(text.includes('Next week')){const d=new Date(now);const dow=d.getDay();d.setDate(d.getDate()+(dow===0?1:8-dow));dueDate=d.toISOString().split('T')[0];}
+    else if(text.includes('This month')){const d=new Date(now.getFullYear(),now.getMonth()+1,0);dueDate=d.toISOString().split('T')[0];}
+    else if(text.includes('Next month')){const d=new Date(now.getFullYear(),now.getMonth()+1,1);dueDate=d.toISOString().split('T')[0];}
+    if(dueDate&&taskId&&listId)promises.push(updateTaskDue(listId,taskId,dueDate));
+  });
+  if(promises.length)await Promise.all(promises);
+  resetToMain();
+}
 
 // ANNUAL REFRESH
 async function startAnnualRefresh(){
@@ -1337,7 +1448,8 @@ function buildReview(result,listId,existingTasks){
     const card=document.createElement('div');card.className='existing-card';
     existing.forEach(t=>{
       const div=document.createElement('div');div.className='existing-item';
-      div.innerHTML=`<span class="existing-dot"></span><span>${t}</span>`;
+      const title=typeof t==='string'?t:(t.title||t.text||JSON.stringify(t));
+      div.innerHTML=`<span class="existing-dot"></span><span>${title}</span>`;
       card.appendChild(div);
     });
     existingContainer.appendChild(card);
@@ -1531,10 +1643,17 @@ function renderFinal(r,tasksAdded,docOk){
   if(items.someday?.length)card('someday','🔵 Saved — someday','Added to Google Tasks',items.someday,'blue');
   if(r.anxiety_noise?.length)card('noise','🧠 Anxiety noise — named and set down','Real feelings, not actionable right now',r.anxiety_noise,'gray');
 
-  if(r.first_move){
+  if(r.first_move&&r.first_move.action){
     const fm=document.createElement('div');fm.className='fm-final';fm.style.animationDelay=delay+'s';
-    fm.innerHTML=`<div class="fm-lbl">Your one first move</div><div class="fm-action">${r.first_move.action}</div><div class="fm-why">${r.first_move.why}</div><div class="fm-note">Can't do this now? Everything is saved. Your brain can let go.</div>`;
+    fm.innerHTML=`<div class="fm-lbl">Your one first move</div><div class="fm-action">${r.first_move.action}</div><div class="fm-why">${r.first_move.why||''}</div><div class="fm-note">Can't do this now? Everything is saved. Your brain can let go.</div>`;
     container.appendChild(fm);
+  }
+  // If nothing was rendered at all, show a fallback
+  if(container.children.length===0){
+    const fb=document.createElement('div');
+    fb.style.cssText='padding:20px;text-align:center;color:var(--text-dimmer);font-size:13px';
+    fb.textContent='Nothing to show — try a more detailed dump or check your connection.';
+    container.appendChild(fb);
   }
   document.getElementById('output').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1545,28 +1664,9 @@ function startOver(){
   resetToMain();
 }
 async function checkBestModels(){
-  const btn=document.querySelector('[onclick="checkBestModels()"]');
   const suggestion=document.getElementById('modelSuggestion');
-  if(btn)btn.textContent='Checking...';
-  suggestion.style.display='none';
-  try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':CFG.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({
-        model:'claude-haiku-4-5-20251001',
-        max_tokens:300,
-        messages:[{role:'user',content:`Current model settings: Quick dump = ${localStorage.getItem('bd_model_quick')||'claude-haiku-4-5-20251001'}, Full dump = ${localStorage.getItem('bd_model_full')||'claude-sonnet-4-6'}. In 2-3 sentences, are these still good choices given current Anthropic models? Mention any newer models worth considering. Be brief and practical.`}]
-      })
-    });
-    const data=await res.json();
-    suggestion.textContent=data.content[0].text;
-    suggestion.style.display='block';
-  }catch(e){
-    suggestion.textContent='Could not check — make sure your API key is saved.';
-    suggestion.style.display='block';
-  }
-  if(btn)btn.textContent='🔍 Check for better models';
+  suggestion.innerHTML='Available models: <strong>claude-haiku-4-5-20251001</strong> (fast, cheap) and <strong>claude-sonnet-4-6</strong> (balanced). Check <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" style="color:var(--accent)">Anthropic model docs</a> for the latest releases.';
+  suggestion.style.display='block';
 }
 
 function resetToMain(){
@@ -1576,6 +1676,8 @@ function resetToMain(){
   });
   showScreen('main');
   document.getElementById('screenMain').style.display='block';
+  document.getElementById('modePicker').style.display='block';
+  document.getElementById('modeDump').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 function resetApp(){
