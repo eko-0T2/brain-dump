@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.9</title>
+<title>Brain Dump v1.2.10</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -380,7 +380,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.9</div>
+  <div class="version-tag">v1.2.10</div>
 </div>
 
 <!-- SETUP -->
@@ -572,7 +572,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.9';
+const VERSION='1.2.10';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -946,19 +946,25 @@ async function fetchAllCalendarIds(){
 
 async function fetchCal(){
   try{
-    const now=new Date(),end=new Date(now.getTime()+7*86400000);
+    const now=new Date();
+    // Use start of today so ongoing multi-day events that started earlier are included
+    const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0);
+    const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+8,0,0,0);
     const calIds=await fetchAllCalendarIds();
     const allEvents=[];
     await Promise.all(calIds.map(async calId=>{
       try{
         const enc=encodeURIComponent(calId);
-        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${now.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
+        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${startOfToday.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
         if(r.ok){
           const d=await r.json();
           // Tag each event with the calendar id so we can display it
           const meta=calendarMeta[calId]||{name:'',color:'#7c6af7'};
+          // Clean up calendar name — remove email addresses
+          let cleanName=meta.name||'';
+          if(cleanName.includes('@')){cleanName=cleanName.split('@')[0].split('.').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');}
           (d.items||[]).forEach(ev=>{
-            ev.calendar_name=meta.name;
+            ev.calendar_name=cleanName;
             ev.calendar_color=meta.color;
           });
           allEvents.push(...(d.items||[]));
@@ -1131,13 +1137,15 @@ function buildCheckin(cal,tasks,listId){
       const calName=e.calendar_name||'';
       const calColor=e.calendar_color||'#7c6af7';
       let dateLabel='all day';
-      if(e.start.date&&e.end?.date&&e.end.date>e.start.date){
-        // Multi-day: end is exclusive so subtract 1 day
+      if(e.start.date&&e.end?.date){
         const startD=localDateFromStr(e.start.date);
         const endD=localDateFromStr(e.end.date);
-        endD.setDate(endD.getDate()-1);
-        const fmt=d=>d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        dateLabel=fmt(startD)+' – '+fmt(endD);
+        endD.setDate(endD.getDate()-1); // end is exclusive
+        // Only show range if end is strictly after start (truly multi-day)
+        if(endD>startD){
+          const fmt=d=>d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+          dateLabel=fmt(startD)+' – '+fmt(endD);
+        }
       }
       const row=document.createElement('div');
       row.className='ci-row';
