@@ -955,7 +955,7 @@ async function fetchCal(){
     await Promise.all(calIds.map(async calId=>{
       try{
         const enc=encodeURIComponent(calId);
-        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${startOfToday.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&orderBy=startTime&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
+        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${startOfToday.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
         if(r.ok){
           const d=await r.json();
           // Tag each event with the calendar id so we can display it
