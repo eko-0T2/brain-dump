@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.5</title>
+<title>Brain Dump v1.2.6</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -380,7 +380,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.5</div>
+  <div class="version-tag">v1.2.6</div>
 </div>
 
 <!-- SETUP -->
@@ -426,7 +426,7 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div class="field">
       <label class="field-label">Annual context</label>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px" id="annualContextStatus">Never refreshed</div>
-      <button onclick="saveSetup();setTimeout(startAnnualRefresh,300)" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;font-family:inherit;width:100%">🔄 Refresh annual context now</button>
+      <button onclick="saveSetupThenRefresh()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;font-family:inherit;width:100%">🔄 Refresh annual context now</button>
     </div>
     <div class="err" id="setupErr"></div>
     <button class="btn btn-primary" onclick="saveSetup()">Save & continue</button>
@@ -512,8 +512,15 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div class="fm-lbl">Best next action</div>
     <div class="fm-action" id="ciFMText"></div>
   </div>
-  <button class="new-dump" onclick="saveCiAndBack()" style="margin-top:10px">✓ Save & back</button>
+  <button class="new-dump" onclick="saveCiAndSummary()" style="margin-top:10px;background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600">✓ Save & see summary</button>
   <div style="font-size:11px;color:var(--text-dimmer);text-align:center;margin-top:6px">Free · no credits used</div>
+  <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
+</div>
+
+<!-- Check-in summary screen -->
+<div id="ciSummary" style="display:none">
+  <div id="ciSummaryCards"></div>
+  <button class="new-dump" onclick="resetToMain()" style="margin-top:10px">↩ Done</button>
   <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
 
@@ -565,7 +572,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.5';
+const VERSION='1.2.6';
 let mode='quick', gToken=null, taskListId=null, currentResult=null;
 let CFG={apiKey:'',clientId:'',docId:''};
 const SCOPES='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
@@ -774,17 +781,35 @@ function dismissMonthlyBanner(){
 }
 
 // SCREENS
+let annualRefreshActive=false;
 function showScreen(name){
   ['Setup','Auth','Main'].forEach(s=>{
     const el=document.getElementById('screen'+s);
     if(el)el.style.display=s.toLowerCase()===name?'block':'none';
   });
-  // annualRefresh manages its own visibility — do not touch it here
   ['loading','checkin','review','output'].forEach(id=>{
     const el=document.getElementById(id);
     if(el){el.classList.remove('on');el.style.display='';}
   });
-  if(name==='main')checkMonthlyBanner();
+  // Never touch annualRefresh from here — it manages itself
+  if(name==='main'&&!annualRefreshActive)checkMonthlyBanner();
+}
+function saveSetupThenRefresh(){
+  // Save settings first without navigating away, then start refresh
+  const k=document.getElementById("inApiKey").value.trim();
+  const c=document.getElementById("inClientId").value.trim();
+  const d=document.getElementById("inDocId").value.trim();
+  if(k) localStorage.setItem("bd_api_key",k);
+  if(c) localStorage.setItem("bd_client_id",c);
+  if(d) localStorage.setItem("bd_doc_id",d);
+  const mq=document.getElementById("modelQuick")?.value||"claude-haiku-4-5-20251001";
+  const mf=document.getElementById("modelFull")?.value||"claude-sonnet-4-6";
+  localStorage.setItem("bd_model_quick",mq);
+  localStorage.setItem("bd_model_full",mf);
+  CFG={apiKey:k||CFG.apiKey,clientId:c||CFG.clientId,docId:d||CFG.docId};
+  // Now start refresh without navigating
+  document.getElementById("screenSetup").style.display="none";
+  startAnnualRefresh();
 }
 function cancelSetup(){
   if(gToken)resetToMain();
@@ -867,13 +892,25 @@ function backToModePicker(){
 }
 
 // GOOGLE APIs
+// Cache calendar metadata (id -> {name, color})
+let calendarMeta={};
+
 async function fetchAllCalendarIds(){
   try{
     const r=await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList',{headers:{Authorization:'Bearer '+gToken}});
     if(r.status===401){saveDumpAndReauth();throw new Error('Token expired');}
     if(!r.ok)throw new Error();
     const data=await r.json();
-    return(data.items||[]).filter(c=>c.selected!==false).map(c=>c.id);
+    const cals=(data.items||[]).filter(c=>c.selected!==false);
+    // Build metadata map
+    calendarMeta={};
+    cals.forEach(c=>{
+      calendarMeta[c.id]={
+        name:c.summaryOverride||c.summary||'',
+        color:c.backgroundColor||'#7c6af7'
+      };
+    });
+    return cals.map(c=>c.id);
   }catch(e){console.error('CalList:',e);return['primary'];}
 }
 
@@ -889,8 +926,11 @@ async function fetchCal(){
         if(r.ok){
           const d=await r.json();
           // Tag each event with the calendar id so we can display it
-          const calLabel=calId==='primary'?'':calId.includes('#')?(calId.split('@')[0].replace('.',' ')):'';
-          (d.items||[]).forEach(ev=>{ev.calendar_name=calLabel;});
+          const meta=calendarMeta[calId]||{name:'',color:'#7c6af7'};
+          (d.items||[]).forEach(ev=>{
+            ev.calendar_name=meta.name;
+            ev.calendar_color=meta.color;
+          });
           allEvents.push(...(d.items||[]));
         }
       }catch(e){console.error('Cal fetch for',calId,e);}
@@ -1030,44 +1070,40 @@ function buildCheckin(cal,tasks,listId){
     card.className='ci-card';
     card.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
 
-    // All-day events first
+    // All-day events first — check for multi-day span
     allDayEvts.forEach(e=>{
-      const calName=e.organizer?.displayName||e.calendar_name||'';
+      const calName=e.calendar_name||'';
+      const calColor=e.calendar_color||'#7c6af7';
+      // Calculate span
+      let dateLabel='all day';
+      if(e.end&&e.end.date){
+        const startD=new Date(e.start.date+'T00:00:00');
+        const endD=new Date(e.end.date+'T00:00:00');
+        endD.setDate(endD.getDate()-1); // Google end is exclusive
+        if(endD>startD){
+          const startFmt=startD.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+          const endFmt=endD.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+          dateLabel=startFmt+' – '+endFmt;
+        }
+      }
       const row=document.createElement('div');
       row.className='ci-row';
-      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub">${calName}</div>`:''}</div><span class="ci-badge cb-gray">all day</span>`;
+      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub" style="display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${dateLabel}</span>`;
       card.appendChild(row);
     });
 
     // Timed events
     timedEvts.forEach(e=>{
       const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
-      const calName=e.organizer?.displayName||e.calendar_name||'';
+      const calName=e.calendar_name||'';
+      const calColor=e.calendar_color||'#2563eb';
       const row=document.createElement('div');
       row.className='ci-row';
-      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub">${calName}</div>`:''}</div><span class="ci-badge cb-blue">${s}</span>`;
+      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub" style="display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${s}</span>`;
       card.appendChild(row);
     });
 
-    // Multi-day all-day events (end date > start date + 1)
-    allDayEvts.forEach(e=>{
-      if(!e.end||!e.end.date)return;
-      const start=new Date(e.start.date);
-      const end=new Date(e.end.date);
-      end.setDate(end.getDate()-1); // Google end date is exclusive
-      if(end>start){
-        const startFmt=start.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
-        const endFmt=end.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
-        // Update the subtitle on the already-rendered all-day row
-        const rows=card.querySelectorAll('.ci-row');
-        rows.forEach(row=>{
-          if(row.querySelector('.ci-text')?.textContent===e.summary){
-            const badge=row.querySelector('.ci-badge');
-            if(badge&&badge.textContent==='all day')badge.textContent=startFmt+' – '+endFmt;
-          }
-        });
-      }
-    });
+
 
     // Upcoming this week
     if(upcomingEvts.length){
@@ -1081,8 +1117,10 @@ function buildCheckin(cal,tasks,listId){
         const calName=e.organizer?.displayName||e.calendar_name||'';
         const row=document.createElement('div');
         row.className='ci-row';
-        const timeAndCal=[timeLabel,calName].filter(Boolean).join(' · ');
-        row.innerHTML=`<div class="ci-icon ic-gray"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${timeAndCal?`<div class="ci-sub">${timeAndCal}</div>`:''}</div><span class="ci-badge cb-gray">${dayLabel}</span>`;
+        const calColor2=e.calendar_color||'#6b7280';
+        const calName2=e.calendar_name||'';
+        const timeAndCal=[timeLabel,calName2].filter(Boolean).join(' · ');
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor2}22;color:${calColor2}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${timeAndCal?`<div class="ci-sub" style="display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${calColor2};display:inline-block;flex-shrink:0"></span>${timeAndCal}</div>`:''}</div><span class="ci-badge" style="background:${calColor2}22;color:${calColor2}">${dayLabel}</span>`;
         card.appendChild(row);
       });
     }
@@ -1090,8 +1128,19 @@ function buildCheckin(cal,tasks,listId){
   }
 
   // Overdue + this week tasks
-  const overdue=tasks.filter(t=>t.due&&new Date(t.due)<today&&t.status!=='completed');
-  const thisWeek=tasks.filter(t=>t.due&&new Date(t.due)>=today&&new Date(t.due)<=endOfWeek&&t.status!=='completed');
+  // Overdue = due before start of today (midnight), not before current time
+  const todayMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate());
+  const tomorrowMidnight=new Date(today.getFullYear(),today.getMonth(),today.getDate()+1);
+  const overdue=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const due=new Date(t.due);
+    return due<todayMidnight;
+  });
+  const thisWeek=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const due=new Date(t.due);
+    return due>=todayMidnight&&due<=endOfWeek;
+  });
   let taskIdx=0;
   if(overdue.length||thisWeek.length){
     const card=document.createElement('div');
@@ -1244,6 +1293,71 @@ async function ciMakeTask(text,listId){
 }
 function selAsk(el){el.closest('.ask-again').querySelectorAll('.ask-chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
 
+async function saveCiAndSummary(){
+  // Count how many dates were set
+  let updated=0;
+  document.querySelectorAll('.date-set.show').forEach(sl=>{
+    if(sl.textContent.includes('saved'))updated++;
+  });
+
+  // Hide checkin, show summary
+  document.getElementById('checkin').classList.remove('on');
+  document.getElementById('checkin').style.display='';
+
+  // Build summary from current task data
+  const container=document.getElementById('ciSummaryCards');
+  container.innerHTML='';
+  const now=new Date();
+  const todayMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const tomorrowMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
+  const dayAfterMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+2);
+
+  // Refetch tasks to get updated state
+  const tr=await fetchTasks();
+  const tasks=tr.tasks||[];
+
+  const overdueTasks=tasks.filter(t=>t.due&&new Date(t.due)<todayMidnight&&t.status!=='completed');
+  const todayTasks=tasks.filter(t=>t.due&&new Date(t.due)>=todayMidnight&&new Date(t.due)<tomorrowMidnight&&t.status!=='completed');
+  const tomorrowTasks=tasks.filter(t=>t.due&&new Date(t.due)>=tomorrowMidnight&&new Date(t.due)<dayAfterMidnight&&t.status!=='completed');
+
+  // Updated count
+  if(updated>0){
+    const upd=document.createElement('div');
+    upd.style.cssText='background:rgba(22,163,74,0.1);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--green)';
+    upd.textContent='✓ '+updated+' task'+(updated>1?'s':'')+' updated';
+    container.appendChild(upd);
+  }
+
+  function summaryCard(lbl,taskList,color){
+    if(!taskList.length)return;
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.style.borderLeftColor=color;
+    card.innerHTML='<div class="ci-lbl">'+lbl+'</div>';
+    taskList.forEach(t=>{
+      const row=document.createElement('div');
+      row.className='ci-row';
+      row.innerHTML=`<div class="ci-icon" style="background:${color}22;color:${color}"><i class="ti ti-check" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div></div>`;
+      card.appendChild(row);
+    });
+    container.appendChild(card);
+  }
+
+  summaryCard('🔴 Still overdue',overdueTasks,'var(--red)');
+  summaryCard('📅 Due today',todayTasks,'var(--orange)');
+  summaryCard('📅 Due tomorrow',tomorrowTasks,'var(--blue)');
+
+  if(!overdueTasks.length&&!todayTasks.length&&!tomorrowTasks.length&&!updated){
+    const all=document.createElement('div');
+    all.style.cssText='text-align:center;padding:30px 20px;color:var(--text-dimmer);font-size:14px';
+    all.textContent='All clear — nothing urgent right now.';
+    container.appendChild(all);
+  }
+
+  document.getElementById('ciSummary').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
 async function saveCiAndBack(){
   // Write all pending date changes from check-in Still on it selections
   const promises=[];
@@ -1279,6 +1393,7 @@ async function saveCiAndBack(){
 async function startAnnualRefresh(){
   dismissMonthlyBanner();
   // Hide everything cleanly
+  annualRefreshActive=true;
   document.getElementById('screenMain').style.display='none';
   document.getElementById('screenSetup').style.display='none';
   document.getElementById('annualRefresh').style.display='none';
@@ -1292,7 +1407,9 @@ async function startAnnualRefresh(){
     if(!yearEvents.length){
       stopLoad();
       loading.classList.remove('on');
+      annualRefreshActive=false;
       document.getElementById('screenMain').style.display='block';
+      document.getElementById('modePicker').style.display='block';
       const e=document.getElementById('mainErr');
       e.textContent='Could not read your calendar — check your Google connection and try again.';
       e.classList.add('on');
@@ -1307,6 +1424,7 @@ async function startAnnualRefresh(){
   }catch(err){
     stopLoad();
     loading.classList.remove('on');
+    annualRefreshActive=false;
     document.getElementById('screenMain').style.display='block';
     document.getElementById('modePicker').style.display='block';
     const e=document.getElementById('mainErr');
@@ -1846,6 +1964,9 @@ function resetToMain(){
     const el=document.getElementById(id);
     if(el){el.classList.remove('on');el.style.display='';}
   });
+  const ciSum=document.getElementById('ciSummary');
+  if(ciSum)ciSum.style.display='none';
+  annualRefreshActive=false;
   const ar=document.getElementById('annualRefresh');
   if(ar)ar.style.display='none';
   showScreen('main');
