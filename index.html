@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.10</title>
+<title>Brain Dump v1.2.11</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -380,7 +380,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.10</div>
+  <div class="version-tag">v1.2.11</div>
 </div>
 
 <!-- SETUP -->
@@ -572,7 +572,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.10';
+const VERSION='1.2.11';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1435,18 +1435,28 @@ async function saveCiAndSummary(){
   // Build summary from current task data
   const container=document.getElementById('ciSummaryCards');
   container.innerHTML='';
-  const now=new Date();
-  const todayMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const tomorrowMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1);
-  const dayAfterMidnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+2);
+  const t0=localMidnight(0);
+  const t1=localMidnight(1);
+  const t2=localMidnight(2);
 
   // Refetch tasks to get updated state
   const tr=await fetchTasks();
   const tasks=tr.tasks||[];
 
-  const overdueTasks=tasks.filter(t=>t.due&&new Date(t.due)<todayMidnight&&t.status!=='completed');
-  const todayTasks=tasks.filter(t=>t.due&&new Date(t.due)>=todayMidnight&&new Date(t.due)<tomorrowMidnight&&t.status!=='completed');
-  const tomorrowTasks=tasks.filter(t=>t.due&&new Date(t.due)>=tomorrowMidnight&&new Date(t.due)<dayAfterMidnight&&t.status!=='completed');
+  const overdueTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    return localDateFromStr(t.due.split('T')[0])<t0;
+  });
+  const todayTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const d=localDateFromStr(t.due.split('T')[0]);
+    return d>=t0&&d<t1;
+  });
+  const tomorrowTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const d=localDateFromStr(t.due.split('T')[0]);
+    return d>=t1&&d<t2;
+  });
 
   // Updated count
   if(updated>0){
@@ -1477,9 +1487,16 @@ async function saveCiAndSummary(){
   // Today: calendar then tasks
   try{
     const cal=await fetchCal();
-    const t0=localMidnight(0);const t1=localMidnight(1);const t2=localMidnight(2);
-    const todayCal=cal.filter(e=>localDateFromStr((e.start.dateTime||e.start.date).split('T')[0]).toDateString()===t0.toDateString());
-    const tomCal=cal.filter(e=>localDateFromStr((e.start.dateTime||e.start.date).split('T')[0]).toDateString()===t1.toDateString());
+    const t0s=localDateStr(localMidnight(0));
+    const t1s=localDateStr(localMidnight(1));
+    const todayCal=cal.filter(e=>{
+      const s=(e.start.dateTime||e.start.date||'').split('T')[0];
+      return s===t0s;
+    });
+    const tomCal=cal.filter(e=>{
+      const s=(e.start.dateTime||e.start.date||'').split('T')[0];
+      return s===t1s;
+    });
 
     function calSection(label,events,tasks,color){
       if(!events.length&&!tasks.length)return;
