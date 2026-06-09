@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.11</title>
+<title>Brain Dump v1.2.12</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -151,7 +151,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 .ic-green { background:rgba(22,163,74,0.1); color:var(--green); }
 .ic-purple { background:rgba(124,58,237,0.1); color:var(--purple); }
 .ci-body { flex:1; min-width:0; }
-.ci-text { font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.ci-text { font-size:14px; color:var(--text); white-space:normal; word-break:break-word; line-height:1.4; }
 .ci-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
 .ci-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; flex-shrink:0; white-space:nowrap; }
 .cb-red { background:rgba(220,38,38,0.1); color:var(--red); }
@@ -380,7 +380,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.11</div>
+  <div class="version-tag">v1.2.12</div>
 </div>
 
 <!-- SETUP -->
@@ -427,6 +427,13 @@ textarea::placeholder { color:var(--text-dimmer); }
       <label class="field-label">Annual context</label>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px" id="annualContextStatus">Never refreshed</div>
       <button onclick="saveSetupThenRefresh()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;font-family:inherit;width:100%">🔄 Refresh annual context now</button>
+    </div>
+    <div class="field">
+      <label class="field-label">Calendars to show in Check in</label>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Uncheck calendars you don't want to see</div>
+      <div id="calendarCheckboxes" style="max-height:200px;overflow-y:auto;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:8px">
+        <div style="font-size:12px;color:var(--text-dimmer);padding:4px">Loading calendars...</div>
+      </div>
     </div>
     <div class="err" id="setupErr"></div>
     <button class="btn btn-primary" onclick="saveSetup()">Save & continue</button>
@@ -572,7 +579,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.11';
+const VERSION='1.2.12';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -860,6 +867,43 @@ function showSetup(){
   const statusEl=document.getElementById('annualContextStatus');
   if(statusEl)statusEl.textContent=lastRefresh?'Last refreshed: '+lastRefresh:'Never refreshed';
   showScreen('setup');
+  // Load calendar checkboxes
+  loadCalendarCheckboxes();
+}
+
+async function loadCalendarCheckboxes(){
+  const container=document.getElementById('calendarCheckboxes');
+  if(!container||!gToken)return;
+  try{
+    const r=await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList',{headers:{Authorization:'Bearer '+gToken}});
+    if(!r.ok)return;
+    const data=await r.json();
+    const cals=(data.items||[]).filter(c=>c.selected!==false);
+    const hidden=JSON.parse(localStorage.getItem('bd_hidden_cals')||'[]');
+    container.innerHTML='';
+    cals.forEach(c=>{
+      const isHidden=hidden.includes(c.id);
+      const name=c.id==='primary'?'Erin (primary)':(c.summaryOverride||c.summary||c.id);
+      const color=c.backgroundColor||'#7c6af7';
+      const div=document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border)';
+      div.innerHTML=`<input type="checkbox" id="cal-${c.id}" ${!isHidden?'checked':''} onchange="toggleCalVisibility('${c.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;flex-shrink:0"><span style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span><label for="cal-${c.id}" style="font-size:13px;color:var(--text);cursor:pointer;flex:1">${name}</label>`;
+      container.appendChild(div);
+    });
+  }catch(e){
+    if(container)container.innerHTML='<div style="font-size:12px;color:var(--text-dimmer);padding:4px">Could not load calendars — connect Google first</div>';
+  }
+}
+
+function toggleCalVisibility(calId,visible){
+  const hidden=JSON.parse(localStorage.getItem('bd_hidden_cals')||'[]');
+  if(visible){
+    const idx=hidden.indexOf(calId);
+    if(idx>-1)hidden.splice(idx,1);
+  } else {
+    if(!hidden.includes(calId))hidden.push(calId);
+  }
+  localStorage.setItem('bd_hidden_cals',JSON.stringify(hidden));
 }
 function saveSetup(){
   const k=document.getElementById('inApiKey').value.trim();
@@ -932,15 +976,19 @@ async function fetchAllCalendarIds(){
     if(!r.ok)throw new Error();
     const data=await r.json();
     const cals=(data.items||[]).filter(c=>c.selected!==false);
-    // Build metadata map
     calendarMeta={};
     cals.forEach(c=>{
       calendarMeta[c.id]={
         name:c.summaryOverride||c.summary||'',
         color:c.backgroundColor||'#7c6af7'
       };
+      // Store primary email for reference
+      if(c.primary&&c.id!=='primary'){
+        localStorage.setItem('bd_primary_cal_id',c.id);
+      }
     });
-    return cals.map(c=>c.id);
+    const hidden=JSON.parse(localStorage.getItem('bd_hidden_cals')||'[]');
+    return cals.filter(c=>!hidden.includes(c.id)).map(c=>c.id);
   }catch(e){console.error('CalList:',e);return['primary'];}
 }
 
@@ -1256,11 +1304,21 @@ function buildCheckin(cal,tasks,listId){
   const oldest=sorted.slice(0,3);
   const rest=sorted.slice(3);
   const randPool=rest.sort(()=>Math.random()-0.5).slice(0,3);
-  const shown=[...oldest,...randPool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+  const shownUndated=[...oldest,...randPool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+
+  // If no undated tasks, show 3 random future tasks (due next week or later)
+  const futureTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    return localDateFromStr(t.due.split('T')[0])>localMidnight(1);
+  }).sort(()=>Math.random()-0.5).slice(0,3);
+
+  const shown=shownUndated.length?shownUndated:futureTasks;
+  const sectionLabel=shownUndated.length?'🗂 Old undated tasks':'🗂 Future tasks — still relevant?';
+  const sectionTag=shownUndated.length?'3 oldest · 3 random':'3 random from upcoming';
   if(shown.length){
     const card=document.createElement('div');
     card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">🗂 Old undated tasks <span class="ci-lbl" style="font-weight:400;text-transform:none;letter-spacing:0">3 oldest · 3 random</span></div>';
+    card.innerHTML=`<div class="ci-lbl">${sectionLabel} <span class="ci-lbl" style="font-weight:400;text-transform:none;letter-spacing:0">${sectionTag}</span></div>`;
     shown.forEach((t,idx)=>{
       const isOldest=oldest.includes(t);
       const id='ci-old-'+taskIdx++;
