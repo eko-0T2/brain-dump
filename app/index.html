@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.27</title>
+<title>Brain Dump v1.2.29</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.27</div>
+  <div class="version-tag">v1.2.29</div>
 </div>
 
 <!-- SETUP -->
@@ -529,7 +529,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.27';
+const VERSION='1.2.29';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1475,7 +1475,7 @@ async function buildQuickReview(result,listId,tasks,cal){
       const eid='ex-'+itemIdx++;
       const exId=typeof t==='string'?'':(t.id||'');
       const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
-      const safeTitle=title.replace(/['"<>&]/g,c=>({''':'&#39;','"':'&quot;','<':'&lt;','>':'&gt;','&':'&amp;'}[c]||c));
+      const safeTitle=title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       const div=document.createElement('div');div.id='exrow-'+eid;div.style.cssText='padding:0;display:block';
       div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span class="existing-dot" style="flex-shrink:0"></span><span style="flex:1;font-size:13px">${title}</span><button onclick="toggleDD('${ddExId}')" style="font-size:11px;color:var(--blue);background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Redate ▾</button><button onclick="rejectMatch('${eid}','${safeTitle}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this</button></div>${buildCiDateDD(ddExId,slExId,cpExId,ciExId,exId,taskListId)}`;
       ec.appendChild(div);
@@ -1588,7 +1588,7 @@ function buildReview(result,listId,existingTasks){
       const div=document.createElement('div');div.className='existing-item';
       div.id='exrow-'+eid;
       const exTaskId=typeof t==='string'?'':(t.id||'');
-      const safeTitle=title.replace(/['"<>&]/g,c=>({''':'&#39;','"':'&quot;','<':'&lt;','>':'&gt;','&':'&amp;'}[c]||c));
+      const safeTitle=title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
       const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
       div.style.cssText='padding:0;display:block';
       div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
