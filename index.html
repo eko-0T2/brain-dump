@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.13</title>
+<title>Brain Dump v1.2.14</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -380,7 +380,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.13</div>
+  <div class="version-tag">v1.2.14</div>
 </div>
 
 <!-- SETUP -->
@@ -579,7 +579,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.13';
+const VERSION='1.2.14';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1215,7 +1215,18 @@ function buildCheckin(cal,tasks,listId){
       row.className='ci-row';
       const tloc=e.location?e.location.split(',')[0]:'';
       const tsubParts=[calName,tloc].filter(Boolean);
-      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${tsubParts.length?`<div class="ci-sub" style="display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${tsubParts.join(' · ')}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${s}</span>`;
+      // Check if timed event spans multiple days
+      let timeBadge=s;
+      if(e.end?.dateTime){
+        const endDate=localDateStr(new Date(e.end.dateTime));
+        const startDate=localDateStr(new Date(e.start.dateTime));
+        if(endDate!==startDate){
+          const startFmt=new Date(e.start.dateTime).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+          const endFmt=new Date(e.end.dateTime).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+          timeBadge=startFmt+' – '+endFmt;
+        }
+      }
+      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${tsubParts.length?`<div class="ci-sub" style="display:flex;align-items:center;gap:4px"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${tsubParts.join(' · ')}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${timeBadge}</span>`;
       card.appendChild(row);
     });
 
