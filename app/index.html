@@ -285,9 +285,9 @@ textarea::placeholder { color:var(--text-dimmer); }
 .s2-item-row:last-child { border-bottom:none; }
 .s2-cat { font-size:10px; font-weight:700; color:var(--purple); background:rgba(124,58,237,0.1); padding:2px 7px; border-radius:10px; flex-shrink:0; margin-top:2px; white-space:nowrap; }
 
-.also-box { background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:14px; margin-bottom:14px; }
-.also-title { font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:8px; }
-.also-ta { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; color:var(--text); outline:none; font-family:'DM Sans',sans-serif; resize:none; min-height:70px; line-height:1.6; }
+
+
+
 .also-ta:focus { border-color:var(--accent); }
 .also-ta::placeholder { color:var(--text-dimmer); }
 
@@ -518,17 +518,6 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div id="miniCheckinCards"></div>
   </div>
 
-  <div class="also-box">
-    <div class="also-title">💡 Oh, I also remembered...</div>
-    <textarea class="also-ta" id="alsoText" placeholder="Anything else? Add it here and hit Rethink to fold it in..."></textarea>
-  </div>
-  <div class="review-actions">
-    <div class="review-hint">Nothing saves until you hit Save & done</div>
-    <div class="action-btns">
-      <button class="abtn abtn-start" onclick="startOver()">↺ Start over</button>
-      <button class="abtn abtn-resort" onclick="reSort()">⟳ Rethink everything<span class="abtn-resort-hint">small edits don't need this</span></button>
-      <button class="abtn abtn-save" onclick="saveAndDone()">✓ Save & done</button>
-    </div>
   </div>
 </div>
 
@@ -987,308 +976,134 @@ async function runCheckin(){
   }
 }
 
-function buildCheckin(cal,tasks,listId){
-  const container=document.getElementById('ciCards');
-  container.innerHTML='';
-  const today=new Date();
-  const todayStr=localDateStr(today);
-  const endOfWeek=new Date(today);
-  const dow=today.getDay();
-  const daysToSun=dow===0?0:7-dow;
-  endOfWeek.setDate(endOfWeek.getDate()+daysToSun);
-  const L=getDateLabels();
+// ─── SHARED RENDERING HELPERS ───────────────────
 
-  // Today's calendar
-  const todayEvents=cal.filter(e=>{
-    const s=e.start.date||e.start.dateTime.slice(0,10);
-    return s===todayStr;
+function renderCalToday(container,cal){
+  const ts=localDateStr(localMidnight(0));
+  const ad=cal.filter(e=>{if(e.start.dateTime)return false;const s=e.start.date||'';return s<=ts&&(e.end?.date||s)>ts;});
+  const td=cal.filter(e=>e.start.dateTime&&localDateStr(new Date(e.start.dateTime))===ts);
+  if(!ad.length&&!td.length)return;
+  const card=document.createElement('div');card.className='ci-card';
+  card.innerHTML=`<div class="ci-lbl">📅 Today — ${new Date().toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
+  ad.forEach(e=>{
+    const cc=e.calendar_color||'#7c6af7',cn=e.calendar_name||'';
+    let dl='all day';
+    if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)dl=sd.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+    const row=document.createElement('div');row.className='ci-row';
+    row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${cn?`<div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${cn}</div>`:''}</div><span class="ci-badge" style="background:${cc}22;color:${cc}">${dl}</span>`;
+    if(e.location)row.querySelector('.ci-body').innerHTML+=`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`;
+    card.appendChild(row);
   });
-  // Build full 7-day calendar section with all-day first, show calendar name
-  const todayStr2=today.toDateString();
-  const todayLocal=localMidnight(0);
-  const todayLocalStr=localDateStr(todayLocal);
-
-  // All-day events: start date <= today AND end date > today (end is exclusive in Google)
-  const allDayEvts=cal.filter(e=>{
-    if(e.start.dateTime)return false;
-    const startStr=e.start.date; // YYYY-MM-DD
-    const endStr=e.end?.date||startStr; // exclusive
-    // Event spans today if startStr <= todayLocalStr < endStr
-    return startStr<=todayLocalStr&&endStr>todayLocalStr;
+  td.forEach(e=>{
+    const cc=e.calendar_color||'#2563eb',cn=e.calendar_name||'';
+    const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+    let tb=s;if(e.end?.dateTime){const sd=e.start.dateTime.slice(0,10),ed=e.end.dateTime.slice(0,10);if(ed!==sd)tb=localDateFromStr(sd).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+localDateFromStr(ed).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+    const row=document.createElement('div');row.className='ci-row';
+    row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${cn?`<div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${cn}</div>`:''}</div><span class="ci-badge" style="background:${cc}22;color:${cc}">${tb}</span>`;
+    if(e.location)row.querySelector('.ci-body').innerHTML+=`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`;
+    card.appendChild(row);
   });
-  const allDayEventIds=new Set(allDayEvts.map(e=>e.id));
+  container.appendChild(card);
+}
 
-  // Timed events today
-  const timedEvts=cal.filter(e=>{
-    if(!e.start.dateTime)return false;
-    const evtDate=localDateStr(new Date(e.start.dateTime));
-    return evtDate===todayLocalStr;
+function renderCalUpcoming(container,cal){
+  const ts=localDateStr(localMidnight(0));
+  const seen=new Set();
+  const up=cal.filter(e=>{const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));if(s<=ts||seen.has(e.id))return false;seen.add(e.id);return true;}).slice(0,10);
+  if(!up.length)return;
+  const card=document.createElement('div');card.className='ci-card';
+  card.innerHTML='<div class="ci-lbl">📅 Coming up</div>';
+  let lastDk='';
+  up.forEach(e=>{
+    const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
+    const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+    const dk=e.start.date||e.start.dateTime.slice(0,10);
+    if(dk!==lastDk){lastDk=dk;const sep=document.createElement('div');sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';sep.textContent=localDateFromStr(dk).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});card.appendChild(sep);}
+    let badge=localDateFromStr(dk).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+    if(e.start.dateTime&&e.end?.dateTime){const _s=e.start.dateTime.slice(0,10),_e=e.end.dateTime.slice(0,10);if(_e!==_s)badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+localDateFromStr(_e).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+    const subParts=[tl,cn].filter(Boolean);
+    const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
+    row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${subParts.join(' \xb7 ')}</div>`:''}</div>`;
+    if(e.location)row.querySelector('.ci-body').innerHTML+=`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`;
+    card.appendChild(row);
   });
+  container.appendChild(card);
+}
 
-  // Upcoming — future events not shown in today's all-day
-  const upcomingEvts=cal.filter(e=>{
-    if(allDayEventIds.has(e.id))return false;
-    const startStr=e.start.date||localDateStr(new Date(e.start.dateTime));
-    return startStr>todayLocalStr;
-  }).slice(0,10);
-
-  if(allDayEvts.length||timedEvts.length||upcomingEvts.length){
-    const card=document.createElement('div');
-    card.className='ci-card';
-    card.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
-
-    // All-day events first — check for multi-day span using string dates
-    allDayEvts.forEach(e=>{
-      const calName=e.calendar_name||'';
-      const calColor=e.calendar_color||'#7c6af7';
-      let dateLabel='all day';
-      if(e.start.date&&e.end?.date){
-        const _as=e.start.date; // YYYY-MM-DD
-        const _ae=e.end.date;   // YYYY-MM-DD exclusive
-        // Subtract 1 day from end to make inclusive
-        const _aeD=localDateFromStr(_ae);
-        _aeD.setDate(_aeD.getDate()-1);
-        const _aeAdj=localDateStr(_aeD);
-        if(_aeAdj>_as){
-          const _asFmt=localDateFromStr(_as).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-          const _aeFmt=_aeD.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-          dateLabel=_asFmt+' – '+_aeFmt;
-        }
-      }
-      const row=document.createElement('div');
-      row.className='ci-row';
-      const asubParts=[calName].filter(Boolean);
-      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${asubParts.length?`<div class="ci-sub" class="sub-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${asubParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${dateLabel}</span>`;
-      card.appendChild(row);
-    });
-
-    // Timed events
-    timedEvts.forEach(e=>{
-      const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
-      const calName=e.calendar_name||'';
-      const calColor=e.calendar_color||'#2563eb';
-      const row=document.createElement('div');
-      row.className='ci-row';
-      const tsubParts=[calName].filter(Boolean);
-      // Check if timed event spans multiple days
-      // Simplest possible multi-day detection: slice ISO string to get date portion
-      const _tStart=e.start.dateTime?e.start.dateTime.slice(0,10):'';
-      const _tEnd=e.end?.dateTime?e.end.dateTime.slice(0,10):'';
-      let timeBadge=s;
-      if(_tStart&&_tEnd&&_tEnd!==_tStart){
-        const _tSF=localDateFromStr(_tStart).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        const _tEF=localDateFromStr(_tEnd).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        timeBadge=_tSF+' – '+_tEF;
-      }
-      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${tsubParts.length?`<div class="ci-sub" class="sub-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${tsubParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${timeBadge}</span>`;
-      card.appendChild(row);
-    });
-
-
-
-    // Upcoming this week
-    if(upcomingEvts.length){
-      const upDiv=document.createElement('div');
-      upDiv.innerHTML='<div class="ci-lbl" style="padding-top:10px;border-top:1px solid var(--border)">Coming up</div>';
-      card.appendChild(upDiv);
-      let lastDayKey='';
-      upcomingEvts.forEach(e=>{
-        const calColor2=e.calendar_color||'#6b7280';
-        const calName2=e.calendar_name||'';
-        const timeLabel=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-        const dayKey=e.start.date||e.start.dateTime.slice(0,10);
-        const dayDisplay=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-        if(dayKey!==lastDayKey){
-          lastDayKey=dayKey;
-          const sep=document.createElement('div');
-          sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
-          sep.textContent=dayDisplay;
-          card.appendChild(sep);
-        }
-        let badge='';
-        if(e.start.dateTime&&e.end?.dateTime){
-          const _s=e.start.dateTime.slice(0,10),_e=e.end.dateTime.slice(0,10);
-          if(_e!==_s){badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+localDateFromStr(_e).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-        }
-        if(!badge&&e.start.date&&e.end?.date&&e.end.date>e.start.date){
-          const _aed=localDateFromStr(e.end.date);_aed.setDate(_aed.getDate()-1);
-          if(localDateStr(_aed)>e.start.date)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+_aed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        }
-        if(!badge)badge=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        const subParts=[timeLabel,calName2].filter(Boolean);
-        const row=document.createElement('div');
-        row.className='ci-row';
-        row.style.alignItems='flex-start';
-        row.innerHTML=`<div class="ci-icon" style="background:${calColor2}22;color:${calColor2};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub" class="sub-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor2};display:inline-block;flex-shrink:0"></span>${subParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div>`;
-        card.appendChild(row);
-      });    }
-    container.appendChild(card);
-  }
-
-  // Overdue + this week tasks
-  const todayMidnight=localMidnight(0);
-  const tomorrowMidnight=localMidnight(1);
-  const overdue=tasks.filter(t=>{
-    if(!t.due||t.status==='completed')return false;
-    return localDateFromStr(t.due.split('T')[0])<todayMidnight;
+function renderNeedsAttention(container,tasks,listId,newlyAdded){
+  const t0=localMidnight(0);
+  const dow=new Date().getDay();const dts=dow===0?7:7-dow;const ew=localMidnight(dts);
+  const ov=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0);
+  const tw=tasks.filter(t=>{if(!t.due||t.status==='completed')return false;const d=localDateFromStr(t.due.split('T')[0]);return d>=t0&&d<=ew;});
+  const sorted=[...ov.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0])),...tw.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]))];
+  if(!sorted.length)return{overdue:ov,thisWeek:tw};
+  const card=document.createElement('div');card.className='ci-card';
+  card.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
+  let lastGrp='';let idx=0;
+  sorted.forEach(t=>{
+    const isOv=ov.includes(t);
+    const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+    const t1=localMidnight(1);
+    const grp=isOv?'Overdue':due&&localDateStr(due)===localDateStr(t0)?'Today':due&&localDateStr(due)===localDateStr(t1)?'Tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'';
+    if(grp!==lastGrp){lastGrp=grp;const sep=document.createElement('div');sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';sep.textContent=grp;card.appendChild(sep);}
+    const id='na-'+idx++;const ddId='nadd-'+id,slId='nasl-'+id,cpId='nacp-'+id,ciId='naci-'+id;
+    const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+    const badgeLbl=isOv?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':dueFmt;
+    const isNew=newlyAdded&&newlyAdded.has(t.title);
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`<div class="ci-row" id="${id}" ${isNew?'style="background:rgba(22,163,74,0.05)"':''}><div class="ci-icon ${isOv?'ic-red':'ic-orange'}"><i class="ti ${isOv?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}${isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':''}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge ${isOv?'cb-red':'cb-orange'}">${badgeLbl}</span>${dueFmt&&!isOv?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}</div></div><div class="ta-row" id="ta-${id}"><button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button><button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${id}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${id}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
+    card.appendChild(wrap);
   });
-  const thisWeek=tasks.filter(t=>{
-    if(!t.due||t.status==='completed')return false;
-    const due=localDateFromStr(t.due.split('T')[0]);
-    return due>=todayMidnight&&due<=endOfWeek;
-  });
-  let taskIdx=0;
-  if(overdue.length||thisWeek.length){
-    const card=document.createElement('div');
-    card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
-    // Sort: overdue oldest first, then by date ascending
-    const sortedTasks=[
-      ...overdue.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0])),
-      ...thisWeek.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]))
-    ];
-    let lastTaskGroup='';
-    sortedTasks.forEach(t=>{
-      const _td=t.due?localDateFromStr(t.due.split('T')[0]):null;
-      const _t0=localMidnight(0),_t1=localMidnight(1);
-      let _tg='';
-      if(!_td||_td<_t0)_tg='Overdue';
-      else if(localDateStr(_td)===localDateStr(_t0))_tg='Today';
-      else if(localDateStr(_td)===localDateStr(_t1))_tg='Tomorrow';
-      else _tg=_td.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-      if(_tg!==lastTaskGroup){
-        lastTaskGroup=_tg;
-        const _sep=document.createElement('div');
-        _sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
-        _sep.textContent=_tg;
-        card.appendChild(_sep);
-      }
-      const isOverdue=overdue.includes(t);
-      const id='ci-task-'+taskIdx++;
-      const ddId='cidd-'+id,slId='cisl-'+id,cpId='cicp-'+id,ciId='cici-'+id;
-      const wrap=document.createElement('div');
-      const dueFmt=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-      wrap.innerHTML=`
-        <div class="ci-row" id="${id}">
-          <div class="ci-icon ${isOverdue?'ic-red':'ic-orange'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div>
-          <div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}</div>${t.notes?`<div class="ci-sub" id="notes-${id}">${t.notes}</div>`:''}</div>
-          <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0" title="Edit task"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
-          <div class="badge-right">
-          <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${(()=>{
-            if(isOverdue)return'overdue';
-            if(!t.due)return'no date';
-            const due=localDateFromStr(t.due.split('T')[0]);
-            const t0=localMidnight(0),t1=localMidnight(1);
-            if(localDateStr(due)===localDateStr(t0))return'today';
-            if(localDateStr(due)===localDateStr(t1))return'tomorrow';
-            return due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-          })()}</span>
-          ${dueFmt?`<span style="font-size:10px;color:var(--text-dimmer);margin-top:1px">${dueFmt}</span>`:''}
-          </div>
-        </div>
-        <div class="ta-row" id="ta-${id}">
-          <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
-          <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
-          <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>
-          ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
-        </div>
-        <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-            <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div>
-            <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div>
-          </div>
-          <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
-          <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
-          <button onclick="saveTaskEdit('${id}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button>
-        </div>`;
-      card.appendChild(wrap);
-    });
-    container.appendChild(card);
-  }
+  container.appendChild(card);
+  return{overdue:ov,thisWeek:tw};
+}
 
-  // Old undated tasks — 3 oldest + 3 random
+function renderFutureTasksSection(container,tasks,listId,shownIds){
   const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
   const sorted=[...undated].sort((a,b)=>new Date(a.updated||0)-new Date(b.updated||0));
   const oldest=sorted.slice(0,3);
-  const rest=sorted.slice(3);
-  const randPool=rest.sort(()=>Math.random()-0.5).slice(0,3);
-  const shownUndated=[...oldest,...randPool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+  const pool=sorted.slice(3).sort(()=>Math.random()-0.5).slice(0,3);
+  const shownUndated=[...oldest,...pool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+  const future=tasks.filter(t=>{if(!t.due||t.status==='completed'||(shownIds&&shownIds.has(t.id)))return false;return localDateFromStr(t.due.split('T')[0])>localMidnight(1);}).sort(()=>Math.random()-0.5).slice(0,3);
+  const shown=shownUndated.length?shownUndated:future;
+  if(!shown.length)return;
+  const lbl=shownUndated.length?'🗂 Old undated tasks':'🗂 Future tasks — still relevant?';
+  const tag=shownUndated.length?'3 oldest · 3 random':'3 random from upcoming';
+  const card=document.createElement('div');card.className='ci-card';
+  card.innerHTML=`<div class="ci-lbl">${lbl} <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">${tag}</span></div>`;
+  let fi=0;
+  shown.forEach(t=>{
+    const isO=oldest.includes(t);const fid='ft-'+fi++;
+    const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
+    const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div><div class="ci-sub">${[isO?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div><div class="badge-right">${df?`<span style="font-size:10px;color:var(--text-dimmer)">${df}</span>`:''}</div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div>`;
+    card.appendChild(wrap);
+  });
+  container.appendChild(card);
+}
 
-  // If no undated tasks, show 3 random future tasks (due next week or later)
-  // Exclude tasks already shown in overdue/thisWeek sections
-  const shownIds=new Set([...overdue,...thisWeek].map(t=>t.id));
-  const futureTasks=tasks.filter(t=>{
-    if(!t.due||t.status==='completed')return false;
-    if(shownIds.has(t.id))return false;
-    return localDateFromStr(t.due.split('T')[0])>localMidnight(1);
-  }).sort(()=>Math.random()-0.5).slice(0,3);
+// ─────────────────────────────────────────────────
 
-  const shown=shownUndated.length?shownUndated:futureTasks;
-  const sectionLabel=shownUndated.length?'🗂 Old undated tasks':'🗂 Future tasks — still relevant?';
-  const sectionTag=shownUndated.length?'3 oldest · 3 random':'3 random from upcoming';
-  if(shown.length){
-    const card=document.createElement('div');
-    card.className='ci-card';
-    card.innerHTML=`<div class="ci-lbl">${sectionLabel} <span class="ci-lbl" style="font-weight:400;text-transform:none;letter-spacing:0">${sectionTag}</span></div>`;
-    shown.forEach((t,idx)=>{
-      const isOldest=oldest.includes(t);
-      const id='ci-old-'+taskIdx++;
-      const ddId='cidd-'+id,slId='cisl-'+id,cpId='cicp-'+id,ciId='cici-'+id;
-      const futureDueFmt=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-      const wrap=document.createElement('div');
-      wrap.innerHTML=`
-        <div class="ci-row" id="${id}">
-          <div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div>
-          <div class="ci-body"><div class="ci-text">${t.title}</div><div class="ci-sub">${[isOldest?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div>
-          <div class="badge-right">
-          ${futureDueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${futureDueFmt}</span>`:''}
-          </div>
-        </div>
-        <div class="ta-row" id="ta-${id}">
-          <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
-          <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button>
-          <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Remove</button>
-          ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
-        </div>`;
-      card.appendChild(wrap);
-    });
-    container.appendChild(card);
-  }
+function buildCheckin(cal,tasks,listId){
+  const container=document.getElementById('ciCards');
+  container.innerHTML='';
+  const bar=document.getElementById('modeShortcutsBar');
+  if(bar)bar.innerHTML=modeShortcutsHTML();
 
-  // S2 bumps — items mentioned 2+ times
-  const s2bumps=JSON.parse(localStorage.getItem('bd_s2_counts')||'{}');
-  const bumpItems=Object.entries(s2bumps).filter(([k,v])=>v>=2&&!localStorage.getItem('bd_bump_dismissed_'+k));
-  if(bumpItems.length){
-    bumpItems.slice(0,3).forEach(([item,count])=>{
-      const bump=document.createElement('div');
-      bump.className='s2-bump';
-      const askAgainId='aa-'+Math.random().toString(36).slice(2);
-      bump.innerHTML=`<div class="s2-q">💭 "${item}" has come up ${count} times — want to make it a task?</div>
-        <div class="s2-btns">
-          <button class="s2b s2b-yes" onclick="this.closest('.s2-bump').innerHTML='<span style=\\"font-size:12px;color:var(--blue)\\">✓ Added to your tasks</span>'">Yes, make it a task</button>
-          <button class="s2b s2b-no" onclick="document.getElementById('${askAgainId}').classList.toggle('show')">Not yet — ask me again ▾</button>
-        </div>
-        <div class="ask-again" id="${askAgainId}">
-          <div class="ask-again-lbl">Ask me again in:</div>
-          <span class="ask-chip" onclick="selAsk(this)">1 week</span>
-          <span class="ask-chip sel" onclick="selAsk(this)">2 weeks</span>
-          <span class="ask-chip" onclick="selAsk(this)">1 month</span>
-          <span class="ask-chip" onclick="selAsk(this)">3 months</span>
-        </div>`;
-      container.appendChild(bump);
-    });
-  }
+  // Calendar today + upcoming
+  renderCalToday(container,cal);
+  renderCalUpcoming(container,cal);
 
-  // First move
-  const fm=document.getElementById('ciFM');
-  const urgent=tasks.filter(t=>t.due&&localDateFromStr(t.due.split('T')[0])<=localMidnight(0)&&t.status!=='completed');
-  if(urgent.length){
-    fm.style.display='block';
-    fm.style.opacity='1';
-    document.getElementById('ciFMText').textContent=urgent[0].title;
-  }
+  // Needs attention
+  const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId)||{overdue:[],thisWeek:[]};
+
+  // Future tasks
+  const shownIds=new Set([...(overdue||[]),...(thisWeek||[])].map(t=>t.id));
+  renderFutureTasksSection(container,tasks,listId,shownIds);
 
   document.getElementById('checkin').classList.add('on');
+  document.getElementById('screenMain').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1519,7 +1334,7 @@ async function saveCiAndSummary(){
 
 async function processDump(extraContext){
   const baseTxt=document.getElementById('dumpText').value.trim();
-  const alsoTxt=document.getElementById('alsoText')?.value?.trim()||'';
+  const alsoTxt='';
   const dumpText=[baseTxt,extraContext||'',alsoTxt].filter(Boolean).join('\n\n');
   if(!dumpText.trim())return;
   document.getElementById('mainErr')?.classList.remove('on');
@@ -1611,7 +1426,11 @@ overnight items also have "real": true/false`;
     currentResult=result;
     stopLoad();
     document.getElementById('loading').classList.remove('on');
-    buildReview(result,listId,tasks);
+    if(mode==='quick'){
+      buildQuickReview(result,listId,tasks,cal);
+    } else {
+      buildReview(result,listId,tasks);
+    }
   }catch(err){
     stopLoad();
     document.getElementById('loading').classList.remove('on');
@@ -1620,6 +1439,59 @@ overnight items also have "real": true/false`;
     e.textContent='Something went wrong: '+err.message;
     e.classList.add('on');
   }
+}
+
+async function buildQuickReview(result,listId,tasks,cal){
+  const container=document.getElementById('reviewItems');
+  container.innerHTML='';
+  const L=getDateLabels();
+  const dueLabelMap={'today':L.today,'tomorrow':L.tomorrow,'this_week':L.thisWeek,'next_week':L.nextWeek,'this_month':L.thisMonth,'next_month':L.nextMonth,'none':'No date'};
+  let itemIdx=0;
+
+  // ── NEW TASKS ──
+  const items=result.items||{};
+  const allNew=[...(items.urgent||[]),...(items.soon||[]),...(items.someday||[])];
+  if(allNew.length){
+    const nc=document.createElement('div');nc.className='tcard urgent';nc.style.cssText='margin-bottom:10px';
+    nc.innerHTML=`<div class="tcard-lbl" style="background:var(--surface2);border-color:var(--border)"><i class="ti ti-plus" aria-hidden="true"></i> ${allNew.length} new task${allNew.length!==1?'s':''} — set dates</div><div style="font-size:11px;color:var(--text-dimmer);padding:4px 12px 2px;font-style:italic">Task by default — tap status to change</div>`;
+    allNew.forEach(it=>{
+      const i=typeof it==='string'?{text:it}:it;
+      const id='item-'+itemIdx++;
+      const sugDue=i.suggested_due||'none';
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="item-row" id="row-${id}"><span class="odot blue"></span><div class="item-body"><div class="item-text" id="txt-${id}">${i.text}</div>${i.sub?`<div class="item-sub">${i.sub}</div>`:''}</div><button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Task ▾</button></div><div class="item-dropdown" id="dd-${id}"><div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div><div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div><div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save</div></div><div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k===sugDue?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}<span class="ntd" onclick="showDatePicker('${id}')" data-key="pick">📅 Pick</span></div><div class="ntd-hint" id="hint-${id}">AI suggested: ${dueLabelMap[sugDue]||'No date'}</div><div class="edit-panel" id="ep-${id}"><div class="edit-fields"><div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${i.text.replace(/"/g,'&quot;')}"></div><div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div></div></div>`;
+      nc.appendChild(wrap);
+    });
+    container.appendChild(nc);
+  }
+
+  // ── ALREADY ON YOUR LIST ──
+  const existing=result.existing_tasks_to_surface||[];
+  if(existing.length){
+    const ec=document.createElement('div');ec.className='tcard';ec.style.cssText='margin-bottom:10px;border-left-color:var(--green)';
+    ec.innerHTML='<div class="tcard-lbl" style="color:var(--green);background:rgba(22,163,74,0.06);border-color:rgba(22,163,74,0.2)"><i class="ti ti-list-check" aria-hidden="true"></i> Already on your list</div>';
+    existing.forEach((t,ei)=>{
+      const title=typeof t==='string'?t:(t.title||t.text||'');
+      const eid='ex-'+itemIdx++;
+      const exId=typeof t==='string'?'':(t.id||'');
+      const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
+      const safeTitle=title.replace(/['"<>&]/g,c=>({''':'&#39;','"':'&quot;','<':'&lt;','>':'&gt;','&':'&amp;'}[c]||c));
+      const div=document.createElement('div');div.id='exrow-'+eid;div.style.cssText='padding:0;display:block';
+      div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span class="existing-dot" style="flex-shrink:0"></span><span style="flex:1;font-size:13px">${title}</span><button onclick="toggleDD('${ddExId}')" style="font-size:11px;color:var(--blue);background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Redate ▾</button><button onclick="rejectMatch('${eid}','${safeTitle}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this</button></div>${buildCiDateDD(ddExId,slExId,cpExId,ciExId,exId,taskListId)}`;
+      ec.appendChild(div);
+    });
+    container.appendChild(ec);
+  }
+
+  // ── REUSE SHARED HELPERS for cal + tasks ──
+  renderCalToday(container,cal);
+  const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId)||{overdue:[],thisWeek:[]};
+  const shownIds=new Set([...(overdue||[]),...(thisWeek||[])].map(t=>t.id));
+  renderFutureTasksSection(container,tasks,listId,shownIds);
+
+  const mc=document.getElementById('miniCheckin');if(mc)mc.style.display='none';
+  document.getElementById('review').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function buildReview(result,listId,existingTasks){
@@ -1715,8 +1587,8 @@ function buildReview(result,listId,existingTasks){
       const eid='ex-'+itemIdx++;
       const div=document.createElement('div');div.className='existing-item';
       div.id='exrow-'+eid;
-      const safeTitle=title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       const exTaskId=typeof t==='string'?'':(t.id||'');
+      const safeTitle=title.replace(/['"<>&]/g,c=>({''':'&#39;','"':'&quot;','<':'&lt;','>':'&gt;','&':'&amp;'}[c]||c));
       const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
       div.style.cssText='padding:0;display:block';
       div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
@@ -1865,13 +1737,6 @@ function confirmPicker(id){
   if(hint){const d=new Date(val+'T00:00:00');hint.textContent='📅 Specific date: '+d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
 }
 
-function reSort(){
-  const corrections=[];
-  document.querySelectorAll('.edit-panel.open input[type=text]').forEach(el=>{if(el.value.trim())corrections.push(el.value.trim());});
-  const alsoTxt=document.getElementById('alsoText').value.trim();
-  const extra=[...corrections,alsoTxt].filter(Boolean).join('\n');
-  processDump(extra);
-}
 
 async function saveAndDone(){
   const btn=document.querySelector('.abtn-save');
@@ -1928,7 +1793,7 @@ async function saveAndDone(){
 
   // Wait for ALL saves to complete before rendering
   await Promise.all(savePromises);
-  btn.disabled=false;btn.textContent='✓ Save & done';
+  btn.disabled=false;btn.textContent='✓ Save & see summary';
   if(mode==='quick'){
     await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
   } else {
@@ -1940,172 +1805,23 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
 
-  // Build a lightweight check-in view reusing existing checkin infrastructure
-  // Show a brief saved banner then the full checkin
   const container=document.getElementById('checkin');
   container.innerHTML='';
 
   // Header
   const hdr=document.createElement('div');
-  hdr.style.cssText='padding:0 0 10px 0';
-  hdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-    <span style="font-size:12px;font-weight:500;color:var(--green)">✓ ${tasksAdded} task${tasksAdded!==1?'s':''} saved</span>
-    <span style="font-size:12px;color:var(--text-dimmer)">· here's your plate</span>
-  </div>`;
+  hdr.innerHTML=modeShortcutsHTML()+`<div style="font-size:12px;font-weight:500;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-check" aria-hidden="true"></i> ${tasksAdded} task${tasksAdded!==1?'s':''} saved · here's your plate</div>`;
   container.appendChild(hdr);
 
-  // Fetch fresh data
-  startLoad();
-  document.getElementById('loading').classList.add('on');
+  startLoad();document.getElementById('loading').classList.add('on');
   try{
     const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
-    stopLoad();
-    document.getElementById('loading').classList.remove('on');
-    const{listId,tasks}=tr;
-    taskListId=listId;
+    stopLoad();document.getElementById('loading').classList.remove('on');
+    const{listId,tasks}=tr;taskListId=listId;
 
-    const today=new Date();
-    const todayLocalStr=localDateStr(localMidnight(0));
-
-    // Calendar — today
-    const allDayEvts=cal.filter(e=>{
-      if(e.start.dateTime)return false;
-      const s=e.start.date||'';const en=e.end?.date||s;
-      return s<=todayLocalStr&&en>todayLocalStr;
-    });
-    const timedEvts=cal.filter(e=>{
-      if(!e.start.dateTime)return false;
-      return localDateStr(new Date(e.start.dateTime))===todayLocalStr;
-    });
-    const upcomingEvts=cal.filter(e=>{
-      const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));
-      return s>todayLocalStr;
-    }).slice(0,6);
-
-    if(allDayEvts.length||timedEvts.length){
-      const calCard=document.createElement('div');
-      calCard.className='ci-card';
-      calCard.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
-      allDayEvts.forEach(e=>{
-        const calColor=e.calendar_color||'#7c6af7';
-        const calName=e.calendar_name||'';
-        let dateLabel='all day';
-        if(e.start.date&&e.end?.date){
-          const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);
-          ed.setDate(ed.getDate()-1);
-          if(ed>sd)dateLabel=sd.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        }
-        const row=document.createElement('div');row.className='ci-row';
-        row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${dateLabel}</span>`;
-        calCard.appendChild(row);
-      });
-      timedEvts.forEach(e=>{
-        const calColor=e.calendar_color||'#2563eb';
-        const calName=e.calendar_name||'';
-        const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
-        const row=document.createElement('div');row.className='ci-row';
-        row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${s}</span>`;
-        calCard.appendChild(row);
-      });
-      container.appendChild(calCard);
-    }
-
-    // Tasks — needs attention + newly added
-    const todayMidnight=localMidnight(0),tomorrowMidnight=localMidnight(1);
-    const dow=new Date().getDay();const dtsToSun=dow===0?7:7-dow;
-    const endOfWeek=localMidnight(dtsToSun);
-    const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<todayMidnight);
-    const thisWeek=tasks.filter(t=>{
-      if(!t.due||t.status==='completed')return false;
-      const d=localDateFromStr(t.due.split('T')[0]);
-      return d>=todayMidnight&&d<=endOfWeek;
-    });
-    const allTasks=[...overdue,...thisWeek].sort((a,b)=>localDateFromStr(a.due?.split('T')[0]||'9999')-localDateFromStr(b.due?.split('T')[0]||'9999'));
-
-    if(allTasks.length){
-      const taskCard=document.createElement('div');taskCard.className='ci-card';
-      taskCard.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
-      let lastGrp='';
-      let taskIdx=0;
-      allTasks.forEach(t=>{
-        const isOverdue=overdue.includes(t);
-        const isNew=newlyAdded&&newlyAdded.has(t.title);
-        const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
-        const t0=localMidnight(0),t1=localMidnight(1);
-        let grp=isOverdue?'Overdue':due&&localDateStr(due)===localDateStr(t0)?'Today':due&&localDateStr(due)===localDateStr(t1)?'Tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'';
-        if(grp!==lastGrp){
-          lastGrp=grp;
-          const sep=document.createElement('div');
-          sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
-          sep.textContent=grp;
-          taskCard.appendChild(sep);
-        }
-        const id='acs-'+taskIdx++;
-        const ddId='add-'+id,slId='asl-'+id,cpId='acp-'+id,ciId='aci-'+id;
-        const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-        const wrap=document.createElement('div');
-        wrap.innerHTML=`
-          <div class="ci-row" id="${id}" ${isNew?'style="background:rgba(22,163,74,0.05)"':''}>
-            <div class="ci-icon ${isOverdue?'ic-red':'ic-orange'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div>
-            <div class="ci-body">
-              <div class="ci-text" id="title-${id}">${t.title}${isNew?' <span style="font-size:10px;color:var(--green);font-weight:500">just added</span>':''}</div>
-              ${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}
-            </div>
-            <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
-            <div class="badge-right">
-              <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${isOverdue?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):''}</span>
-              ${dueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}
-            </div>
-          </div>
-          <div class="ta-row" id="ta-${id}">
-            <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${taskListId}')">✓ Done</button>
-            <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
-            <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${taskListId}')">Not doing it</button>
-            ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,taskListId)}
-          </div>
-          <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-              <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div>
-              <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div>
-            </div>
-            <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
-            <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
-            <button onclick="saveTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button>
-          </div>`;
-        taskCard.appendChild(wrap);
-      });
-      container.appendChild(taskCard);
-    }
-
-    // Coming up calendar
-    if(upcomingEvts.length){
-      const upCard=document.createElement('div');upCard.className='ci-card';
-      upCard.innerHTML='<div class="ci-lbl">📅 Coming up</div>';
-      let lastDayKey='';
-      upcomingEvts.forEach(e=>{
-        const calColor2=e.calendar_color||'#6b7280';
-        const calName2=e.calendar_name||'';
-        const dayKey=e.start.date||e.start.dateTime.slice(0,10);
-        const dayDisplay=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-        if(dayKey!==lastDayKey){
-          lastDayKey=dayKey;
-          const sep=document.createElement('div');
-          sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
-          sep.textContent=dayDisplay;upCard.appendChild(sep);
-        }
-        const timeLabel=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-        let badge=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        if(e.start.dateTime&&e.end?.dateTime){
-          const _s=e.start.dateTime.slice(0,10),_en=e.end.dateTime.slice(0,10);
-          if(_en!==_s)badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+localDateFromStr(_en).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-        }
-        const subParts=[timeLabel,calName2].filter(Boolean);
-        const row=document.createElement('div');row.className='ci-row';
-        row.innerHTML=`<div class="ci-icon" style="background:${calColor2}22;color:${calColor2}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor2};display:inline-block;flex-shrink:0"></span>${subParts.join(' · ')}</div>`:''}</div>`;
-        upCard.appendChild(row);
-      });
-      container.appendChild(upCard);
-    }
+    renderCalToday(container,cal);
+    const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId,newlyAdded)||{overdue:[],thisWeek:[]};
+    renderCalUpcoming(container,cal);
 
     // First move if available
     if(currentResult?.first_move?.action){
@@ -2114,15 +1830,10 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
       fm.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">${currentResult.first_move.action}</div>${currentResult.first_move.why?`<div style="font-size:12px;color:var(--text-dim);margin-top:3px">${currentResult.first_move.why}</div>`:''}`;
       container.appendChild(fm);
     }
-
   }catch(err){
-    stopLoad();
-    document.getElementById('loading').classList.remove('on');
-    console.error('renderCheckinAfterSave error:',err);
+    stopLoad();document.getElementById('loading').classList.remove('on');
+    console.error('renderCheckinAfterSave:',err);
   }
-
-  // Done button
-  container.insertAdjacentHTML('afterbegin',modeShortcutsHTML());
 
   document.getElementById('checkin').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
