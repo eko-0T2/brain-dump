@@ -1,1 +1,2287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Brain Dump v1.2.26</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
+body.theme-purple {
+  --bg:#faf8ff; --surface:#ffffff; --surface2:#f3f0ff;
+  --border:#e0d8f8; --border2:#c8bef0;
+  --text:#2d1f4e; --text-dim:#7a6a9a; --text-dimmer:#b0a0d0;
+  --accent:#7c6af7; --accent2:#a78bfa; --accent-text:#ffffff;
+  --btn-bg:linear-gradient(135deg,#7c6af7,#a78bfa);
+  --red:#dc2626; --orange:#d97706; --blue:#2563eb;
+  --purple:#7c3aed; --teal:#0d9488; --green:#16a34a; --gray:#6b7280;
+  --card-urgent:#fff1f2; --card-soon:#fffbeb; --card-someday:#eff6ff;
+  --card-s2:#faf5ff; --card-existing:#f0fdf4; --card-noise:#f9fafb;
+  --fm-bg:#2d1f4e; --fm-text:#ffffff; --fm-sub:rgba(255,255,255,0.6);
+  --fm-note:rgba(255,255,255,0.35); --fm-border:rgba(255,255,255,0.1);
+  --btn-start-bg:#f0ecff; --btn-start-color:#7a6a9a; --btn-start-border:#c8bef0;
+  --btn-rethink-bg:#e8e0ff; --btn-rethink-color:#6040e0; --btn-rethink-border:#a090d0;
+  --btn-save-bg:linear-gradient(135deg,#16a34a,#22c55e); --btn-save-color:#ffffff;
+  --status-task-bg:#eff6ff; --status-task-border:#2563eb; --status-task-color:#1d4ed8;
+  --status-idea-bg:#faf5ff; --status-idea-border:#7c3aed; --status-idea-color:#6d28d9;
+}
+body.theme-light {
+  --bg:#f8f7f4; --surface:#ffffff; --surface2:#f2f0ec;
+  --border:#e8e5df; --border2:#d0ccc4;
+  --text:#1a1a1a; --text-dim:#666660; --text-dimmer:#aaa9a4;
+  --accent:#2d2d2d; --accent2:#555; --accent-text:#ffffff;
+  --btn-bg:linear-gradient(135deg,#2d2d2d,#555555);
+  --red:#dc2626; --orange:#d97706; --blue:#2563eb;
+  --purple:#7c3aed; --teal:#0d9488; --green:#16a34a; --gray:#6b7280;
+  --card-urgent:#fff1f2; --card-soon:#fffbeb; --card-someday:#eff6ff;
+  --card-s2:#faf5ff; --card-existing:#f0fdf4; --card-noise:#f9fafb;
+  --fm-bg:#1a1a1a; --fm-text:#ffffff; --fm-sub:rgba(255,255,255,0.6);
+  --fm-note:rgba(255,255,255,0.35); --fm-border:rgba(255,255,255,0.1);
+  --btn-start-bg:#e8e5df; --btn-start-color:#555550; --btn-start-border:#c8c5bf;
+  --btn-rethink-bg:#d8d5cf; --btn-rethink-color:#333330; --btn-rethink-border:#a0a09a;
+  --btn-save-bg:linear-gradient(135deg,#15803d,#16a34a); --btn-save-color:#ffffff;
+  --status-task-bg:#eff6ff; --status-task-border:#2563eb; --status-task-color:#1d4ed8;
+  --status-idea-bg:#faf5ff; --status-idea-border:#7c3aed; --status-idea-color:#6d28d9;
+}
+body.theme-dark {
+  --bg:#0f1117; --surface:#1a1d27; --surface2:#22263a;
+  --border:#2e3348; --border2:#3d4460;
+  --text:#e8eaf6; --text-dim:#9099c0; --text-dimmer:#545a80;
+  --accent:#7c6af7; --accent2:#a78bfa; --accent-text:#ffffff;
+  --btn-bg:linear-gradient(135deg,#7c6af7,#a78bfa);
+  --red:#f87171; --orange:#fb923c; --blue:#60a5fa;
+  --purple:#c084fc; --teal:#34d399; --green:#4ade80; --gray:#6b7280;
+  --card-urgent:#2a1a1a; --card-soon:#2a2010; --card-someday:#1a2030;
+  --card-s2:#1e1838; --card-existing:#182a18; --card-noise:#1e2030;
+  --fm-bg:#0a0c14; --fm-text:#e8eaf6; --fm-sub:rgba(232,234,246,0.65);
+  --fm-note:rgba(232,234,246,0.35); --fm-border:rgba(232,234,246,0.1);
+  --btn-start-bg:#22263a; --btn-start-color:#9099c0; --btn-start-border:#3d4460;
+  --btn-rethink-bg:#2a2848; --btn-rethink-color:#a78bfa; --btn-rethink-border:#7c6af7;
+  --btn-save-bg:linear-gradient(135deg,#16a34a,#22c55e); --btn-save-color:#ffffff;
+  --status-task-bg:#1a2030; --status-task-border:#60a5fa; --status-task-color:#93c5fd;
+  --status-idea-bg:#1e1838; --status-idea-border:#c084fc; --status-idea-color:#d8b4fe;
+}
+body.theme-blue {
+  --bg:#f0f4f8; --surface:#ffffff; --surface2:#e8f0f8;
+  --border:#d0e0f0; --border2:#b0ccec;
+  --text:#1e3a5f; --text-dim:#5a7a9a; --text-dimmer:#90aac4;
+  --accent:#2a6db5; --accent2:#4a90d9; --accent-text:#ffffff;
+  --btn-bg:linear-gradient(135deg,#2a6db5,#4a90d9);
+  --red:#dc2626; --orange:#d97706; --blue:#1d4ed8;
+  --purple:#7c3aed; --teal:#0d9488; --green:#16a34a; --gray:#6b7280;
+  --card-urgent:#fff1f2; --card-soon:#fffbeb; --card-someday:#eff6ff;
+  --card-s2:#faf5ff; --card-existing:#f0fdf4; --card-noise:#f8fafc;
+  --fm-bg:#1e3a5f; --fm-text:#ffffff; --fm-sub:rgba(255,255,255,0.6);
+  --fm-note:rgba(255,255,255,0.35); --fm-border:rgba(255,255,255,0.1);
+  --btn-start-bg:#d8e8f4; --btn-start-color:#3a6a8a; --btn-start-border:#a0c0dc;
+  --btn-rethink-bg:#c0d8f0; --btn-rethink-color:#1a4a7a; --btn-rethink-border:#2a6db5;
+  --btn-save-bg:linear-gradient(135deg,#0d9488,#0f766e); --btn-save-color:#ffffff;
+  --status-task-bg:#eff6ff; --status-task-border:#1d4ed8; --status-task-color:#1e40af;
+  --status-idea-bg:#faf5ff; --status-idea-border:#7c3aed; --status-idea-color:#6d28d9;
+}
+
+body { font-family:'DM Sans',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; transition:background 0.3s,color 0.3s; }
+.app { max-width:640px; margin:0 auto; padding:20px 16px 80px; }
+.header { text-align:center; padding:28px 0 22px; position:relative; }
+.header-title { font-family:'DM Serif Display',serif; font-size:34px; color:var(--text); margin-bottom:4px; }
+.header-sub { font-size:12px; color:var(--text-dim); letter-spacing:0.06em; text-transform:uppercase; }
+.version-tag { position:absolute; bottom:4px; right:0; font-size:10px; color:var(--text-dimmer); }
+
+.surface { background:var(--surface); border:1px solid var(--border); border-radius:14px; }
+.field { margin-bottom:16px; }
+.field-label { display:block; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:6px; }
+.field-hint { font-size:11px; color:var(--text-dimmer); margin-top:5px; line-height:1.5; }
+input[type=text],input[type=password],input[type=date] { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:10px; padding:11px 14px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+input:focus { border-color:var(--accent); }
+input::placeholder { color:var(--text-dimmer); }
+
+.btn { display:flex; align-items:center; justify-content:center; gap:8px; padding:13px 20px; border-radius:12px; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:14px; font-weight:600; transition:all 0.18s; width:100%; }
+.btn-primary { background:var(--btn-bg); color:var(--accent-text); }
+.btn-primary:hover { opacity:0.9; transform:translateY(-1px); }
+.btn-secondary { background:var(--surface2); color:var(--text-dim); border:1.5px solid var(--border); font-size:13px; padding:10px 18px; margin-top:8px; }
+.btn-google { background:var(--surface2); color:var(--text); border:1.5px solid var(--border); margin-bottom:10px; }
+
+.auth-section { padding:24px; text-align:center; margin-bottom:16px; }
+.auth-section p { font-size:13px; color:var(--text-dim); margin-bottom:16px; line-height:1.6; }
+.status-bar { display:flex; align-items:center; gap:8px; padding:10px 14px; background:var(--surface2); border-radius:10px; margin-bottom:14px; font-size:12px; color:var(--text-dim); border:1px solid var(--border); }
+.sdot { width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; }
+
+/* Mode selector */
+
+
+.mode-btn .mi { font-size:18px; display:block; margin-bottom:3px; }
+
+
+/* Dump area */
+.dump-wrap { background:var(--surface); border:1.5px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:12px; transition:border-color 0.2s; }
+.dump-wrap:focus-within { border-color:var(--accent); }
+.dump-lbl { padding:12px 16px 0; font-size:10px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-dimmer); }
+textarea { width:100%; background:transparent; border:none; outline:none; color:var(--text); font-family:'DM Sans',sans-serif; font-size:15px; font-weight:300; line-height:1.7; padding:8px 16px 16px; resize:none; min-height:100px; }
+textarea::placeholder { color:var(--text-dimmer); }
+
+.err { background:rgba(220,38,38,0.08); border:1px solid rgba(220,38,38,0.25); border-radius:10px; padding:12px 16px; font-size:13px; color:var(--red); margin-bottom:14px; line-height:1.6; display:none; }
+.err.on { display:block; }
+.settings-link { text-align:center; margin-top:10px; }
+.settings-link button { background:none; border:none; color:var(--text-dimmer); font-size:11px; cursor:pointer; font-family:'DM Sans',sans-serif; text-decoration:underline; }
+
+/* Loading */
+.loading { text-align:center; padding:60px 24px; display:none; }
+.loading.on { display:block; }
+.spinner { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spin 0.8s linear infinite; margin:0 auto 14px; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.load-txt { font-size:14px; color:var(--text-dim); font-weight:300; }
+.load-sub { font-size:12px; color:var(--text-dimmer); margin-top:5px; }
+
+/* Check-in screen */
+.checkin { display:none; }
+.checkin.on { display:block; }
+.ci-section { margin-bottom:12px; }
+.ci-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:visible; margin-bottom:10px; }
+.ci-lbl { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); padding:8px 14px 4px; display:flex; align-items:center; justify-content:space-between; }
+.ci-lbl-tag { font-size:10px; font-weight:400; text-transform:none; letter-spacing:0; color:var(--text-dimmer); }
+.ci-row { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); }
+.ci-row:last-child { border-bottom:none; }
+.ci-icon { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px; }
+.ic-red { background:rgba(220,38,38,0.1); color:var(--red); }
+.ic-orange { background:rgba(217,119,6,0.1); color:var(--orange); }
+.ic-blue { background:rgba(37,99,235,0.1); color:var(--blue); }
+.ic-gray { background:var(--surface2); color:var(--text-dimmer); }
+.ic-green { background:rgba(22,163,74,0.1); color:var(--green); }
+.ic-purple { background:rgba(124,58,237,0.1); color:var(--purple); }
+.ci-body { flex:1; min-width:0; }
+.ci-text { font-size:14px; color:var(--text); white-space:normal; word-break:break-word; line-height:1.4; }
+.ci-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+.ci-badge { font-size:10px; font-weight:600; padding:2px 8px; border-radius:20px; flex-shrink:0; white-space:nowrap; }
+.cb-red { background:rgba(220,38,38,0.1); color:var(--red); }
+.cb-orange { background:rgba(217,119,6,0.1); color:var(--orange); }
+.cb-blue { background:rgba(37,99,235,0.1); color:var(--blue); }
+.cb-gray { background:var(--surface2); color:var(--text-dimmer); }
+
+/* Task action buttons */
+.ta-row { display:flex; gap:5px; padding:7px 14px 8px 52px; background:var(--surface2); border-bottom:1px solid var(--border); position:relative; }
+.ta { font-size:11px; font-weight:600; padding:5px 10px; border-radius:8px; border:none; cursor:pointer; white-space:nowrap; font-family:'DM Sans',sans-serif; }
+.ta-done { background:rgba(22,163,74,0.12); color:var(--green); }
+.ta-still { background:var(--surface2); color:var(--text-dim); border:1px solid var(--border2); }
+.ta-skip { background:rgba(220,38,38,0.1); color:var(--red); }
+.ta-result { font-size:12px; padding:6px 0; color:var(--text-dim); }
+
+/* Date dropdown */
+.dd { display:none; position:absolute; top:calc(100% + 2px); left:52px; background:var(--surface); border:1px solid var(--border2); border-radius:12px; overflow:hidden; z-index:20; min-width:200px; box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+.dd.open { display:block; }
+.dd-opt { display:flex; align-items:center; gap:10px; padding:10px 14px; font-size:13px; color:var(--text); cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.1s; }
+.dd-opt:last-child { border-bottom:none; }
+.dd-opt:hover { background:var(--surface2); }
+.dd-hint { font-size:11px; color:var(--text-dimmer); margin-left:auto; }
+.dd-pick { color:var(--accent); }
+.custom-dp { display:none; padding:8px 14px 9px 52px; background:var(--surface2); border-bottom:1px solid var(--border); }
+.custom-dp.show { display:flex; gap:8px; align-items:center; }
+.custom-dp input { flex:1; padding:8px 10px; font-size:13px; }
+.custom-dp button { font-size:12px; padding:7px 14px; border-radius:8px; border:none; background:var(--accent); color:var(--accent-text); cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; }
+.date-set { font-size:11px; color:var(--accent); padding:4px 14px 6px 52px; background:var(--surface2); border-bottom:1px solid var(--border); display:none; }
+.date-set.show { display:block; }
+
+/* S2 bump */
+.s2-bump { background:var(--card-s2); border:1px solid var(--border); border-radius:12px; padding:12px 14px; margin-bottom:10px; }
+.s2-q { font-size:13px; color:var(--purple); margin-bottom:8px; line-height:1.5; }
+.s2-btns { display:flex; gap:6px; flex-wrap:wrap; }
+.s2b { font-size:11px; font-weight:600; padding:5px 11px; border-radius:8px; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; }
+.s2b-yes { background:rgba(37,99,235,0.12); color:var(--blue); }
+.s2b-no { background:var(--surface2); color:var(--text-dimmer); border:1px solid var(--border); }
+.ask-again { display:none; padding-top:10px; border-top:1px solid var(--border); margin-top:8px; }
+.ask-again.show { display:block; }
+.ask-again-lbl { font-size:11px; color:var(--text-dimmer); margin-bottom:6px; }
+.ask-chip { font-size:11px; padding:4px 10px; border-radius:20px; border:1px solid var(--border2); background:var(--surface); color:var(--text-dim); cursor:pointer; display:inline-block; margin:2px; }
+.ask-chip.sel { background:var(--surface2); border-color:var(--accent); color:var(--accent); }
+
+/* First move */
+.first-move { background:var(--fm-bg); border-radius:14px; padding:22px; text-align:center; margin-bottom:10px; animation:fadeUp 0.3s ease forwards; opacity:0; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+.fm-lbl { font-size:10px; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:var(--accent2); margin-bottom:10px; opacity:0.8; }
+.fm-action { font-family:'DM Serif Display',serif; font-size:20px; line-height:1.3; color:var(--fm-text); margin-bottom:8px; }
+.fm-why { font-size:13px; color:var(--fm-sub); line-height:1.6; font-weight:300; }
+
+/* Monthly banner */
+
+
+
+
+
+
+
+
+.note-text { font-size:11px; color:var(--text-dimmer); text-align:center; margin-top:8px; }
+
+/* Review screen */
+.review { display:none; }
+.review.on { display:block; }
+.review-topbar { display:flex; align-items:center; justify-content:space-between; background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:10px 14px; margin-bottom:14px; font-size:12px; color:var(--text-dim); }
+.sec-title { font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:8px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.sec-hint { font-size:10px; font-weight:400; color:var(--border2); }
+
+.tcard { background:var(--surface); border-radius:12px; border-left:4px solid var(--border); padding:0; margin-bottom:8px; overflow:visible; }
+.tcard.urgent { border-left-color:var(--red); background:var(--card-urgent); }
+.tcard.soon { border-left-color:var(--orange); background:var(--card-soon); }
+.tcard.someday { border-left-color:var(--blue); background:var(--card-someday); }
+.tcard-lbl { font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dimmer); padding:10px 14px 6px; }
+.default-note { font-size:11px; color:var(--text-dimmer); font-style:italic; padding:4px 14px 8px; border-bottom:1px solid var(--border); }
+
+.item-row { display:flex; align-items:center; gap:10px; padding:11px 14px; border-bottom:1px solid var(--border); position:relative; }
+.item-row:last-child { border-bottom:none; }
+.item-row.ignored { opacity:0.45; }
+.odot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.odot.red { background:var(--red); }
+.odot.orange { background:var(--orange); }
+.odot.blue { background:var(--blue); }
+.odot.gray { background:var(--gray); }
+.item-body { flex:1; min-width:0; }
+.item-text { font-size:14px; color:var(--text); line-height:1.5; }
+.item-text.struck { text-decoration:line-through; }
+.item-sub { font-size:11px; color:var(--text-dim); margin-top:2px; }
+
+.status-btn { font-size:11px; font-weight:600; padding:4px 9px; border-radius:8px; cursor:pointer; display:flex; align-items:center; gap:3px; flex-shrink:0; white-space:nowrap; font-family:'DM Sans',sans-serif; transition:all 0.15s; }
+.status-btn.task { background:var(--status-task-bg); border:1px solid var(--status-task-border); color:var(--status-task-color); }
+.status-btn.idea { background:var(--status-idea-bg); border:1px solid var(--status-idea-border); color:var(--status-idea-color); }
+.status-btn.ignore { background:var(--surface2); border:1px solid var(--border); color:var(--text-dimmer); }
+
+.item-dropdown { background:var(--surface); border:1px solid var(--border2); border-radius:10px; overflow:hidden; margin:0 14px 8px 30px; display:none; }
+.item-dropdown.open { display:block; }
+.dd-opt2 { display:flex; align-items:center; gap:10px; padding:10px 12px; font-size:13px; cursor:pointer; border-bottom:1px solid var(--border); color:var(--text); transition:background 0.1s; }
+.dd-opt2:last-child { border-bottom:none; }
+.dd-opt2:hover { background:var(--surface2); }
+.dd-opt2.active { background:var(--surface2); font-weight:500; }
+.dd-opt2 i { font-size:16px; flex-shrink:0; }
+.dd-task { color:var(--status-task-color); }
+.dd-idea { color:var(--status-idea-color); }
+.dd-edit { color:var(--text); }
+.dd-ignore { color:var(--text-dimmer); }
+
+.edit-panel { background:var(--surface2); border-top:1px solid var(--border); padding:12px 14px; display:none; }
+.edit-panel.open { display:block; }
+.edit-fields { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:8px; }
+.edit-field-label { font-size:10px; color:var(--text-dimmer); margin-bottom:3px; text-transform:uppercase; letter-spacing:.05em; }
+.edit-panel input[type=text],.edit-panel input[type=date] { padding:8px 10px; font-size:13px; background:var(--surface); }
+.edit-panel-ta { width:100%; background:var(--surface); border:1.5px solid var(--border); border-radius:8px; padding:8px 10px; font-size:13px; color:var(--text); outline:none; font-family:'DM Sans',sans-serif; resize:none; min-height:50px; }
+.edit-panel-ta:focus { border-color:var(--accent); }
+
+/* New task date chips in review */
+.new-task-dates { padding:6px 14px 8px 30px; background:var(--surface2); border-bottom:1px solid var(--border); display:flex; gap:4px; flex-wrap:wrap; }
+.ntd { font-size:11px; padding:3px 8px; border-radius:20px; border:1px solid var(--border2); background:var(--surface); color:var(--text-dim); cursor:pointer; }
+.ntd.sel { background:rgba(37,99,235,0.1); border-color:var(--blue); color:var(--blue); }
+.ntd-hint { font-size:10px; color:var(--text-dimmer); padding:2px 14px 6px 30px; background:var(--surface2); border-bottom:1px solid var(--border); }
+
+/* Review date dropdown for tasks */
+.task-dd { display:none; position:absolute; right:14px; top:calc(100% + 2px); background:var(--surface); border:1px solid var(--border2); border-radius:12px; overflow:hidden; z-index:20; min-width:200px; box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+.task-dd.open { display:block; }
+
+.existing-card { background:var(--card-existing); border-radius:12px; border-left:4px solid var(--green); padding:14px; margin-bottom:8px; }
+.existing-item { display:flex; align-items:flex-start; gap:8px; padding:6px 0; border-bottom:1px solid rgba(22,163,74,0.15); font-size:13px; color:var(--text); }
+.existing-item:last-child { border-bottom:none; }
+.existing-dot { width:6px; height:6px; border-radius:50%; background:var(--green); flex-shrink:0; margin-top:5px; }
+
+.s2-saved { background:var(--card-s2); border-radius:12px; border-left:4px solid var(--purple); padding:14px; margin-bottom:8px; }
+.s2-item-row { display:flex; align-items:flex-start; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); }
+.s2-item-row:last-child { border-bottom:none; }
+.s2-cat { font-size:10px; font-weight:700; color:var(--purple); background:rgba(124,58,237,0.1); padding:2px 7px; border-radius:10px; flex-shrink:0; margin-top:2px; white-space:nowrap; }
+
+.also-box { background:var(--surface); border:1.5px solid var(--border); border-radius:12px; padding:14px; margin-bottom:14px; }
+.also-title { font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:8px; }
+.also-ta { width:100%; background:var(--surface2); border:1.5px solid var(--border); border-radius:8px; padding:10px 12px; font-size:13px; color:var(--text); outline:none; font-family:'DM Sans',sans-serif; resize:none; min-height:70px; line-height:1.6; }
+.also-ta:focus { border-color:var(--accent); }
+.also-ta::placeholder { color:var(--text-dimmer); }
+
+.review-actions { background:var(--bg); padding:14px 0 4px; border-top:1px solid var(--border); margin-top:8px; position:sticky; bottom:0; }
+.review-hint { font-size:11px; color:var(--text-dimmer); margin-bottom:10px; text-align:center; }
+.action-btns { display:grid; grid-template-columns:1fr 1.8fr 1.8fr; gap:8px; }
+.abtn { padding:12px 10px; border-radius:11px; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; transition:all 0.15s; text-align:center; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+.abtn-start { background:var(--btn-start-bg); border:1.5px solid var(--btn-start-border); color:var(--btn-start-color); }
+.abtn-resort { background:var(--btn-rethink-bg); border:1.5px solid var(--btn-rethink-border); color:var(--btn-rethink-color); }
+.abtn-resort-hint { font-size:10px; font-weight:400; font-style:italic; line-height:1.3; opacity:0.75; }
+.abtn-save { background:var(--btn-save-bg); color:var(--btn-save-color); border:none; }
+.abtn:hover { opacity:0.85; }
+
+/* Output */
+.output { display:none; }
+.output.on { display:block; }
+.out-meta { font-size:12px; color:var(--text-dimmer); margin-bottom:14px; display:flex; flex-wrap:wrap; gap:6px; }
+.ocard { border-radius:13px; padding:16px; margin-bottom:10px; border-left:4px solid; animation:fadeUp 0.3s ease forwards; opacity:0; }
+.ocard.urgent{background:var(--card-urgent);border-left-color:var(--red);}
+.ocard.soon{background:var(--card-soon);border-left-color:var(--orange);}
+.ocard.someday{background:var(--card-someday);border-left-color:var(--blue);}
+.ocard.ideas{background:var(--card-s2);border-left-color:var(--purple);}
+.ocard.noise{background:var(--card-noise);border-left-color:var(--gray);}
+.ocard-lbl{font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--text-dimmer);margin-bottom:5px;}
+.ocard-title{font-family:'DM Serif Display',serif;font-size:17px;color:var(--text);margin-bottom:10px;}
+.oitem{display:flex;align-items:flex-start;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);font-size:14px;line-height:1.5;color:var(--text);}
+.oitem:last-child{border-bottom:none;}
+.odot2{width:7px;height:7px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.odot2.red{background:var(--red);}
+.odot2.orange{background:var(--orange);}
+.odot2.blue{background:var(--blue);}
+.odot2.purple{background:var(--purple);}
+.odot2.gray{background:var(--gray);}
+.oitem-body{flex:1;}
+.oitem-sub{font-size:12px;color:var(--text-dim);margin-top:2px;font-weight:300;}
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:20px;margin-left:5px;vertical-align:middle;}
+
+.fm-final{background:var(--fm-bg);border-radius:14px;padding:26px 22px;text-align:center;margin-top:4px;animation:fadeUp 0.3s ease forwards;opacity:0;}
+.fm-final .fm-lbl{font-size:10px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent2);margin-bottom:10px;opacity:0.8;}
+.fm-final .fm-action{font-family:'DM Serif Display',serif;font-size:22px;line-height:1.3;color:var(--fm-text);margin-bottom:8px;}
+.fm-final .fm-why{font-size:13px;color:var(--fm-sub);line-height:1.6;font-weight:300;margin-bottom:12px;}
+.fm-final .fm-note{font-size:12px;color:var(--fm-note);font-style:italic;border-top:1px solid var(--fm-border);padding-top:10px;}
+.new-dump{margin-top:18px;background:var(--surface);border:1.5px solid var(--border);color:var(--text-dim);border-radius:12px;padding:12px;width:100%;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all 0.15s;}
+
+/* Setup */
+.setup-screen { padding:24px; margin-bottom:16px; }
+.setup-title { font-family:'DM Serif Display',serif; font-size:22px; color:var(--text); margin-bottom:6px; }
+.setup-desc { font-size:13px; color:var(--text-dim); line-height:1.7; margin-bottom:22px; }
+
+::-webkit-scrollbar{width:4px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.loc-line{display:flex;align-items:center;gap:4px;margin-top:2px}
+.loc-pin{font-size:11px;flex-shrink:0;color:var(--text-dimmer)}
+.sub-line{display:flex;align-items:center;gap:4px}
+
+.mode-card{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:14px;cursor:pointer;transition:all 0.15s;text-align:left;font-family:'DM Sans',sans-serif;width:100%;}
+.mode-card:hover{border-color:var(--border2);transform:translateY(-1px);}
+.mode-card-icon{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;}
+.mode-card-body{flex:1;}
+.mode-card-title{font-size:15px;font-weight:600;color:var(--text);margin-bottom:2px;}
+.mode-card-sub{font-size:12px;color:var(--text-dimmer);}
+.mode-card-arrow{color:var(--text-dimmer);font-size:18px;flex-shrink:0;}
+</style>
+</head>
+<body class="theme-purple">
+<div class="app">
+
+<div class="header">
+  <div class="header-title">Brain Dump</div>
+  <div class="header-sub">sort the noise · find the signal · one first move</div>
+  <div class="version-tag">v1.2.26</div>
+</div>
+
+<!-- SETUP -->
+<div id="screenSetup" style="display:none">
+  <div class="surface setup-screen">
+    <div class="setup-title">First time setup</div>
+    <div class="setup-desc">Enter your keys below. Saved only on this device — never uploaded anywhere. You only need to do this once.</div>
+    <div class="field"><label class="field-label">Anthropic API Key</label><input type="password" id="inApiKey" placeholder="sk-ant-..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div class="field-hint">From console.anthropic.com → API Keys</div></div>
+    <div class="field"><label class="field-label">Google OAuth Client ID</label><input type="text" id="inClientId" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div class="field-hint">From Google Cloud Console → APIs & Services → Credentials</div></div>
+    <div class="field"><label class="field-label">Google Doc ID — idea library</label><input type="text" id="inDocId" placeholder="Paste the long ID from your Google Doc URL" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><div class="field-hint">The string between /d/ and /edit in your doc's URL</div></div>
+    <div class="field">
+      <label class="field-label">Theme</label>
+      <div style="display:flex;gap:12px;margin-top:8px;align-items:center">
+        <button onclick="setTheme('purple',this)" id="t-purple" title="Soft purple" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#7c6af7,#a78bfa);border:3px solid var(--accent);cursor:pointer;flex-shrink:0;padding:0"></button>
+        <button onclick="setTheme('light',this)" id="t-light" title="Clean light" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f8f7f4,#555);border:1.5px solid #ccc;cursor:pointer;flex-shrink:0;padding:0"></button>
+        <button onclick="setTheme('dark',this)" id="t-dark" title="True dark" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#0f1117,#7c6af7);border:1.5px solid #3d4460;cursor:pointer;flex-shrink:0;padding:0"></button>
+        <button onclick="setTheme('blue',this)" id="t-blue" title="Fresh blue" style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#f0f4f8,#2a6db5);border:1.5px solid #a0c0dc;cursor:pointer;flex-shrink:0;padding:0"></button>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-label">Model selection</label>
+      <div style="margin-top:4px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <div>
+            <div class="field-hint" style="margin-bottom:4px">Quick dump</div>
+            <select id="modelQuick" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
+              <option value="claude-haiku-4-5-20251001">Haiku 4.5 — cheaper</option>
+              <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanced</option>
+            </select>
+          </div>
+          <div>
+            <div class="field-hint" style="margin-bottom:4px">Full dump &amp; annual</div>
+            <select id="modelFull" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
+              <option value="claude-haiku-4-5-20251001">Haiku 4.5 — cheaper</option>
+              <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanced</option>
+            </select>
+          </div>
+        </div>
+        <button onclick="checkBestModels()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;font-family:inherit;width:100%">🔍 Check for better models</button>
+        <div id="modelSuggestion" style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.5;display:none"></div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="field-label">Calendars to show in Check in</label>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Uncheck calendars you don't want to see</div>
+      <div id="calendarCheckboxes" style="max-height:200px;overflow-y:auto;background:var(--surface2);border:1.5px solid var(--border);border-radius:10px;padding:8px">
+        <div style="font-size:12px;color:var(--text-dimmer);padding:4px">Loading calendars...</div>
+      </div>
+    </div>
+    <div class="err" id="setupErr"></div>
+    <button class="btn btn-primary" onclick="saveSetup()">Save & continue</button>
+    <button class="btn btn-secondary" onclick="cancelSetup()" style="margin-top:8px">Cancel — go back</button>
+  </div>
+</div>
+
+<!-- AUTH -->
+<div id="screenAuth" style="display:none">
+  <div class="surface auth-section">
+    <p>Connect your Google account so the app can read your calendar and save tasks and ideas automatically.</p>
+    <button class="btn btn-google" onclick="handleAuth()">
+      <svg width="17" height="17" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
+      Connect Google Account
+    </button>
+    <div style="font-size:12px;color:var(--text-dimmer);text-align:center;margin-top:8px">A popup will open — if nothing happens, allow popups for this site</div>
+    <button class="btn btn-secondary" onclick="showSetup()">← Back to settings</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="screenMain" style="display:none">
+
+  <div class="status-bar"><span class="sdot"></span><span id="statusText">Google connected · ready</span></div>
+
+  <!-- Mode picker shown by default -->
+  <div id="modePicker" style="display:block">
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px">
+      <button class="mode-card" onclick="launchMode('checkin')">
+        <div class="mode-card-icon ic-green"><i class="ti ti-list-check" aria-hidden="true"></i></div>
+        <div class="mode-card-body">
+          <div class="mode-card-title">Check in</div>
+          <div class="mode-card-sub">What's on my plate — free, no AI</div>
+        </div>
+        <i class="ti ti-chevron-right mode-card-arrow" aria-hidden="true"></i>
+      </button>
+      <button class="mode-card" onclick="launchMode('quick')">
+        <div class="mode-card-icon ic-blue"><i class="ti ti-bolt" aria-hidden="true"></i></div>
+        <div class="mode-card-body">
+          <div class="mode-card-title">Quick dump</div>
+          <div class="mode-card-sub">A few things on your mind</div>
+        </div>
+        <i class="ti ti-chevron-right mode-card-arrow" aria-hidden="true"></i>
+      </button>
+      <button class="mode-card" onclick="launchMode('full')">
+        <div class="mode-card-icon ic-purple"><i class="ti ti-brain" aria-hidden="true"></i></div>
+        <div class="mode-card-body">
+          <div class="mode-card-title">Full dump</div>
+          <div class="mode-card-sub">Everything in your head</div>
+        </div>
+        <i class="ti ti-chevron-right mode-card-arrow" aria-hidden="true"></i>
+      </button>
+    </div>
+    <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
+  </div>
+
+  <!-- Dump input shown after mode selected -->
+  <div id="modeDump" style="display:none">
+    <button onclick="backToModePicker()" style="background:none;border:none;color:var(--text-dimmer);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px;padding:0">← Back</button>
+    <div class="dump-wrap">
+      <div class="dump-lbl" id="dumpLabel">What's on your mind?</div>
+      <textarea id="dumpText" placeholder="A few things... tasks, something that came up, a quick worry." rows="5"></textarea>
+    </div>
+    <div class="err" id="mainErr"></div>
+    <button class="btn btn-primary" id="sortBtn" onclick="processDump()"><i class="ti ti-bolt" style="font-size:16px" aria-hidden="true"></i> Sort it</button>
+    <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading" id="loading"><div class="spinner"></div><div class="load-txt" id="loadTxt">Reading your calendar...</div><div class="load-sub" id="loadSub">sorting signal from noise</div></div>
+
+<!-- CHECK-IN OUTPUT -->
+<div class="checkin" id="checkin">
+  <div id="modeShortcutsBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
+  <div id="ciCards"></div>
+  <div class="first-move" id="ciFM" style="display:none">
+    <div class="fm-lbl">Best next action</div>
+    <div class="fm-action" id="ciFMText"></div>
+  </div>
+  <button class="new-dump" onclick="saveCiAndSummary()" style="margin-top:10px;background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600">✓ Save & see summary</button>
+  <div style="font-size:11px;color:var(--text-dimmer);text-align:center;margin-top:6px">Free · no credits used</div>
+  <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
+</div>
+
+<!-- Check-in summary screen -->
+<div id="ciSummary" style="display:none">
+  <div id="ciSummaryCards"></div>
+  <button class="new-dump" onclick="resetToMain()" style="margin-top:10px">↩ Done</button>
+  <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
+</div>
+
+
+
+<!-- REVIEW -->
+<div class="review" id="review">
+  <div class="review-topbar"><span>Review before saving</span><span style="font-size:11px;color:var(--text-dimmer)">nothing saved yet</span></div>
+  <div id="reviewItems"></div>
+  <div class="sec-title" id="existingTitle" style="display:none">📌 Already on your list</div>
+  <div id="existingItems"></div>
+  <!-- Mini task check-in in review -->
+  <div id="miniCheckin" style="display:none;margin-bottom:12px">
+    <div class="sec-title">📋 Quick — while you're here</div>
+    <div id="miniCheckinCards"></div>
+  </div>
+
+  <div class="also-box">
+    <div class="also-title">💡 Oh, I also remembered...</div>
+    <textarea class="also-ta" id="alsoText" placeholder="Anything else? Add it here and hit Rethink to fold it in..."></textarea>
+  </div>
+  <div class="review-actions">
+    <div class="review-hint">Nothing saves until you hit Save & done</div>
+    <div class="action-btns">
+      <button class="abtn abtn-start" onclick="startOver()">↺ Start over</button>
+      <button class="abtn abtn-resort" onclick="reSort()">⟳ Rethink everything<span class="abtn-resort-hint">small edits don't need this</span></button>
+      <button class="abtn abtn-save" onclick="saveAndDone()">✓ Save & done</button>
+    </div>
+  </div>
+</div>
+
+<!-- OUTPUT -->
+<div class="output" id="output">
+  <div class="out-meta" id="outMeta"></div>
+  <div id="outCards"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" id="outputShortcuts"></div>
+</div>
+
+<script>
+const VERSION='1.2.26';
+
+// Local timezone date helpers
+function localDateStr(d){
+  const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function localMidnight(offsetDays=0){
+  const d=new Date();
+  d.setHours(0,0,0,0);
+  if(offsetDays)d.setDate(d.getDate()+offsetDays);
+  return d;
+}
+function localDateFromStr(str){
+  // Parse YYYY-MM-DD as local time, not UTC
+  const parts=str.split('-');
+  return new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]));
+}
+let mode='quick', gToken=null, taskListId=null, currentResult=null;
+let CFG={apiKey:'',clientId:'',docId:''};
+const SCOPES='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
+const LOAD_MSGS=[['Reading your calendar...','checking what is actually scheduled'],['Sorting your tasks...','signal vs noise'],['Thinking it through...','separating real from anxiety'],['Almost there...','finding your first move']];
+let loadTimer;
+
+// DATE HELPERS
+function getDateLabels(){
+  const now=new Date();
+  const today=new Date(now);
+  const tom=new Date(now);tom.setDate(tom.getDate()+1);
+  const dow=now.getDay();
+  const daysToSun=dow===0?7:7-dow;
+  const sun=new Date(now);sun.setDate(sun.getDate()+daysToSun);
+  const daysToMon=dow===0?1:8-dow;
+  const mon=new Date(now);mon.setDate(mon.getDate()+daysToMon);
+  const nm=new Date(now.getFullYear(),now.getMonth()+2,0);
+  const fmt=d=>d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
+  const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
+  const lastDayNextMonth=new Date(now.getFullYear(),now.getMonth()+2,0);
+  const nextSun=localMidnight(daysToSun+7);
+  return{today:fmt(today),tomorrow:fmt(tom),thisWeek:'by Sun '+fmt(sun),nextWeek:'by Sun '+fmt(nextSun),thisMonth:'by '+fmt(lastDay),nextMonth:'by '+fmt(lastDayNextMonth)};
+}
+
+// Store task data by ddId to avoid passing long IDs through onclick attributes
+const ciTaskStore={};
+
+function buildCiDateDD(ddId,slId,cpId,ciId,taskId,listId){
+  // Store task/list IDs in a map keyed by ddId — avoids encoding issues in onclick
+  ciTaskStore[ddId]={taskId,listId};
+  const L=getDateLabels();
+  return`<div class="dd" id="${ddId}">
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Today','${L.today}','today')"><i class="ti ti-sun" style="font-size:14px" aria-hidden="true"></i>Today<span class="dd-hint">${L.today}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Tomorrow','${L.tomorrow}','tomorrow')"><i class="ti ti-arrow-right" style="font-size:14px" aria-hidden="true"></i>Tomorrow<span class="dd-hint">${L.tomorrow}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','This week','${L.thisWeek}','this_week')"><i class="ti ti-calendar-week" style="font-size:14px" aria-hidden="true"></i>This week<span class="dd-hint">${L.thisWeek}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Next week','${L.nextWeek}','next_week')"><i class="ti ti-calendar" style="font-size:14px" aria-hidden="true"></i>Next week<span class="dd-hint">${L.nextWeek}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','This month','${L.thisMonth}','this_month')"><i class="ti ti-calendar-month" style="font-size:14px" aria-hidden="true"></i>This month<span class="dd-hint">${L.thisMonth}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Next month','${L.nextMonth}','next_month')"><i class="ti ti-calendar-month" style="font-size:14px" aria-hidden="true"></i>Next month<span class="dd-hint">${L.nextMonth}</span></div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','No date','','none')"><i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>No date</div>
+    <div class="dd-opt dd-pick" onclick="showCiCustomDP('${ddId}','${cpId}')"><i class="ti ti-calendar-plus" style="font-size:14px" aria-hidden="true"></i>Pick a date...</div>
+  </div>
+  <div class="custom-dp" id="${cpId}"><input type="date" id="${ciId}"><button onclick="confirmCiDP('${cpId}','${slId}','${ciId}','${ddId}')">Set</button></div>
+  <div class="date-set" id="${slId}"></div>`;
+}
+
+function setCiDate(ddId,slId,label,hint,key){
+  document.getElementById(ddId).classList.remove('open');
+  const sl=document.getElementById(slId);
+  const store=ciTaskStore[ddId]||{};
+  const {taskId,listId}=store;
+
+  if(key==='none'){
+    sl.textContent='📅 No due date';
+    sl.classList.add('show');
+    return;
+  }
+
+  sl.textContent='📅 '+label+' — saving...';
+  sl.classList.add('show');
+
+  const now=new Date();
+  let dueDate='';
+  const dow2=now.getDay(); // 0=Sun,1=Mon,...,6=Sat
+  if(key==='today'){dueDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()).toISOString().split('T')[0];}
+  else if(key==='tomorrow'){dueDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1).toISOString().split('T')[0];}
+  else if(key==='this_week'){
+    // End of this week = Sunday. If today is Sunday, use this Sunday.
+    const daysToSun=dow2===0?0:7-dow2;
+    dueDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()+daysToSun).toISOString().split('T')[0];
+  }
+  else if(key==='next_week'){
+    // End of next week = next Sunday
+    const dtsNW=dow2===0?7:7-dow2;
+    dueDate=localDateStr(localMidnight(dtsNW+7));
+  }
+  else if(key==='this_month'){dueDate=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().split('T')[0];}
+  else if(key==='next_month'){dueDate=new Date(now.getFullYear(),now.getMonth()+2,0).toISOString().split('T')[0];}
+
+  if(dueDate&&taskId&&listId){
+    updateTaskDue(listId,taskId,dueDate).then(ok=>{
+      sl.textContent=ok?'📅 '+label+' — '+hint+' ✓ saved':'📅 '+label+' — save failed, try again';
+    });
+  } else {
+    sl.textContent='📅 '+label+(hint?' — '+hint:'');
+  }
+}
+
+function showCiCustomDP(ddId,cpId){
+  document.getElementById(ddId).classList.remove('open');
+  document.getElementById(cpId).classList.add('show');
+  document.getElementById(cpId).querySelector('input').focus();
+}
+
+function confirmCiDP(cpId,slId,ciId,ddId){
+  const val=document.getElementById(ciId).value;
+  if(!val)return;
+  const d=new Date(val+'T12:00:00');
+  const fmt=d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById(cpId).classList.remove('show');
+  const sl=document.getElementById(slId);
+  sl.textContent='📅 '+fmt+' — saving...';
+  sl.classList.add('show');
+  const store=ciTaskStore[ddId]||{};
+  const {taskId,listId}=store;
+  if(taskId&&listId){
+    updateTaskDue(listId,taskId,val).then(ok=>{
+      sl.textContent=ok?'📅 '+fmt+' ✓ saved to Tasks':'📅 '+fmt+' — save failed';
+    });
+  }
+}
+
+
+function toggleDD(ddId){
+  const dd=document.getElementById(ddId);
+  const isOpen=dd.classList.contains('open');
+  document.querySelectorAll('.dd,.item-dropdown').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.custom-dp').forEach(c=>c.classList.remove('show'));
+  if(!isOpen)dd.classList.add('open');
+}
+function setDateFromDD(ddId,slId,label,hint){
+  document.getElementById(ddId).classList.remove('open');
+  const sl=document.getElementById(slId);
+  sl.textContent='📅 Due: '+label+' — '+hint;
+  sl.classList.add('show');
+}
+function showCustomDP(ddId,cpId){
+  document.getElementById(ddId).classList.remove('open');
+  document.getElementById(cpId).classList.add('show');
+  document.getElementById(cpId).querySelector('input').focus();
+}
+function confirmCustomDP(cpId,slId,ciId){
+  const val=document.getElementById(ciId).value;
+  if(!val)return;
+  const d=new Date(val+'T00:00:00');
+  const fmt=d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+  document.getElementById(cpId).classList.remove('show');
+  const sl=document.getElementById(slId);
+  sl.textContent='📅 Due: '+fmt;
+  sl.classList.add('show');
+}
+
+// THEME
+function setTheme(name,el){
+  document.body.className='theme-'+name;
+  document.querySelectorAll('[id^="t-"]').forEach(b=>b.style.borderWidth='1.5px');
+  if(el)el.style.borderWidth='3px';
+  localStorage.setItem('bd_theme',name);
+}
+
+// INIT
+window.addEventListener('load',()=>{
+  const t=localStorage.getItem('bd_theme')||'purple';
+  setTheme(t,document.getElementById('t-'+t));
+  CFG.apiKey=localStorage.getItem('bd_api_key')||'';
+  CFG.clientId=localStorage.getItem('bd_client_id')||'';
+  CFG.docId=localStorage.getItem('bd_doc_id')||'';
+  const hash=window.location.hash;
+  if(hash.includes('access_token')){
+    const p=new URLSearchParams(hash.substring(1));
+    gToken=p.get('access_token');
+    localStorage.setItem('bd_google_token',gToken);
+    window.history.replaceState({},document.title,window.location.pathname);
+    const saved=localStorage.getItem('bd_saved_dump');
+    if(saved){document.getElementById('dumpText').value=saved;localStorage.removeItem('bd_saved_dump');}
+  } else {
+    gToken=localStorage.getItem('bd_google_token');
+  }
+  if(!CFG.apiKey||!CFG.clientId||!CFG.docId){showSetup();return;}
+  if(!gToken){showScreen('auth');return;}
+  // Silently verify token is still valid before showing app
+  showScreen('main');
+  const dumpVal=localStorage.getItem('bd_saved_dump');
+  if(dumpVal){document.getElementById('dumpText').value=dumpVal;localStorage.removeItem('bd_saved_dump');}
+  fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1&timeMin='+new Date().toISOString(),{headers:{Authorization:'Bearer '+gToken}})
+    .then(r=>{
+      if(r.status===401){
+        const dv=document.getElementById('dumpText')?.value||'';
+        if(dv)localStorage.setItem('bd_saved_dump',dv);
+        gToken=null;localStorage.removeItem('bd_google_token');showScreen('auth');
+      } else {
+        checkMonthlyBanner();
+      }
+    })
+    .catch(()=>checkMonthlyBanner());
+});
+
+
+// SCREENS
+
+function showScreen(name){
+  ['Setup','Auth','Main'].forEach(s=>{
+    const el=document.getElementById('screen'+s);
+    if(el)el.style.display=s.toLowerCase()===name?'block':'none';
+  });
+  ['loading','checkin','review','output'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('on');el.style.display='';}
+  });
+}
+function cancelSetup(){
+  if(gToken)resetToMain();
+  else showScreen('auth');
+}
+function showSetup(){
+  document.getElementById('inApiKey').value=CFG.apiKey||'';
+  document.getElementById('inClientId').value=CFG.clientId||'';
+  document.getElementById('inDocId').value=CFG.docId||'';
+  const mq=localStorage.getItem('bd_model_quick')||'claude-haiku-4-5-20251001';
+  const mf=localStorage.getItem('bd_model_full')||'claude-sonnet-4-6';
+  const mqEl=document.getElementById('modelQuick');
+  const mfEl=document.getElementById('modelFull');
+  if(mqEl)mqEl.value=mq;
+  if(mfEl)mfEl.value=mf;
+  // Always read fresh from localStorage
+
+  showScreen('setup');
+  // Load calendar checkboxes
+  loadCalendarCheckboxes();
+}
+
+async function loadCalendarCheckboxes(){
+  const container=document.getElementById('calendarCheckboxes');
+  if(!container||!gToken)return;
+  try{
+    const r=await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList',{headers:{Authorization:'Bearer '+gToken}});
+    if(!r.ok)return;
+    const data=await r.json();
+    const cals=(data.items||[]).filter(c=>c.selected!==false);
+    const hidden=JSON.parse(localStorage.getItem('bd_hidden_cals')||'[]');
+    container.innerHTML='';
+    cals.forEach(c=>{
+      const isHidden=hidden.includes(c.id);
+      const name=c.id==='primary'?'Erin (primary)':(c.summaryOverride||c.summary||c.id);
+      const color=c.backgroundColor||'#7c6af7';
+      const div=document.createElement('div');
+      div.style.cssText='display:flex;align-items:center;gap:10px;padding:7px 4px;border-bottom:1px solid var(--border)';
+      div.innerHTML=`<input type="checkbox" id="cal-${c.id}" ${!isHidden?'checked':''} onchange="toggleCalVisibility('${c.id}',this.checked)" style="width:16px;height:16px;cursor:pointer;flex-shrink:0"><span style="width:10px;height:10px;border-radius:50%;background:${color};flex-shrink:0;display:inline-block"></span><label for="cal-${c.id}" style="font-size:13px;color:var(--text);cursor:pointer;flex:1">${name}</label>`;
+      container.appendChild(div);
+    });
+  }catch(e){
+    if(container)container.innerHTML='<div style="font-size:12px;color:var(--text-dimmer);padding:4px">Could not load calendars — connect Google first</div>';
+  }
+}
+
+function toggleCalVisibility(calId,visible){
+  const hidden=JSON.parse(localStorage.getItem('bd_hidden_cals')||'[]');
+  if(visible){
+    const idx=hidden.indexOf(calId);
+    if(idx>-1)hidden.splice(idx,1);
+  } else {
+    if(!hidden.includes(calId))hidden.push(calId);
+  }
+  localStorage.setItem('bd_hidden_cals',JSON.stringify(hidden));
+}
+function saveSetup(){
+  const k=document.getElementById('inApiKey').value.trim();
+  const c=document.getElementById('inClientId').value.trim();
+  const d=document.getElementById('inDocId').value.trim();
+  const e=document.getElementById('setupErr');
+  e.classList.remove('on');
+  if(!k.startsWith('sk-ant-')){e.textContent='API key should start with sk-ant-';e.classList.add('on');return;}
+  if(!c.includes('googleusercontent.com')){e.textContent='Client ID should end in .apps.googleusercontent.com';e.classList.add('on');return;}
+  if(d.length<20){e.textContent='Doc ID looks too short — copy the full string from the URL';e.classList.add('on');return;}
+  localStorage.setItem('bd_api_key',k);localStorage.setItem('bd_client_id',c);localStorage.setItem('bd_doc_id',d);
+  CFG={apiKey:k,clientId:c,docId:d};
+  const mq=document.getElementById('modelQuick')?.value||'claude-haiku-4-5-20251001';
+  const mf=document.getElementById('modelFull')?.value||'claude-sonnet-4-6';
+  localStorage.setItem('bd_model_quick',mq);
+  localStorage.setItem('bd_model_full',mf);
+  gToken?showScreen('main'):showScreen('auth');
+}
+function handleAuth(){
+  const dumpVal=document.getElementById('dumpText')?.value||'';
+  if(dumpVal)localStorage.setItem('bd_saved_dump',dumpVal);
+  const uri=window.location.href.split('?')[0].split('#')[0];
+  const p=new URLSearchParams({client_id:CFG.clientId,redirect_uri:uri,response_type:'token',scope:SCOPES,prompt:'consent'});
+  window.location.href='https://accounts.google.com/o/oauth2/v2/auth?'+p;
+}
+
+// MODE
+function launchMode(m){
+  mode=m;
+  const picker=document.getElementById('modePicker');
+  const dump=document.getElementById('modeDump');
+  const lbl=document.getElementById('dumpLabel');
+  const btn=document.getElementById('sortBtn');
+  const ta=document.getElementById('dumpText');
+  if(m==='checkin'){
+    picker.style.display='none';
+    runCheckin();
+  } else {
+    picker.style.display='none';
+    dump.style.display='block';
+    if(m==='quick'){
+      lbl.textContent="What's on your mind?";
+      ta.placeholder="A few things... tasks, something that came up, a quick worry.";
+      ta.rows=5;
+      btn.innerHTML='<i class="ti ti-bolt" style="font-size:16px" aria-hidden="true"></i> Sort it';
+    } else {
+      lbl.textContent="Everything in your head";
+      ta.placeholder="All of it. Messy is fine.";
+      ta.rows=8;
+      btn.innerHTML='<i class="ti ti-brain" style="font-size:16px" aria-hidden="true"></i> Sort my brain';
+    }
+  }
+}
+function backToModePicker(){
+  document.getElementById('modeDump').style.display='none';
+  document.getElementById('modePicker').style.display='block';
+}
+
+// GOOGLE APIs
+// Cache calendar metadata (id -> {name, color})
+let calendarMeta={};
+
+async function fetchAllCalendarIds(){
+  try{
+    const r=await fetch('https://www.googleapis.com/calendar/v3/users/me/calendarList',{headers:{Authorization:'Bearer '+gToken}});
+    if(r.status===401){saveDumpAndReauth();throw new Error('Token expired');}
+    if(!r.ok)throw new Error();
+    const data=await r.json();
+    const cals=(data.items||[]).filter(c=>c.selected!==false);
+    calendarMeta={};
+    cals.forEach(c=>{
+      calendarMeta[c.id]={
+        name:c.summaryOverride||c.summary||'',
+        color:c.backgroundColor||'#7c6af7'
+      };
+      // Store primary email for reference
+
+    });
+    const hidden=JSON.parse(localStorage.getItem('bd_hidden_cals')||'[]');
+    return cals.filter(c=>!hidden.includes(c.id)).map(c=>c.id);
+  }catch(e){console.error('CalList:',e);return['primary'];}
+}
+
+async function fetchCal(){
+  try{
+    const now=new Date();
+    // Use start of today so ongoing multi-day events that started earlier are included
+    const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0);
+    const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+8,0,0,0);
+    const calIds=await fetchAllCalendarIds();
+    const allEvents=[];
+    await Promise.all(calIds.map(async calId=>{
+      try{
+        const enc=encodeURIComponent(calId);
+        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${startOfToday.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
+        if(r.ok){
+          const d=await r.json();
+          // Tag each event with the calendar id so we can display it
+          const meta=calendarMeta[calId]||{name:'',color:'#7c6af7'};
+          // Clean up calendar name — remove email addresses
+          let cleanName=meta.name||'';
+          if(cleanName.includes('@')){cleanName=cleanName.split('@')[0].split('.').map(w=>w.charAt(0).toUpperCase()+w.slice(1)).join(' ');}
+          (d.items||[]).forEach(ev=>{
+            ev.calendar_name=cleanName;
+            ev.calendar_color=meta.color;
+          });
+          allEvents.push(...(d.items||[]));
+        }
+      }catch(e){console.error('Cal fetch for',calId,e);}
+    }));
+    // Deduplicate by id and sort by start time
+    const seen=new Set();
+    const unique=allEvents.filter(e=>{if(seen.has(e.id))return false;seen.add(e.id);return true;});
+    unique.sort((a,b)=>new Date(a.start.dateTime||a.start.date)-new Date(b.start.dateTime||b.start.date));
+    return unique;
+  }catch(e){console.error('Cal:',e);return[];}
+}
+
+async function fetchTasks(){
+  try{
+    const r=await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists',{headers:{Authorization:'Bearer '+gToken}});
+    if(!r.ok)throw new Error();
+    const lists=await r.json();
+    if(!lists.items?.length)return{listId:null,tasks:[]};
+    const lid=lists.items[0].id;taskListId=lid;
+    const tr=await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks?showCompleted=false&maxResults=100`,{headers:{Authorization:'Bearer '+gToken}});
+    if(!tr.ok)throw new Error();
+    return{listId:lid,tasks:(await tr.json()).items||[]};
+  }catch(e){return{listId:null,tasks:[]};}
+}
+async function addTask(lid,title,notes,due){
+  if(!lid)return false;
+  try{
+    const body={title,notes:notes||''};
+    if(due){const _p=due.split('-');const _ln=new Date(parseInt(_p[0]),parseInt(_p[1])-1,parseInt(_p[2]),12,0,0);body.due=_ln.toISOString();}
+    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks`,{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    return true;
+  }catch(e){return false;}
+}
+async function completeTask(lid,taskId){
+  if(!lid||!taskId)return false;
+  try{
+    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks/${taskId}`,{method:'PATCH',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify({status:'completed'})});
+    return true;
+  }catch(e){return false;}
+}
+async function deleteTask(lid,taskId){
+  if(!lid||!taskId)return false;
+  try{
+    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks/${taskId}`,{method:'DELETE',headers:{Authorization:'Bearer '+gToken}});
+    return true;
+  }catch(e){return false;}
+}
+async function appendDoc(content){
+  try{
+    const gr=await fetch(`https://docs.googleapis.com/v1/documents/${CFG.docId}`,{headers:{Authorization:'Bearer '+gToken}});
+    if(!gr.ok)throw new Error();
+    const doc=await gr.json();
+    const idx=doc.body.content[doc.body.content.length-1].endIndex-1;
+    await fetch(`https://docs.googleapis.com/v1/documents/${CFG.docId}:batchUpdate`,{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify({requests:[{insertText:{location:{index:idx},text:'\n'+content}}]})});
+    return true;
+  }catch(e){return false;}
+}
+function saveDumpAndReauth(){
+  gToken=null;localStorage.removeItem('bd_google_token');
+  handleAuth();
+}
+
+// LOADING
+function startLoad(){
+  let i=0;
+  document.getElementById('loadTxt').textContent=LOAD_MSGS[0][0];
+  document.getElementById('loadSub').textContent=LOAD_MSGS[0][1];
+  loadTimer=setInterval(()=>{i=(i+1)%LOAD_MSGS.length;document.getElementById('loadTxt').textContent=LOAD_MSGS[i][0];document.getElementById('loadSub').textContent=LOAD_MSGS[i][1];},2200);
+}
+function stopLoad(){clearInterval(loadTimer);}
+
+// CHECK-IN
+async function runCheckin(){
+  // Show mode shortcuts at top of checkin
+  const bar=document.getElementById('modeShortcutsBar');
+  if(bar)bar.innerHTML=modeShortcutsHTML();
+  document.getElementById('screenMain').style.display='none';
+  document.getElementById('loading').classList.add('on');
+  document.getElementById('loadTxt').textContent='Reading your calendar...';
+  document.getElementById('loadSub').textContent='no AI used — free';
+  try{
+    const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
+    const{listId,tasks}=tr;taskListId=listId;
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    buildCheckin(cal,tasks,listId);
+  }catch(err){
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    document.getElementById('screenMain').style.display='block';
+  }
+}
+
+function buildCheckin(cal,tasks,listId){
+  const container=document.getElementById('ciCards');
+  container.innerHTML='';
+  const today=new Date();
+  const todayStr=localDateStr(today);
+  const endOfWeek=new Date(today);
+  const dow=today.getDay();
+  const daysToSun=dow===0?0:7-dow;
+  endOfWeek.setDate(endOfWeek.getDate()+daysToSun);
+  const L=getDateLabels();
+
+  // Today's calendar
+  const todayEvents=cal.filter(e=>{
+    const s=e.start.date||e.start.dateTime.slice(0,10);
+    return s===todayStr;
+  });
+  // Build full 7-day calendar section with all-day first, show calendar name
+  const todayStr2=today.toDateString();
+  const todayLocal=localMidnight(0);
+  const todayLocalStr=localDateStr(todayLocal);
+
+  // All-day events: start date <= today AND end date > today (end is exclusive in Google)
+  const allDayEvts=cal.filter(e=>{
+    if(e.start.dateTime)return false;
+    const startStr=e.start.date; // YYYY-MM-DD
+    const endStr=e.end?.date||startStr; // exclusive
+    // Event spans today if startStr <= todayLocalStr < endStr
+    return startStr<=todayLocalStr&&endStr>todayLocalStr;
+  });
+  const allDayEventIds=new Set(allDayEvts.map(e=>e.id));
+
+  // Timed events today
+  const timedEvts=cal.filter(e=>{
+    if(!e.start.dateTime)return false;
+    const evtDate=localDateStr(new Date(e.start.dateTime));
+    return evtDate===todayLocalStr;
+  });
+
+  // Upcoming — future events not shown in today's all-day
+  const upcomingEvts=cal.filter(e=>{
+    if(allDayEventIds.has(e.id))return false;
+    const startStr=e.start.date||localDateStr(new Date(e.start.dateTime));
+    return startStr>todayLocalStr;
+  }).slice(0,10);
+
+  if(allDayEvts.length||timedEvts.length||upcomingEvts.length){
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
+
+    // All-day events first — check for multi-day span using string dates
+    allDayEvts.forEach(e=>{
+      const calName=e.calendar_name||'';
+      const calColor=e.calendar_color||'#7c6af7';
+      let dateLabel='all day';
+      if(e.start.date&&e.end?.date){
+        const _as=e.start.date; // YYYY-MM-DD
+        const _ae=e.end.date;   // YYYY-MM-DD exclusive
+        // Subtract 1 day from end to make inclusive
+        const _aeD=localDateFromStr(_ae);
+        _aeD.setDate(_aeD.getDate()-1);
+        const _aeAdj=localDateStr(_aeD);
+        if(_aeAdj>_as){
+          const _asFmt=localDateFromStr(_as).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+          const _aeFmt=_aeD.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+          dateLabel=_asFmt+' – '+_aeFmt;
+        }
+      }
+      const row=document.createElement('div');
+      row.className='ci-row';
+      const asubParts=[calName].filter(Boolean);
+      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${asubParts.length?`<div class="ci-sub" class="sub-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${asubParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${dateLabel}</span>`;
+      card.appendChild(row);
+    });
+
+    // Timed events
+    timedEvts.forEach(e=>{
+      const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+      const calName=e.calendar_name||'';
+      const calColor=e.calendar_color||'#2563eb';
+      const row=document.createElement('div');
+      row.className='ci-row';
+      const tsubParts=[calName].filter(Boolean);
+      // Check if timed event spans multiple days
+      // Simplest possible multi-day detection: slice ISO string to get date portion
+      const _tStart=e.start.dateTime?e.start.dateTime.slice(0,10):'';
+      const _tEnd=e.end?.dateTime?e.end.dateTime.slice(0,10):'';
+      let timeBadge=s;
+      if(_tStart&&_tEnd&&_tEnd!==_tStart){
+        const _tSF=localDateFromStr(_tStart).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        const _tEF=localDateFromStr(_tEnd).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        timeBadge=_tSF+' – '+_tEF;
+      }
+      row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${tsubParts.length?`<div class="ci-sub" class="sub-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${tsubParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${timeBadge}</span>`;
+      card.appendChild(row);
+    });
+
+
+
+    // Upcoming this week
+    if(upcomingEvts.length){
+      const upDiv=document.createElement('div');
+      upDiv.innerHTML='<div class="ci-lbl" style="padding-top:10px;border-top:1px solid var(--border)">Coming up</div>';
+      card.appendChild(upDiv);
+      let lastDayKey='';
+      upcomingEvts.forEach(e=>{
+        const calColor2=e.calendar_color||'#6b7280';
+        const calName2=e.calendar_name||'';
+        const timeLabel=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+        const dayKey=e.start.date||e.start.dateTime.slice(0,10);
+        const dayDisplay=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+        if(dayKey!==lastDayKey){
+          lastDayKey=dayKey;
+          const sep=document.createElement('div');
+          sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+          sep.textContent=dayDisplay;
+          card.appendChild(sep);
+        }
+        let badge='';
+        if(e.start.dateTime&&e.end?.dateTime){
+          const _s=e.start.dateTime.slice(0,10),_e=e.end.dateTime.slice(0,10);
+          if(_e!==_s){badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+localDateFromStr(_e).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+        }
+        if(!badge&&e.start.date&&e.end?.date&&e.end.date>e.start.date){
+          const _aed=localDateFromStr(e.end.date);_aed.setDate(_aed.getDate()-1);
+          if(localDateStr(_aed)>e.start.date)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+_aed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        }
+        if(!badge)badge=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        const subParts=[timeLabel,calName2].filter(Boolean);
+        const row=document.createElement('div');
+        row.className='ci-row';
+        row.style.alignItems='flex-start';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor2}22;color:${calColor2};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub" class="sub-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor2};display:inline-block;flex-shrink:0"></span>${subParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div>`;
+        card.appendChild(row);
+      });    }
+    container.appendChild(card);
+  }
+
+  // Overdue + this week tasks
+  const todayMidnight=localMidnight(0);
+  const tomorrowMidnight=localMidnight(1);
+  const overdue=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    return localDateFromStr(t.due.split('T')[0])<todayMidnight;
+  });
+  const thisWeek=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const due=localDateFromStr(t.due.split('T')[0]);
+    return due>=todayMidnight&&due<=endOfWeek;
+  });
+  let taskIdx=0;
+  if(overdue.length||thisWeek.length){
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
+    // Sort: overdue oldest first, then by date ascending
+    const sortedTasks=[
+      ...overdue.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0])),
+      ...thisWeek.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]))
+    ];
+    let lastTaskGroup='';
+    sortedTasks.forEach(t=>{
+      const _td=t.due?localDateFromStr(t.due.split('T')[0]):null;
+      const _t0=localMidnight(0),_t1=localMidnight(1);
+      let _tg='';
+      if(!_td||_td<_t0)_tg='Overdue';
+      else if(localDateStr(_td)===localDateStr(_t0))_tg='Today';
+      else if(localDateStr(_td)===localDateStr(_t1))_tg='Tomorrow';
+      else _tg=_td.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+      if(_tg!==lastTaskGroup){
+        lastTaskGroup=_tg;
+        const _sep=document.createElement('div');
+        _sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+        _sep.textContent=_tg;
+        card.appendChild(_sep);
+      }
+      const isOverdue=overdue.includes(t);
+      const id='ci-task-'+taskIdx++;
+      const ddId='cidd-'+id,slId='cisl-'+id,cpId='cicp-'+id,ciId='cici-'+id;
+      const wrap=document.createElement('div');
+      const dueFmt=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+      wrap.innerHTML=`
+        <div class="ci-row" id="${id}">
+          <div class="ci-icon ${isOverdue?'ic-red':'ic-orange'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div>
+          <div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}</div>${t.notes?`<div class="ci-sub" id="notes-${id}">${t.notes}</div>`:''}</div>
+          <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0" title="Edit task"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+          <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${(()=>{
+            if(isOverdue)return'overdue';
+            if(!t.due)return'no date';
+            const due=localDateFromStr(t.due.split('T')[0]);
+            const t0=localMidnight(0),t1=localMidnight(1);
+            if(localDateStr(due)===localDateStr(t0))return'today';
+            if(localDateStr(due)===localDateStr(t1))return'tomorrow';
+            return due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+          })()}</span>
+          ${dueFmt?`<span style="font-size:10px;color:var(--text-dimmer);margin-top:1px">${dueFmt}</span>`:''}
+          </div>
+        </div>
+        <div class="ta-row" id="ta-${id}">
+          <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
+          <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
+          <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>
+          ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
+        </div>
+        <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+            <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+            <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+          </div>
+          <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
+          <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
+          <button onclick="saveTaskEdit('${id}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button>
+        </div>`;
+      card.appendChild(wrap);
+    });
+    container.appendChild(card);
+  }
+
+  // Old undated tasks — 3 oldest + 3 random
+  const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
+  const sorted=[...undated].sort((a,b)=>new Date(a.updated||0)-new Date(b.updated||0));
+  const oldest=sorted.slice(0,3);
+  const rest=sorted.slice(3);
+  const randPool=rest.sort(()=>Math.random()-0.5).slice(0,3);
+  const shownUndated=[...oldest,...randPool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+
+  // If no undated tasks, show 3 random future tasks (due next week or later)
+  // Exclude tasks already shown in overdue/thisWeek sections
+  const shownIds=new Set([...overdue,...thisWeek].map(t=>t.id));
+  const futureTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    if(shownIds.has(t.id))return false;
+    return localDateFromStr(t.due.split('T')[0])>localMidnight(1);
+  }).sort(()=>Math.random()-0.5).slice(0,3);
+
+  const shown=shownUndated.length?shownUndated:futureTasks;
+  const sectionLabel=shownUndated.length?'🗂 Old undated tasks':'🗂 Future tasks — still relevant?';
+  const sectionTag=shownUndated.length?'3 oldest · 3 random':'3 random from upcoming';
+  if(shown.length){
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.innerHTML=`<div class="ci-lbl">${sectionLabel} <span class="ci-lbl" style="font-weight:400;text-transform:none;letter-spacing:0">${sectionTag}</span></div>`;
+    shown.forEach((t,idx)=>{
+      const isOldest=oldest.includes(t);
+      const id='ci-old-'+taskIdx++;
+      const ddId='cidd-'+id,slId='cisl-'+id,cpId='cicp-'+id,ciId='cici-'+id;
+      const futureDueFmt=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`
+        <div class="ci-row" id="${id}">
+          <div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div>
+          <div class="ci-body"><div class="ci-text">${t.title}</div><div class="ci-sub">${[isOldest?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div>
+          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+          ${futureDueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${futureDueFmt}</span>`:''}
+          </div>
+        </div>
+        <div class="ta-row" id="ta-${id}">
+          <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
+          <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button>
+          <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Remove</button>
+          ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
+        </div>`;
+      card.appendChild(wrap);
+    });
+    container.appendChild(card);
+  }
+
+  // S2 bumps — items mentioned 2+ times
+  const s2bumps=JSON.parse(localStorage.getItem('bd_s2_counts')||'{}');
+  const bumpItems=Object.entries(s2bumps).filter(([k,v])=>v>=2&&!localStorage.getItem('bd_bump_dismissed_'+k));
+  if(bumpItems.length){
+    bumpItems.slice(0,3).forEach(([item,count])=>{
+      const bump=document.createElement('div');
+      bump.className='s2-bump';
+      const askAgainId='aa-'+Math.random().toString(36).slice(2);
+      bump.innerHTML=`<div class="s2-q">💭 "${item}" has come up ${count} times — want to make it a task?</div>
+        <div class="s2-btns">
+          <button class="s2b s2b-yes" onclick="this.closest('.s2-bump').innerHTML='<span style=\\"font-size:12px;color:var(--blue)\\">✓ Added to your tasks</span>'">Yes, make it a task</button>
+          <button class="s2b s2b-no" onclick="document.getElementById('${askAgainId}').classList.toggle('show')">Not yet — ask me again ▾</button>
+        </div>
+        <div class="ask-again" id="${askAgainId}">
+          <div class="ask-again-lbl">Ask me again in:</div>
+          <span class="ask-chip" onclick="selAsk(this)">1 week</span>
+          <span class="ask-chip sel" onclick="selAsk(this)">2 weeks</span>
+          <span class="ask-chip" onclick="selAsk(this)">1 month</span>
+          <span class="ask-chip" onclick="selAsk(this)">3 months</span>
+        </div>`;
+      container.appendChild(bump);
+    });
+  }
+
+  // First move
+  const fm=document.getElementById('ciFM');
+  const urgent=tasks.filter(t=>t.due&&localDateFromStr(t.due.split('T')[0])<=localMidnight(0)&&t.status!=='completed');
+  if(urgent.length){
+    fm.style.display='block';
+    fm.style.opacity='1';
+    document.getElementById('ciFMText').textContent=urgent[0].title;
+  }
+
+  document.getElementById('checkin').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function ciDone(rowId,taId,slId,taskId,listId){
+  document.getElementById(taId).innerHTML='<span class="ta-result" style="color:var(--green)">✓ Marked as done</span>';
+  document.getElementById(slId)?.classList.remove('show');
+  if(taskId&&listId)completeTask(listId,taskId);
+}
+function ciSkip(rowId,taId,slId,taskId,listId){
+  document.getElementById(taId).innerHTML='<span class="ta-result" style="color:var(--red)">Removed from your list</span>';
+  document.getElementById(slId)?.classList.remove('show');
+  if(taskId&&listId)deleteTask(listId,taskId);
+}
+async function updateTaskDue(listId,taskId,dueDate){
+  if(!listId||!taskId)return;
+  try{
+    // Google Tasks API needs RFC3339 — use noon local time to avoid UTC date shift
+    const parts=dueDate.split('-');
+    const localNoon=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),12,0,0);
+    const res=await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`,{
+      method:'PATCH',
+      headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},
+      body:JSON.stringify({due:localNoon.toISOString()})
+    });
+    if(!res.ok){const err=await res.json();console.error('updateTaskDue error:',err);}
+    return res.ok;
+  }catch(e){console.error('Update task due:',e);return false;}
+}
+async function ciMakeTask(text,listId){
+  if(!listId)return;
+  try{
+    await addTask(listId,text,'','');
+    return true;
+  }catch(e){return false;}
+}
+function selAsk(el){el.closest('.ask-again').querySelectorAll('.ask-chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
+
+function toggleTaskEdit(id,taskId,listId){
+  const ep=document.getElementById('ep-'+id);
+  if(!ep)return;
+  const isOpen=ep.style.display!=='none';
+  // Close all other edit panels first
+  document.querySelectorAll('[id^="ep-"]').forEach(p=>{p.style.display='none';});
+  ep.style.display=isOpen?'none':'block';
+  if(!isOpen)document.getElementById('etitle-'+id)?.focus();
+}
+
+async function saveTaskEdit(id,taskId,listId){
+  const title=document.getElementById('etitle-'+id)?.value?.trim();
+  const date=document.getElementById('edate-'+id)?.value;
+  const notes=document.getElementById('enotes-'+id)?.value?.trim();
+  if(!title||!taskId||!listId)return;
+  const btn=document.querySelector(`#ep-${id} button`);
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+  try{
+    const body={title,notes:notes||''};
+    if(date){
+      const parts=date.split('-');
+      const localNoon=new Date(parseInt(parts[0]),parseInt(parts[1])-1,parseInt(parts[2]),12,0,0);
+      body.due=localNoon.toISOString();
+    } else {
+      body.due=null;
+    }
+    const res=await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(listId)}/tasks/${encodeURIComponent(taskId)}`,{
+      method:'PATCH',
+      headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},
+      body:JSON.stringify(body)
+    });
+    if(res.ok){
+      // Update display
+      const titleEl=document.getElementById('title-'+id);
+      if(titleEl)titleEl.textContent=title;
+      const ep=document.getElementById('ep-'+id);
+      if(ep)ep.style.display='none';
+      if(btn){btn.textContent='✓ Save changes';btn.disabled=false;}
+    } else {
+      if(btn){btn.textContent='Save failed — try again';btn.disabled=false;}
+    }
+  }catch(e){
+    if(btn){btn.textContent='Save failed — try again';btn.disabled=false;}
+  }
+}
+
+async function saveCiAndSummary(){
+  // Count how many dates were set
+  let updated=0;
+  document.querySelectorAll('.date-set.show').forEach(sl=>{
+    if(sl.textContent.includes('saved'))updated++;
+  });
+
+  // Hide checkin, show summary
+  document.getElementById('checkin').classList.remove('on');
+  document.getElementById('checkin').style.display='';
+
+  // Build summary from current task data
+  const container=document.getElementById('ciSummaryCards');
+  container.innerHTML='';
+  const t0=localMidnight(0);
+  const t1=localMidnight(1);
+  const t2=localMidnight(2);
+
+  // Refetch tasks to get updated state
+  const tr=await fetchTasks();
+  const tasks=tr.tasks||[];
+
+  const overdueTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    return localDateFromStr(t.due.split('T')[0])<t0;
+  });
+  const todayTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const d=localDateFromStr(t.due.split('T')[0]);
+    return d>=t0&&d<t1;
+  });
+  const tomorrowTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const d=localDateFromStr(t.due.split('T')[0]);
+    return d>=t1&&d<t2;
+  });
+
+  // Updated count
+  if(updated>0){
+    const upd=document.createElement('div');
+    upd.style.cssText='background:rgba(22,163,74,0.1);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--green)';
+    upd.textContent='✓ '+updated+' task'+(updated>1?'s':'')+' updated';
+    container.appendChild(upd);
+  }
+
+  function summaryCard(lbl,taskList,color){
+    if(!taskList.length)return;
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.style.borderLeftColor=color;
+    card.innerHTML='<div class="ci-lbl">'+lbl+'</div>';
+    taskList.forEach(t=>{
+      const row=document.createElement('div');
+      row.className='ci-row';
+      row.innerHTML=`<div class="ci-icon" style="background:${color}22;color:${color}"><i class="ti ti-check" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div></div>`;
+      card.appendChild(row);
+    });
+    container.appendChild(card);
+  }
+
+  // Overdue
+  summaryCard('🔴 Still overdue',overdueTasks,'var(--red)');
+
+  // Today: calendar then tasks
+  try{
+    const cal=await fetchCal();
+    const t0s=localDateStr(localMidnight(0));
+    const t1s=localDateStr(localMidnight(1));
+    const todayCal=cal.filter(e=>{
+      const s=(e.start.dateTime||e.start.date||'').split('T')[0];
+      return s===t0s;
+    });
+    const tomCal=cal.filter(e=>{
+      const s=(e.start.dateTime||e.start.date||'').split('T')[0];
+      return s===t1s;
+    });
+
+    function calSection(label,events,tasks,color){
+      if(!events.length&&!tasks.length)return;
+      const card=document.createElement('div');
+      card.className='ci-card';
+      card.style.borderLeftColor=color;
+      card.innerHTML='<div class="ci-lbl">'+label+'</div>';
+      events.forEach(e=>{
+        const timeStr=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+        const c=e.calendar_color||color;
+        const calName=e.calendar_name||'';
+        const desc=e.description?e.description.replace(/<[^>]+>/g,'').substring(0,80):'';
+        const subParts=[timeStr,calName].filter(Boolean);
+        const row=document.createElement('div');row.className='ci-row';
+        row.style.alignItems='flex-start';
+        row.innerHTML=`<div class="ci-icon" style="background:${c}22;color:${c};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${subParts.length?`<div class="ci-sub">${subParts.join(' · ')}</div>`:''}${e.location?`<div class="ci-sub" class="loc-line"><i class="ti ti-map-pin" class="loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}${desc?`<div class="ci-sub" style="margin-top:2px;font-style:italic">${desc}</div>`:''}</div>`;
+        card.appendChild(row);
+      });
+      tasks.forEach(t=>{
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${color}22;color:${color}"><i class="ti ti-check" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div></div>`;
+        card.appendChild(row);
+      });
+      container.appendChild(card);
+    }
+
+    calSection('📅 Today',todayCal,todayTasks,'var(--orange)');
+    calSection('📅 Tomorrow',tomCal,tomorrowTasks,'var(--blue)');
+  }catch(e){
+    summaryCard('📅 Due today',todayTasks,'var(--orange)');
+    summaryCard('📅 Due tomorrow',tomorrowTasks,'var(--blue)');
+  }
+
+  // This week — tasks due after tomorrow but before end of Sunday
+  const dow=new Date().getDay();
+  const daysToSun=dow===0?7:7-dow;
+  const endOfWeek=localMidnight(daysToSun);
+  const thisWeekTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const d=localDateFromStr(t.due.split('T')[0]);
+    return d>=t2&&d<=endOfWeek;
+  });
+  if(thisWeekTasks.length){
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.style.borderLeftColor='var(--blue)';
+    card.innerHTML='<div class="ci-lbl">📅 This week</div>';
+    thisWeekTasks.forEach(t=>{
+      const dueFmt=localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+      const row=document.createElement('div');row.className='ci-row';
+      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-check" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><span style="font-size:10px;color:var(--text-dimmer);flex-shrink:0">${dueFmt}</span>`;
+      card.appendChild(row);
+    });
+    container.appendChild(card);
+  }
+
+  if(!overdueTasks.length&&!todayTasks.length&&!tomorrowTasks.length&&!thisWeekTasks.length&&!updated){
+    const all=document.createElement('div');
+    all.style.cssText='text-align:center;padding:30px 20px;color:var(--text-dimmer);font-size:14px';
+    all.textContent='All clear — nothing urgent right now.';
+    container.appendChild(all);
+  }
+
+  document.getElementById('ciSummary').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+
+async function processDump(extraContext){
+  const baseTxt=document.getElementById('dumpText').value.trim();
+  const alsoTxt=document.getElementById('alsoText')?.value?.trim()||'';
+  const dumpText=[baseTxt,extraContext||'',alsoTxt].filter(Boolean).join('\n\n');
+  if(!dumpText.trim())return;
+  document.getElementById('mainErr')?.classList.remove('on');
+  document.getElementById('screenMain').style.display='none';
+  document.getElementById('review').classList.remove('on');
+  document.getElementById('loading').classList.add('on');
+  startLoad();
+  try{
+    const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
+    const{listId,tasks}=tr;taskListId=listId;
+    const calTxt=cal.length?cal.map(e=>{const s=e.start.dateTime||e.start.date;return`- ${e.summary} (${new Date(s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})})`;}).join('\n'):'No events in next 7 days';
+    const tasksSummary=tasks.slice(0,30).map(t=>`- ${t.title}${t.due?' (due '+localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+')':''}${t.notes?' — '+t.notes.slice(0,50):''}`).join('\n')||'No existing tasks';
+    const standingCtx=localStorage.getItem('bd_context')||'';
+    const today=new Date().toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+    const L=getDateLabels();
+
+    // Quick dump: task capture only — no thought analysis
+    const quickSys=`You are a task capture assistant. Extract clear tasks from Erin's input and nothing else. No analysis, no anxiety commentary, no feelings.
+
+Today: ${today}.
+Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
+
+Existing tasks (do NOT re-add — surface relevant ones only):
+${tasksSummary}
+
+RULES:
+- Extract only concrete tasks from the input
+- If input mentions something that matches an existing task, put it in existing_tasks_to_surface — do NOT also add it as a new item
+- Suggest a due date for each task based on any urgency cues in the input
+- No sub-commentary, no anxiety noise, no overnight thoughts
+- Keep task text clean and actionable
+
+Respond ONLY with valid JSON:
+{
+  "mode":"quick",
+  "meta":"one sentence summary of tasks captured",
+  "items":{"urgent":[],"soon":[],"someday":[]},
+  "existing_tasks_to_surface":[],
+  "first_move":{"action":"","why":""}
+}
+Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|next_month|none"}`;
+
+    // Full dump: full thought sorting
+    const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
+
+Today: ${today}.
+Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
+
+STANDING CONTEXT:
+${standingCtx||'None saved yet.'}
+
+Google Calendar next 7 days (ONLY reference events explicitly listed here):
+${calTxt}
+
+Existing tasks (do NOT re-add — surface relevant ones only):
+${tasksSummary}
+
+RULES:
+- Present EVERYTHING as a task candidate first
+- NEVER invent calendar events
+- Do not duplicate existing tasks
+- existing_tasks_to_surface: only tasks relevant to this dump's topics, max 5
+- context_suggestions: ONLY stable recurring facts, second person, empty array if nothing qualifies
+- For each task suggest a due date: "today", "tomorrow", "this_week", "next_week", "next_month", or "none"
+
+Respond ONLY with valid JSON:
+{
+  "mode":"full",
+  "meta":"one sentence summary",
+  "overnight":[],
+  "items":{"urgent":[],"soon":[],"someday":[]},
+  "anxiety_noise":[],
+  "existing_tasks_to_surface":[],
+  "first_move":{"action":"","why":""},
+  "context_suggestions":[]
+}
+Each item: {"text":"...","sub":"optional context","cal":false,"suggested_due":"today|tomorrow|this_week|next_week|next_month|none"}
+overnight items also have "real": true/false`;
+
+    const sys=mode==='quick'?quickSys:fullSys;
+
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':CFG.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:mode==='quick'?(localStorage.getItem('bd_model_quick')||'claude-haiku-4-5-20251001'):(localStorage.getItem('bd_model_full')||'claude-sonnet-4-6'),max_tokens:2500,system:sys,messages:[{role:'user',content:'Brain dump:\n\n'+dumpText}]})
+    });
+    if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'API error');}
+    const result=JSON.parse((await res.json()).content[0].text.replace(/```json|```/g,'').trim());
+    currentResult=result;
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    buildReview(result,listId,tasks);
+  }catch(err){
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    document.getElementById('screenMain').style.display='block';
+    const e=document.getElementById('mainErr');
+    e.textContent='Something went wrong: '+err.message;
+    e.classList.add('on');
+  }
+}
+
+function buildReview(result,listId,existingTasks){
+  const container=document.getElementById('reviewItems');
+  container.innerHTML='';
+  const L=getDateLabels();
+  const dueLabelMap={'today':L.today,'tomorrow':L.tomorrow,'this_week':L.thisWeek,'next_week':L.nextWeek,'this_month':L.thisMonth,'next_month':L.nextMonth,'none':'No date'};
+  let itemIdx=0;
+
+  const items=result.items||{};
+  const groups=[
+    {cls:'urgent',lbl:'🔴 Urgent — this week',items:items.urgent||[]},
+    {cls:'soon',lbl:'🟡 Soon — this month',items:items.soon||[]},
+    {cls:'someday',lbl:'🔵 Someday',items:items.someday||[]}
+  ];
+
+  groups.forEach(g=>{
+    if(!g.items.length)return;
+    const card=document.createElement('div');
+    card.className='tcard '+g.cls;
+    card.innerHTML=`<div class="tcard-lbl">${g.lbl}</div><div class="default-note">Task by default — tap status to change</div>`;
+    g.items.forEach(it=>{
+      const i=typeof it==='string'?{text:it}:it;
+      const id='item-'+itemIdx++;
+      const ddId='idd-'+id,slId='isl-'+id,cpId='icp-'+id,ciId='ici-'+id;
+      const sugDue=i.suggested_due||'none';
+      const sugLabel=dueLabelMap[sugDue]||'No date';
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`
+        <div class="item-row" id="row-${id}">
+          <span class="odot ${g.cls==='urgent'?'red':g.cls==='soon'?'orange':'blue'}"></span>
+          <div class="item-body">
+            <div class="item-text" id="txt-${id}">${i.text}${i.cal?'<span class="badge" style="background:rgba(37,99,235,0.1);color:var(--blue)">📅</span>':''}</div>
+            ${i.sub?`<div class="item-sub">${i.sub}</div>`:''}
+          </div>
+          <button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')" aria-label="Change status">Task ▾</button>
+        </div>
+        <div class="item-dropdown" id="dd-${id}">
+          <div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div>
+          <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div>
+          <div class="dd-opt2 dd-edit" onclick="toggleEditPanel('${id}')"><i class="ti ti-pencil" style="transform:rotate(-45deg);display:inline-block" aria-hidden="true"></i>Edit details</div>
+          <div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save anywhere</div>
+        </div>
+        <div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">
+          ${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k===sugDue?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}
+          <span class="ntd" onclick="showDatePicker('${id}')">📅 Pick</span>
+        </div>
+        <div class="ntd-hint" id="hint-${id}">AI suggested: ${sugLabel}</div>
+        <div style="display:none;padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border)" id="picker-${id}">
+          <input type="date" id="pdate-${id}" style="margin-right:8px">
+          <button onclick="confirmPicker('${id}')" style="font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text);cursor:pointer;font-family:inherit;font-weight:600">Set</button>
+        </div>
+        <div class="edit-panel" id="ep-${id}">
+          <div class="edit-fields">
+            <div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${i.text.replace(/"/g,'&quot;')}"></div>
+            <div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div>
+          </div>
+        </div>`;
+      card.appendChild(wrap);
+    });
+    container.appendChild(card);
+  });
+
+  // Anxiety noise
+  if(result.anxiety_noise?.length){
+    const nc=document.createElement('div');
+    nc.className='tcard';nc.style.background='var(--card-noise)';nc.style.borderLeftColor='var(--gray)';
+    nc.innerHTML='<div class="tcard-lbl">🧠 Anxiety noise — named and set down</div>';
+    result.anxiety_noise.forEach(it=>{
+      const i=typeof it==='string'?{text:it}:it;
+      const id='item-'+itemIdx++;
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="item-row" id="row-${id}"><span class="odot gray"></span><div class="item-body"><div class="item-text" id="txt-${id}">${i.text}</div>${i.sub?`<div class="item-sub">${i.sub}</div>`:''}</div><button class="status-btn ignore" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Ignore ▾</button></div>
+        <div class="item-dropdown" id="dd-${id}">
+          <div class="dd-opt2 dd-task" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Make it a task</div>
+          <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Save as idea</div>
+          <div class="dd-opt2 dd-ignore active" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save</div>
+        </div>`;
+      nc.appendChild(wrap);
+    });
+    container.appendChild(nc);
+  }
+
+  // Existing tasks
+  const existingContainer=document.getElementById('existingItems');
+  existingContainer.innerHTML='';
+  const existing=result.existing_tasks_to_surface||[];
+  document.getElementById('existingTitle').style.display=existing.length?'flex':'none';
+  if(existing.length){
+    const card=document.createElement('div');card.className='existing-card';
+    existing.forEach((t,ei)=>{
+      const title=typeof t==='string'?t:(t.title||t.text||JSON.stringify(t));
+      const eid='ex-'+itemIdx++;
+      const div=document.createElement('div');div.className='existing-item';
+      div.id='exrow-'+eid;
+      const safeTitle=title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const exTaskId=typeof t==='string'?'':(t.id||'');
+      const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
+      div.style.cssText='padding:0;display:block';
+      div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+        <span class="existing-dot" style="flex-shrink:0"></span>
+        <span style="flex:1;font-size:13px">${title}</span>
+        <button onclick="toggleDD('${ddExId}')" style="font-size:11px;color:var(--blue);background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Redate ▾</button>
+        <button onclick="rejectMatch('${eid}','${safeTitle}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this</button>
+      </div>
+      ${buildCiDateDD(ddExId,slExId,cpExId,ciExId,exTaskId,taskListId)}`;
+      card.appendChild(div);
+    });
+    existingContainer.appendChild(card);
+  }
+
+  // Build mini task check-in
+  buildMiniCheckin(existingTasks,listId);
+
+  document.getElementById('alsoText').value='';
+  document.getElementById('review').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function buildMiniCheckin(tasks,listId){
+  const now=new Date();
+  const todayStr=localDateStr(localMidnight(0));
+  const tomStr=localDateStr(localMidnight(1));
+  const _m0=localMidnight(0),_m1=localMidnight(1),_m2=localMidnight(2);
+  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<_m0);
+  const dueToday=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])>=_m0&&localDateFromStr(t.due.split('T')[0])<_m1);
+  const dueTom=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])>=_m1&&localDateFromStr(t.due.split('T')[0])<_m2);
+  const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
+  const rand=undated.sort(()=>Math.random()-0.5).slice(0,3);
+  const shown=[...new Map([...overdue,...dueToday,...dueTom,...rand].map(t=>[t.id,t])).values()].slice(0,8);
+  if(!shown.length)return;
+  const container=document.getElementById('miniCheckinCards');
+  container.innerHTML='';
+  const card=document.createElement('div');
+  card.className='ci-card';
+  card.innerHTML='<div class="ci-lbl" style="font-size:10px;color:var(--text-dimmer)">Overdue · due today/tomorrow · 3 random undated</div>';
+  let idx=0;
+  shown.forEach(t=>{
+    const isOverdue=overdue.includes(t);
+    const id='mini-'+idx++;
+    const ddId='mdd-'+id,slId='msl-'+id,cpId='mcp-'+id,ciId='mci-'+id;
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`
+      <div class="ci-row" id="${id}">
+        <div class="ci-icon ${isOverdue?'ic-red':'ic-gray'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-clock'}" aria-hidden="true"></i></div>
+        <div class="ci-body"><div class="ci-text">${t.title}</div><div class="ci-sub">${t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'no date'}</div></div>
+      </div>
+      <div class="ta-row" id="ta-${id}">
+        <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
+        <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
+        <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>
+        ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
+      </div>`;
+    card.appendChild(wrap);
+  });
+  container.appendChild(card);
+  document.getElementById('miniCheckin').style.display='block';
+}
+
+function rejectMatch(eid,title){
+  // Remove from existing list
+  const row=document.getElementById('exrow-'+eid);
+  if(row)row.remove();
+  // Check if existing card is now empty
+  const card=row?.closest('.existing-card');
+  if(card&&!card.querySelector('.existing-item'))card.remove();
+  const existTitle=document.getElementById('existingTitle');
+  if(existTitle&&!document.querySelector('.existing-item'))existTitle.style.display='none';
+  // Add as new task in review — create a new item card at top
+  const container=document.getElementById('reviewItems');
+  const id='item-'+Date.now();
+  const L=getDateLabels();
+  const wrap=document.createElement('div');
+  wrap.innerHTML=`
+    <div class="item-row" id="row-${id}">
+      <span class="odot blue"></span>
+      <div class="item-body">
+        <div class="item-text" id="txt-${id}">${title}</div>
+      </div>
+      <button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Task ▾</button>
+    </div>
+    <div class="item-dropdown" id="dd-${id}">
+      <div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div>
+      <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div>
+      <div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save anywhere</div>
+    </div>
+    <div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">
+      ${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k==='none'?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}
+    </div>
+    <div class="ntd-hint" id="hint-${id}">New task — choose a due date</div>
+    <div class="edit-panel" id="ep-${id}">
+      <div class="edit-fields">
+        <div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${title.replace(/"/g,'&quot;')}"></div>
+        <div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div>
+      </div>
+    </div>`;
+  container.insertBefore(wrap, container.firstChild);
+}
+
+function toggleItemDD(id){
+  const dd=document.getElementById('dd-'+id);
+  const isOpen=dd.classList.contains('open');
+  document.querySelectorAll('.item-dropdown').forEach(d=>d.classList.remove('open'));
+  if(!isOpen)dd.classList.add('open');
+}
+function setStatus(id,status){
+  const btn=document.getElementById('sbtn-'+id);
+  const row=document.getElementById('row-'+id);
+  const txt=document.getElementById('txt-'+id);
+  btn.className='status-btn '+status;
+  btn.textContent={task:'Task ▾',idea:'Idea ▾',ignore:'Ignore ▾'}[status];
+  row.classList.toggle('ignored',status==='ignore');
+  txt.classList.toggle('struck',status==='ignore');
+  ['task','idea','ignore'].forEach(s=>document.querySelector(`#dd-${id} .dd-${s}`)?.classList.toggle('active',s===status));
+  document.getElementById('dd-'+id).classList.remove('open');
+  // Hide date row for non-tasks
+  const dateRow=document.getElementById('dates-'+id);
+  const hint=document.getElementById('hint-'+id);
+  if(dateRow)dateRow.style.display=status==='task'?'flex':'none';
+  if(hint)hint.style.display=status==='task'?'block':'none';
+}
+function toggleEditPanel(id){
+  const ep=document.getElementById('ep-'+id);
+  const isOpen=ep.classList.contains('open');
+  document.querySelectorAll('.edit-panel').forEach(p=>p.classList.remove('open'));
+  if(!isOpen){ep.classList.add('open');document.getElementById('ename-'+id).focus();}
+  document.getElementById('dd-'+id).classList.remove('open');
+}
+function selectDate(el,id,key){
+  document.querySelectorAll(`#dates-${id} .ntd`).forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+function showDatePicker(id){
+  document.querySelectorAll(`#dates-${id} .ntd`).forEach(c=>c.classList.remove('sel'));
+  document.getElementById('picker-'+id).style.display='flex';
+  document.getElementById('pdate-'+id).focus();
+}
+function confirmPicker(id){
+  const val=document.getElementById('pdate-'+id).value;
+  if(!val)return;
+  document.getElementById('picker-'+id).style.display='none';
+  const hint=document.getElementById('hint-'+id);
+  if(hint){const d=new Date(val+'T00:00:00');hint.textContent='📅 Specific date: '+d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+}
+
+function reSort(){
+  const corrections=[];
+  document.querySelectorAll('.edit-panel.open input[type=text]').forEach(el=>{if(el.value.trim())corrections.push(el.value.trim());});
+  const alsoTxt=document.getElementById('alsoText').value.trim();
+  const extra=[...corrections,alsoTxt].filter(Boolean).join('\n');
+  processDump(extra);
+}
+
+async function saveAndDone(){
+  const btn=document.querySelector('.abtn-save');
+  btn.disabled=true;btn.textContent='Saving...';
+  let tasksAdded=0;
+  const ideaLines=[];
+  const newlyAddedTitles=new Set();
+  const savePromises=[];
+
+  document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
+    const id=sbtn.id.replace('sbtn-','');
+    const status=sbtn.classList.contains('task')?'task':sbtn.classList.contains('idea')?'idea':'ignore';
+    const nameEl=document.getElementById('ename-'+id);
+    const notesEl=document.getElementById('enotes-'+id);
+    const txtEl=document.getElementById('txt-'+id);
+    const title=nameEl?nameEl.value.trim():txtEl?.textContent?.replace(/📅/g,'').trim()||'';
+    if(!title)return;
+
+    // Get selected date
+    let dueDate='';
+    const selChip=document.querySelector(`#dates-${id} .ntd.sel`);
+    if(selChip){
+      const key=selChip.getAttribute('data-key');
+      if(key&&key!=='none'){
+        {const _dow=new Date().getDay();
+        if(key==='today')dueDate=localDateStr(localMidnight(0));
+        else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
+        else if(key==='this_week'){const _dts=_dow===0?7:7-_dow;dueDate=localDateStr(localMidnight(_dts));}
+        else if(key==='next_week'){const _dts=_dow===0?7:7-_dow;dueDate=localDateStr(localMidnight(_dts+7));}
+        else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+        else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));}
+      }
+    }
+    const pickerDate=document.getElementById('pdate-'+id)?.value;
+    if(pickerDate)dueDate=pickerDate;
+
+    if(status==='task'){
+      newlyAddedTitles.add(title);
+      savePromises.push(addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(ok=>{if(ok)tasksAdded++;}));
+    } else if(status==='idea'){
+      ideaLines.push(title+(notesEl?.value?.trim()?` — ${notesEl.value.trim()}`:''));
+    }
+  });
+
+  let docOk=false;
+  if(ideaLines.length){
+    const d=new Date().toISOString().split('T')[0];
+    docOk=await appendDoc(ideaLines.map(l=>`[${d}] ${l}`).join('\n'));
+    // Update S2 frequency counts
+    const counts=JSON.parse(localStorage.getItem('bd_s2_counts')||'{}');
+    ideaLines.forEach(l=>{const key=l.split(' — ')[0];counts[key]=(counts[key]||0)+1;});
+    localStorage.setItem('bd_s2_counts',JSON.stringify(counts));
+  }
+
+  // Wait for ALL saves to complete before rendering
+  await Promise.all(savePromises);
+  btn.disabled=false;btn.textContent='✓ Save & done';
+  if(mode==='quick'){
+    await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
+  } else {
+    renderFinal(currentResult,tasksAdded,docOk);
+  }
+}
+
+async function renderCheckinAfterSave(tasksAdded,newlyAdded){
+  document.getElementById('review').classList.remove('on');
+  document.getElementById('dumpText').value='';
+
+  // Build a lightweight check-in view reusing existing checkin infrastructure
+  // Show a brief saved banner then the full checkin
+  const container=document.getElementById('checkin');
+  container.innerHTML='';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='padding:0 0 10px 0';
+  hdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <span style="font-size:12px;font-weight:500;color:var(--green)">✓ ${tasksAdded} task${tasksAdded!==1?'s':''} saved</span>
+    <span style="font-size:12px;color:var(--text-dimmer)">· here's your plate</span>
+  </div>`;
+  container.appendChild(hdr);
+
+  // Fetch fresh data
+  startLoad();
+  document.getElementById('loading').classList.add('on');
+  try{
+    const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    const{listId,tasks}=tr;
+    taskListId=listId;
+
+    const today=new Date();
+    const todayLocalStr=localDateStr(localMidnight(0));
+
+    // Calendar — today
+    const allDayEvts=cal.filter(e=>{
+      if(e.start.dateTime)return false;
+      const s=e.start.date||'';const en=e.end?.date||s;
+      return s<=todayLocalStr&&en>todayLocalStr;
+    });
+    const timedEvts=cal.filter(e=>{
+      if(!e.start.dateTime)return false;
+      return localDateStr(new Date(e.start.dateTime))===todayLocalStr;
+    });
+    const upcomingEvts=cal.filter(e=>{
+      const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));
+      return s>todayLocalStr;
+    }).slice(0,6);
+
+    if(allDayEvts.length||timedEvts.length){
+      const calCard=document.createElement('div');
+      calCard.className='ci-card';
+      calCard.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
+      allDayEvts.forEach(e=>{
+        const calColor=e.calendar_color||'#7c6af7';
+        const calName=e.calendar_name||'';
+        let dateLabel='all day';
+        if(e.start.date&&e.end?.date){
+          const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);
+          ed.setDate(ed.getDate()-1);
+          if(ed>sd)dateLabel=sd.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        }
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${dateLabel}</span>`;
+        calCard.appendChild(row);
+      });
+      timedEvts.forEach(e=>{
+        const calColor=e.calendar_color||'#2563eb';
+        const calName=e.calendar_name||'';
+        const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${s}</span>`;
+        calCard.appendChild(row);
+      });
+      container.appendChild(calCard);
+    }
+
+    // Tasks — needs attention + newly added
+    const todayMidnight=localMidnight(0),tomorrowMidnight=localMidnight(1);
+    const dow=new Date().getDay();const dtsToSun=dow===0?7:7-dow;
+    const endOfWeek=localMidnight(dtsToSun);
+    const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<todayMidnight);
+    const thisWeek=tasks.filter(t=>{
+      if(!t.due||t.status==='completed')return false;
+      const d=localDateFromStr(t.due.split('T')[0]);
+      return d>=todayMidnight&&d<=endOfWeek;
+    });
+    const allTasks=[...overdue,...thisWeek].sort((a,b)=>localDateFromStr(a.due?.split('T')[0]||'9999')-localDateFromStr(b.due?.split('T')[0]||'9999'));
+
+    if(allTasks.length){
+      const taskCard=document.createElement('div');taskCard.className='ci-card';
+      taskCard.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
+      let lastGrp='';
+      let taskIdx=0;
+      allTasks.forEach(t=>{
+        const isOverdue=overdue.includes(t);
+        const isNew=newlyAdded&&newlyAdded.has(t.title);
+        const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+        const t0=localMidnight(0),t1=localMidnight(1);
+        let grp=isOverdue?'Overdue':due&&localDateStr(due)===localDateStr(t0)?'Today':due&&localDateStr(due)===localDateStr(t1)?'Tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'';
+        if(grp!==lastGrp){
+          lastGrp=grp;
+          const sep=document.createElement('div');
+          sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+          sep.textContent=grp;
+          taskCard.appendChild(sep);
+        }
+        const id='acs-'+taskIdx++;
+        const ddId='add-'+id,slId='asl-'+id,cpId='acp-'+id,ciId='aci-'+id;
+        const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+        const wrap=document.createElement('div');
+        wrap.innerHTML=`
+          <div class="ci-row" id="${id}" ${isNew?'style="background:rgba(22,163,74,0.05)"':''}>
+            <div class="ci-icon ${isOverdue?'ic-red':'ic-orange'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div>
+            <div class="ci-body">
+              <div class="ci-text" id="title-${id}">${t.title}${isNew?' <span style="font-size:10px;color:var(--green);font-weight:500">just added</span>':''}</div>
+              ${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}
+            </div>
+            <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+              <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${isOverdue?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):''}</span>
+              ${dueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}
+            </div>
+          </div>
+          <div class="ta-row" id="ta-${id}">
+            <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${taskListId}')">✓ Done</button>
+            <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
+            <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${taskListId}')">Not doing it</button>
+            ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,taskListId)}
+          </div>
+          <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+              <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+              <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+            </div>
+            <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
+            <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
+            <button onclick="saveTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button>
+          </div>`;
+        taskCard.appendChild(wrap);
+      });
+      container.appendChild(taskCard);
+    }
+
+    // Coming up calendar
+    if(upcomingEvts.length){
+      const upCard=document.createElement('div');upCard.className='ci-card';
+      upCard.innerHTML='<div class="ci-lbl">📅 Coming up</div>';
+      let lastDayKey='';
+      upcomingEvts.forEach(e=>{
+        const calColor2=e.calendar_color||'#6b7280';
+        const calName2=e.calendar_name||'';
+        const dayKey=e.start.date||e.start.dateTime.slice(0,10);
+        const dayDisplay=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+        if(dayKey!==lastDayKey){
+          lastDayKey=dayKey;
+          const sep=document.createElement('div');
+          sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+          sep.textContent=dayDisplay;upCard.appendChild(sep);
+        }
+        const timeLabel=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+        let badge=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        if(e.start.dateTime&&e.end?.dateTime){
+          const _s=e.start.dateTime.slice(0,10),_en=e.end.dateTime.slice(0,10);
+          if(_en!==_s)badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+localDateFromStr(_en).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        }
+        const subParts=[timeLabel,calName2].filter(Boolean);
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor2}22;color:${calColor2}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor2};display:inline-block;flex-shrink:0"></span>${subParts.join(' · ')}</div>`:''}</div>`;
+        upCard.appendChild(row);
+      });
+      container.appendChild(upCard);
+    }
+
+    // First move if available
+    if(currentResult?.first_move?.action){
+      const fm=document.createElement('div');
+      fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-top:4px';
+      fm.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">${currentResult.first_move.action}</div>${currentResult.first_move.why?`<div style="font-size:12px;color:var(--text-dim);margin-top:3px">${currentResult.first_move.why}</div>`:''}`;
+      container.appendChild(fm);
+    }
+
+  }catch(err){
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    console.error('renderCheckinAfterSave error:',err);
+  }
+
+  // Done button
+  container.insertAdjacentHTML('afterbegin',modeShortcutsHTML());
+
+  document.getElementById('checkin').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function renderFinal(r,tasksAdded,docOk){
+  document.getElementById('review').classList.remove('on');
+  document.getElementById('dumpText').value='';
+  const container=document.getElementById('outCards');
+  container.innerHTML='';
+  let delay=0;
+  const mLabels={quick:'⚡ Quick dump',full:'🧠 Full dump'};
+  document.getElementById('outMeta').innerHTML=
+    `<span>${mLabels[r.mode]||r.mode}</span><span style="opacity:.4">·</span><span>${r.meta}</span>`+
+    (tasksAdded>0?`<span class="badge" style="background:rgba(22,163,74,0.1);color:var(--green)">+${tasksAdded} tasks saved</span>`:'')+
+    (docOk?`<span class="badge" style="background:rgba(124,58,237,0.1);color:var(--purple)">ideas saved</span>`:'');
+
+  function card(cls,lbl,title,items,dotColor){
+    if(!items?.length)return;
+    const c=document.createElement('div');c.className='ocard '+cls;c.style.animationDelay=delay+'s';delay+=0.07;
+    c.innerHTML=`<div class="ocard-lbl">${lbl}</div><div class="ocard-title">${title}</div>`+
+      items.map(it=>{
+        const i=typeof it==='string'?{text:it}:it;
+        const rb=i.real===true?`<span class="badge" style="background:rgba(22,163,74,0.1);color:var(--green)">probably real</span>`:i.real===false?`<span class="badge" style="background:rgba(180,83,9,0.1);color:var(--amber)">3am brain</span>`:'';
+        const sub=i.sub?`<div class="oitem-sub">${i.sub}</div>`:'';
+        return`<div class="oitem"><span class="odot2 ${dotColor}"></span><div class="oitem-body"><div>${i.text}${rb}</div>${sub}</div></div>`;
+      }).join('');
+    container.appendChild(c);
+  }
+
+  // Build output from actual selected dates, not AI categories
+  const _dow=new Date().getDay();
+  const _dts=_dow===0?7:7-_dow;
+  const _endWeek=localMidnight(_dts);
+  const _endNxtWeek=localMidnight(_dts+7);
+  const _endMonth=new Date(new Date().getFullYear(),new Date().getMonth()+1,0);
+  const _endNxtMonth=new Date(new Date().getFullYear(),new Date().getMonth()+2,0);
+
+  // Collect all saved tasks with their actual selected due dates
+  const urgentItems=[],soonItems=[],laterItems=[],somedayItems=[];
+  document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
+    if(!sbtn.classList.contains('task'))return;
+    const id=sbtn.id.replace('sbtn-','');
+    const nameEl=document.getElementById('ename-'+id);
+    const txtEl=document.getElementById('txt-'+id);
+    const title=nameEl?.value?.trim()||txtEl?.textContent?.replace(/📅/g,'').trim()||'';
+    if(!title)return;
+    // Get selected due date
+    const selChip=document.querySelector(`#dates-${id} .ntd.sel`);
+    const key=selChip?.getAttribute('data-key')||'none';
+    const pickerVal=document.getElementById('pdate-'+id)?.value;
+    let dueDate=null;
+    if(pickerVal)dueDate=localDateFromStr(pickerVal);
+    else if(key!=='none'){
+      if(key==='today')dueDate=localMidnight(0);
+      else if(key==='tomorrow')dueDate=localMidnight(1);
+      else if(key==='this_week')dueDate=_endWeek;
+      else if(key==='next_week')dueDate=_endNxtWeek;
+      else if(key==='this_month')dueDate=_endMonth;
+      else if(key==='next_month')dueDate=_endNxtMonth;
+    }
+    const item={text:title};
+    if(!dueDate||key==='none')somedayItems.push(item);
+    else if(dueDate<=_endWeek)urgentItems.push(item);
+    else if(dueDate<=_endNxtWeek)soonItems.push(item);
+    else if(dueDate<=_endNxtMonth)laterItems.push(item);
+    else somedayItems.push(item);
+  });
+
+  const items=r.items||{};
+  if(r.overnight?.length)card('ideas','🌙 Overnight thoughts','Things your 2am brain flagged',r.overnight,'purple');
+  if(urgentItems.length)card('urgent','🔴 Saved — this week','Added to Google Tasks',urgentItems,'red');
+  if(soonItems.length)card('soon','🟡 Saved — next week','Added to Google Tasks',soonItems,'orange');
+  if(laterItems.length)card('someday','🔵 Saved — next month','Added to Google Tasks',laterItems,'blue');
+  if(somedayItems.length)card('noise','⏳ Saved — no date yet','Added to Google Tasks',somedayItems,'gray');
+  if(r.anxiety_noise?.length)card('noise','🧠 Anxiety noise — named and set down','Real feelings, not actionable right now',r.anxiety_noise,'gray');
+
+  if(r.first_move&&r.first_move.action){
+    const fm=document.createElement('div');fm.className='fm-final';fm.style.animationDelay=delay+'s';
+    fm.innerHTML=`<div class="fm-lbl">Your one first move</div><div class="fm-action">${r.first_move.action}</div><div class="fm-why">${r.first_move.why||''}</div><div class="fm-note">Can't do this now? Everything is saved. Your brain can let go.</div>`;
+    container.appendChild(fm);
+  }
+  // If nothing was rendered at all, show a fallback
+  if(container.children.length===0){
+    const fb=document.createElement('div');
+    fb.style.cssText='padding:20px;text-align:center;color:var(--text-dimmer);font-size:13px';
+    fb.textContent='Nothing to show — try a more detailed dump or check your connection.';
+    container.appendChild(fb);
+  }
+  const outSc=document.getElementById('outputShortcuts');
+  if(outSc)outSc.innerHTML=modeShortcutsHTML();
+  document.getElementById('output').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function startOver(){
+  document.getElementById('review').classList.remove('on');
+  resetToMain();
+}
+async function checkBestModels(){
+  const suggestion=document.getElementById('modelSuggestion');
+  suggestion.innerHTML='Available models: <strong>claude-haiku-4-5-20251001</strong> (fast, cheap) and <strong>claude-sonnet-4-6</strong> (balanced). Check <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" style="color:var(--accent)">Anthropic model docs</a> for the latest releases.';
+  suggestion.style.display='block';
+}
+
+function resetToMain(){
+  ['checkin','review','output'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('on');el.style.display='';}
+  });
+  const ciSum=document.getElementById('ciSummary');
+  if(ciSum)ciSum.style.display='none';
+  
+
+  showScreen('main');
+  document.getElementById('screenMain').style.display='block';
+  document.getElementById('modePicker').style.display='block';
+  document.getElementById('modeDump').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function resetApp(){
+  document.getElementById('output').classList.remove('on');
+  document.getElementById('outCards').innerHTML='';
+  document.getElementById('dumpText').value='';
+  resetToMain();
+}
+
+function modeShortcutsHTML(){
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+    <button onclick="resetToMain();setTimeout(()=>launchMode('checkin'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-list-check" aria-hidden="true"></i>Check in</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('quick'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-bolt" aria-hidden="true"></i>Quick dump</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('full'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-brain" aria-hidden="true"></i>Full dump</button>
+  </div>`;
+}
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('[id^="sbtn-"]')&&!e.target.closest('.item-dropdown')&&!e.target.closest('.ta-still')&&!e.target.closest('.dd')){
+    document.querySelectorAll('.item-dropdown,.dd').forEach(d=>d.classList.remove('open'));
+  }
+});
+</script>
+</body>
+</html>
