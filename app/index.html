@@ -827,11 +827,56 @@ function saveSetup(){
   gToken?showScreen('main'):showScreen('auth');
 }
 function handleAuth(){
+  const uri=window.location.href.split('?')[0].split('#')[0];
+  const p=new URLSearchParams({client_id:CFG.clientId,redirect_uri:uri,response_type:'token',scope:SCOPES,prompt:'select_account'});
+  const authUrl='https://accounts.google.com/o/oauth2/v2/auth?'+p;
+
+  // Save any in-progress dump text
   const dumpVal=document.getElementById('dumpText')?.value||'';
   if(dumpVal)localStorage.setItem('bd_saved_dump',dumpVal);
-  const uri=window.location.href.split('?')[0].split('#')[0];
-  const p=new URLSearchParams({client_id:CFG.clientId,redirect_uri:uri,response_type:'token',scope:SCOPES,prompt:'consent'});
-  window.location.href='https://accounts.google.com/o/oauth2/v2/auth?'+p;
+
+  // Try popup first
+  const pw=600,ph=700;
+  const pl=Math.round(window.screenX+(window.outerWidth-pw)/2);
+  const pt=Math.round(window.screenY+(window.outerHeight-ph)/2);
+  const popup=window.open(authUrl,'GoogleAuth','width='+pw+',height='+ph+',left='+pl+',top='+pt+',toolbar=no,menubar=no,scrollbars=yes');
+
+  if(!popup||popup.closed||typeof popup.closed==='undefined'){
+    // Popup blocked — fall back to redirect
+    window.location.href=authUrl;
+    return;
+  }
+
+  // Poll until popup closes with token
+  const poll=setInterval(()=>{
+    try{
+      if(popup.closed){
+        clearInterval(poll);
+        const tok=localStorage.getItem('bd_google_token');
+        if(tok){
+          gToken=tok;
+          const saved=localStorage.getItem('bd_saved_dump');
+          if(saved){document.getElementById('dumpText').value=saved;localStorage.removeItem('bd_saved_dump');}
+          if(document.getElementById('screenAuth').style.display!=='none'){showScreen('main');}
+        }
+        return;
+      }
+      const hash=popup.location.hash;
+      if(hash&&hash.includes('access_token')){
+        const tp=new URLSearchParams(hash.replace('#',''));
+        const token=tp.get('access_token');
+        if(token){
+          gToken=token;
+          localStorage.setItem('bd_google_token',token);
+          popup.close();
+          clearInterval(poll);
+          const saved=localStorage.getItem('bd_saved_dump');
+          if(saved){document.getElementById('dumpText').value=saved;localStorage.removeItem('bd_saved_dump');}
+          showScreen('main');
+        }
+      }
+    }catch(e){/* cross-origin while on Google — keep polling */}
+  },500);
 }
 
 // MODE
