@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.30</title>
+<title>Brain Dump v1.2.31</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.30</div>
+  <div class="version-tag">v1.2.31</div>
 </div>
 
 <!-- SETUP -->
@@ -534,7 +534,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.30';
+const VERSION='1.2.31';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -797,6 +797,11 @@ function saveSetup(){
   const mf=document.getElementById('modelFull')?.value||'claude-sonnet-4-6';
   localStorage.setItem('bd_model_quick',mq);
   localStorage.setItem('bd_model_full',mf);
+  // Hide any active screens before going to main
+  ['checkin','review','output','ciSummary'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('on');el.style.display='';}
+  });
   gToken?showScreen('main'):showScreen('auth');
 }
 function handleAuth(){
@@ -987,7 +992,15 @@ async function runCheckin(){
 function renderCalToday(container,cal){
   const ts=localDateStr(localMidnight(0));
   const ad=cal.filter(e=>{if(e.start.dateTime)return false;const s=e.start.date||'';return s<=ts&&(e.end?.date||s)>ts;});
-  const td=cal.filter(e=>e.start.dateTime&&localDateStr(new Date(e.start.dateTime))===ts);
+  // Timed events: starts today OR spans today (started before, ends today or later)
+  const td=cal.filter(e=>{
+    if(!e.start.dateTime)return false;
+    const evStart=localDateStr(new Date(e.start.dateTime));
+    if(evStart===ts)return true;
+    // Multi-day timed event spanning today
+    const evEnd=e.end?.dateTime?localDateStr(new Date(e.end.dateTime)):'';
+    return evStart<ts&&evEnd>=ts;
+  });
   if(!ad.length&&!td.length)return;
   const card=document.createElement('div');card.className='ci-card';
   card.innerHTML=`<div class="ci-lbl">📅 Today — ${new Date().toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
@@ -1015,7 +1028,16 @@ function renderCalToday(container,cal){
 function renderCalUpcoming(container,cal){
   const ts=localDateStr(localMidnight(0));
   const seen=new Set();
-  const up=cal.filter(e=>{const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));if(s<=ts||seen.has(e.id))return false;seen.add(e.id);return true;}).slice(0,10);
+  const up=cal.filter(e=>{
+    if(seen.has(e.id))return false;
+    const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));
+    // Include events starting today or later, OR multi-day events that started before but end after today
+    if(s>ts){seen.add(e.id);return true;}
+    // Check if event ends after today (multi-day spanning)
+    const eEnd=e.end?.date||e.end?.dateTime?.slice(0,10)||'';
+    if(eEnd>ts){seen.add(e.id);return true;}
+    return false;
+  }).slice(0,10);
   if(!up.length)return;
   const card=document.createElement('div');card.className='ci-card';
   card.innerHTML='<div class="ci-lbl">📅 Coming up</div>';
@@ -1094,8 +1116,6 @@ function renderFutureTasksSection(container,tasks,listId,shownIds){
 function buildCheckin(cal,tasks,listId){
   const container=document.getElementById('ciCards');
   container.innerHTML='';
-  const bar=document.getElementById('modeShortcutsBar');
-  if(bar)bar.innerHTML=modeShortcutsHTML();
 
   // Calendar today + upcoming
   renderCalToday(container,cal);
