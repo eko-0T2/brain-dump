@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.24</title>
+<title>Brain Dump v1.2.25</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -359,7 +359,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.24</div>
+  <div class="version-tag">v1.2.25</div>
 </div>
 
 <!-- SETUP -->
@@ -535,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.24';
+const VERSION='1.2.25';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1885,6 +1885,7 @@ async function saveAndDone(){
   btn.disabled=true;btn.textContent='Saving...';
   let tasksAdded=0;
   const ideaLines=[];
+  const newlyAddedTitles=new Set();
 
   document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
     const id=sbtn.id.replace('sbtn-','');
@@ -1914,6 +1915,7 @@ async function saveAndDone(){
     if(pickerDate)dueDate=pickerDate;
 
     if(status==='task'){
+      newlyAddedTitles.add(title);
       addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(ok=>{if(ok)tasksAdded++;});
     } else if(status==='idea'){
       ideaLines.push(title+(notesEl?.value?.trim()?` — ${notesEl.value.trim()}`:''));
@@ -1931,7 +1933,209 @@ async function saveAndDone(){
   }
 
   btn.disabled=false;btn.textContent='✓ Save & done';
-  renderFinal(currentResult,tasksAdded,docOk);
+  if(mode==='quick'){
+    // For quick dump — show check-in view with newly added tasks highlighted
+    await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
+  } else {
+    renderFinal(currentResult,tasksAdded,docOk);
+  }
+}
+
+async function renderCheckinAfterSave(tasksAdded,newlyAdded){
+  document.getElementById('review').classList.remove('on');
+  document.getElementById('dumpText').value='';
+
+  // Build a lightweight check-in view reusing existing checkin infrastructure
+  // Show a brief saved banner then the full checkin
+  const container=document.getElementById('checkin');
+  container.innerHTML='';
+
+  // Header
+  const hdr=document.createElement('div');
+  hdr.style.cssText='padding:0 0 10px 0';
+  hdr.innerHTML=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+    <span style="font-size:12px;font-weight:500;color:var(--green)">✓ ${tasksAdded} task${tasksAdded!==1?'s':''} saved</span>
+    <span style="font-size:12px;color:var(--text-dimmer)">· here's your plate</span>
+  </div>`;
+  container.appendChild(hdr);
+
+  // Fetch fresh data
+  startLoad();
+  document.getElementById('loading').classList.add('on');
+  try{
+    const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    const{listId,tasks}=tr;
+    taskListId=listId;
+
+    const today=new Date();
+    const todayLocalStr=localDateStr(localMidnight(0));
+
+    // Calendar — today
+    const allDayEvts=cal.filter(e=>{
+      if(e.start.dateTime)return false;
+      const s=e.start.date||'';const en=e.end?.date||s;
+      return s<=todayLocalStr&&en>todayLocalStr;
+    });
+    const timedEvts=cal.filter(e=>{
+      if(!e.start.dateTime)return false;
+      return localDateStr(new Date(e.start.dateTime))===todayLocalStr;
+    });
+    const upcomingEvts=cal.filter(e=>{
+      const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));
+      return s>todayLocalStr;
+    }).slice(0,6);
+
+    if(allDayEvts.length||timedEvts.length){
+      const calCard=document.createElement('div');
+      calCard.className='ci-card';
+      calCard.innerHTML=`<div class="ci-lbl">📅 Today — ${today.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
+      allDayEvts.forEach(e=>{
+        const calColor=e.calendar_color||'#7c6af7';
+        const calName=e.calendar_name||'';
+        let dateLabel='all day';
+        if(e.start.date&&e.end?.date){
+          const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);
+          ed.setDate(ed.getDate()-1);
+          if(ed>sd)dateLabel=sd.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        }
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${dateLabel}</span>`;
+        calCard.appendChild(row);
+      });
+      timedEvts.forEach(e=>{
+        const calColor=e.calendar_color||'#2563eb';
+        const calName=e.calendar_name||'';
+        const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor}22;color:${calColor}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${calName?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor};display:inline-block;flex-shrink:0"></span>${calName}</div>`:''}</div><span class="ci-badge" style="background:${calColor}22;color:${calColor}">${s}</span>`;
+        calCard.appendChild(row);
+      });
+      container.appendChild(calCard);
+    }
+
+    // Tasks — needs attention + newly added
+    const todayMidnight=localMidnight(0),tomorrowMidnight=localMidnight(1);
+    const dow=new Date().getDay();const dtsToSun=dow===0?7:7-dow;
+    const endOfWeek=localMidnight(dtsToSun);
+    const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<todayMidnight);
+    const thisWeek=tasks.filter(t=>{
+      if(!t.due||t.status==='completed')return false;
+      const d=localDateFromStr(t.due.split('T')[0]);
+      return d>=todayMidnight&&d<=endOfWeek;
+    });
+    const allTasks=[...overdue,...thisWeek].sort((a,b)=>localDateFromStr(a.due?.split('T')[0]||'9999')-localDateFromStr(b.due?.split('T')[0]||'9999'));
+
+    if(allTasks.length){
+      const taskCard=document.createElement('div');taskCard.className='ci-card';
+      taskCard.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
+      let lastGrp='';
+      let taskIdx=0;
+      allTasks.forEach(t=>{
+        const isOverdue=overdue.includes(t);
+        const isNew=newlyAdded&&newlyAdded.has(t.title);
+        const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+        const t0=localMidnight(0),t1=localMidnight(1);
+        let grp=isOverdue?'Overdue':due&&localDateStr(due)===localDateStr(t0)?'Today':due&&localDateStr(due)===localDateStr(t1)?'Tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'';
+        if(grp!==lastGrp){
+          lastGrp=grp;
+          const sep=document.createElement('div');
+          sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+          sep.textContent=grp;
+          taskCard.appendChild(sep);
+        }
+        const id='acs-'+taskIdx++;
+        const ddId='add-'+id,slId='asl-'+id,cpId='acp-'+id,ciId='aci-'+id;
+        const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+        const wrap=document.createElement('div');
+        wrap.innerHTML=`
+          <div class="ci-row" id="${id}" ${isNew?'style="background:rgba(22,163,74,0.05)"':''}>
+            <div class="ci-icon ${isOverdue?'ic-red':'ic-orange'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div>
+            <div class="ci-body">
+              <div class="ci-text" id="title-${id}">${t.title}${isNew?' <span style="font-size:10px;color:var(--green);font-weight:500">just added</span>':''}</div>
+              ${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}
+            </div>
+            <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+              <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${isOverdue?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):''}</span>
+              ${dueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}
+            </div>
+          </div>
+          <div class="ta-row" id="ta-${id}">
+            <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${taskListId}')">✓ Done</button>
+            <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
+            <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${taskListId}')">Not doing it</button>
+            ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,taskListId)}
+          </div>
+          <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
+              <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+              <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+            </div>
+            <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
+            <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
+            <button onclick="saveTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button>
+          </div>`;
+        taskCard.appendChild(wrap);
+      });
+      container.appendChild(taskCard);
+    }
+
+    // Coming up calendar
+    if(upcomingEvts.length){
+      const upCard=document.createElement('div');upCard.className='ci-card';
+      upCard.innerHTML='<div class="ci-lbl">📅 Coming up</div>';
+      let lastDayKey='';
+      upcomingEvts.forEach(e=>{
+        const calColor2=e.calendar_color||'#6b7280';
+        const calName2=e.calendar_name||'';
+        const dayKey=e.start.date||e.start.dateTime.slice(0,10);
+        const dayDisplay=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+        if(dayKey!==lastDayKey){
+          lastDayKey=dayKey;
+          const sep=document.createElement('div');
+          sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+          sep.textContent=dayDisplay;upCard.appendChild(sep);
+        }
+        const timeLabel=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+        let badge=localDateFromStr(dayKey).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        if(e.start.dateTime&&e.end?.dateTime){
+          const _s=e.start.dateTime.slice(0,10),_en=e.end.dateTime.slice(0,10);
+          if(_en!==_s)badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+localDateFromStr(_en).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+        }
+        const subParts=[timeLabel,calName2].filter(Boolean);
+        const row=document.createElement('div');row.className='ci-row';
+        row.innerHTML=`<div class="ci-icon" style="background:${calColor2}22;color:${calColor2}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub loc-line"><span style="width:7px;height:7px;border-radius:50%;background:${calColor2};display:inline-block;flex-shrink:0"></span>${subParts.join(' · ')}</div>`:''}</div>`;
+        upCard.appendChild(row);
+      });
+      container.appendChild(upCard);
+    }
+
+    // First move if available
+    if(currentResult?.first_move?.action){
+      const fm=document.createElement('div');
+      fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-top:4px';
+      fm.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">${currentResult.first_move.action}</div>${currentResult.first_move.why?`<div style="font-size:12px;color:var(--text-dim);margin-top:3px">${currentResult.first_move.why}</div>`:''}`;
+      container.appendChild(fm);
+    }
+
+  }catch(err){
+    stopLoad();
+    document.getElementById('loading').classList.remove('on');
+    console.error('renderCheckinAfterSave error:',err);
+  }
+
+  // Done button
+  const doneBtn=document.createElement('button');
+  doneBtn.className='new-dump';
+  doneBtn.style.cssText='margin-top:10px;background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600';
+  doneBtn.textContent='Done';
+  doneBtn.onclick=resetToMain;
+  container.appendChild(doneBtn);
+
+  document.getElementById('checkin').classList.add('on');
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 function renderFinal(r,tasksAdded,docOk){
