@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.25</title>
+<title>Brain Dump v1.2.26</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -359,7 +359,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.25</div>
+  <div class="version-tag">v1.2.26</div>
 </div>
 
 <!-- SETUP -->
@@ -424,6 +424,7 @@ textarea::placeholder { color:var(--text-dimmer); }
       <svg width="17" height="17" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
       Connect Google Account
     </button>
+    <div style="font-size:12px;color:var(--text-dimmer);text-align:center;margin-top:8px">A popup will open — if nothing happens, allow popups for this site</div>
     <button class="btn btn-secondary" onclick="showSetup()">← Back to settings</button>
   </div>
 </div>
@@ -482,6 +483,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 
 <!-- CHECK-IN OUTPUT -->
 <div class="checkin" id="checkin">
+  <div id="modeShortcutsBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
   <div id="ciCards"></div>
   <div class="first-move" id="ciFM" style="display:none">
     <div class="fm-lbl">Best next action</div>
@@ -531,11 +533,11 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="output" id="output">
   <div class="out-meta" id="outMeta"></div>
   <div id="outCards"></div>
-  <button class="new-dump" onclick="resetApp()">↩ New dump</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" id="outputShortcuts"></div>
 </div>
 
 <script>
-const VERSION='1.2.25';
+const VERSION='1.2.26';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -970,14 +972,8 @@ async function appendDoc(content){
   }catch(e){return false;}
 }
 function saveDumpAndReauth(){
-  const dumpVal=document.getElementById('dumpText')?.value||'';
-  if(dumpVal)localStorage.setItem('bd_saved_dump',dumpVal);
-  // Save any pending ci date labels (temporary bridge only — cleared on restore)
-  const pending={};
-  document.querySelectorAll('.date-set.show').forEach(sl=>{
-    if(sl.id)pending[sl.id]=sl.textContent;
-  });
-  gToken=null;localStorage.removeItem('bd_google_token');showScreen('auth');
+  gToken=null;localStorage.removeItem('bd_google_token');
+  handleAuth();
 }
 
 // LOADING
@@ -991,6 +987,9 @@ function stopLoad(){clearInterval(loadTimer);}
 
 // CHECK-IN
 async function runCheckin(){
+  // Show mode shortcuts at top of checkin
+  const bar=document.getElementById('modeShortcutsBar');
+  if(bar)bar.innerHTML=modeShortcutsHTML();
   document.getElementById('screenMain').style.display='none';
   document.getElementById('loading').classList.add('on');
   document.getElementById('loadTxt').textContent='Reading your calendar...';
@@ -1236,8 +1235,11 @@ function buildCheckin(cal,tasks,listId){
   const shownUndated=[...oldest,...randPool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
 
   // If no undated tasks, show 3 random future tasks (due next week or later)
+  // Exclude tasks already shown in overdue/thisWeek sections
+  const shownIds=new Set([...overdue,...thisWeek].map(t=>t.id));
   const futureTasks=tasks.filter(t=>{
     if(!t.due||t.status==='completed')return false;
+    if(shownIds.has(t.id))return false;
     return localDateFromStr(t.due.split('T')[0])>localMidnight(1);
   }).sort(()=>Math.random()-0.5).slice(0,3);
 
@@ -1732,7 +1734,17 @@ function buildReview(result,listId,existingTasks){
       const eid='ex-'+itemIdx++;
       const div=document.createElement('div');div.className='existing-item';
       div.id='exrow-'+eid;
-      div.innerHTML=`<span class="existing-dot"></span><span style="flex:1">${title}</span><button onclick="rejectMatch('${eid}','${title.replace(/'/g,"\\'")}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this — new task</button>`;
+      const safeTitle=title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      const exTaskId=typeof t==='string'?'':(t.id||'');
+      const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
+      div.style.cssText='padding:0;display:block';
+      div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
+        <span class="existing-dot" style="flex-shrink:0"></span>
+        <span style="flex:1;font-size:13px">${title}</span>
+        <button onclick="toggleDD('${ddExId}')" style="font-size:11px;color:var(--blue);background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Redate ▾</button>
+        <button onclick="rejectMatch('${eid}','${safeTitle}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this</button>
+      </div>
+      ${buildCiDateDD(ddExId,slExId,cpExId,ciExId,exTaskId,taskListId)}`;
       card.appendChild(div);
     });
     existingContainer.appendChild(card);
@@ -1886,6 +1898,7 @@ async function saveAndDone(){
   let tasksAdded=0;
   const ideaLines=[];
   const newlyAddedTitles=new Set();
+  const savePromises=[];
 
   document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
     const id=sbtn.id.replace('sbtn-','');
@@ -1916,7 +1929,7 @@ async function saveAndDone(){
 
     if(status==='task'){
       newlyAddedTitles.add(title);
-      addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(ok=>{if(ok)tasksAdded++;});
+      savePromises.push(addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(ok=>{if(ok)tasksAdded++;}));
     } else if(status==='idea'){
       ideaLines.push(title+(notesEl?.value?.trim()?` — ${notesEl.value.trim()}`:''));
     }
@@ -1932,9 +1945,10 @@ async function saveAndDone(){
     localStorage.setItem('bd_s2_counts',JSON.stringify(counts));
   }
 
+  // Wait for ALL saves to complete before rendering
+  await Promise.all(savePromises);
   btn.disabled=false;btn.textContent='✓ Save & done';
   if(mode==='quick'){
-    // For quick dump — show check-in view with newly added tasks highlighted
     await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
   } else {
     renderFinal(currentResult,tasksAdded,docOk);
@@ -2127,12 +2141,7 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
   }
 
   // Done button
-  const doneBtn=document.createElement('button');
-  doneBtn.className='new-dump';
-  doneBtn.style.cssText='margin-top:10px;background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600';
-  doneBtn.textContent='Done';
-  doneBtn.onclick=resetToMain;
-  container.appendChild(doneBtn);
+  container.insertAdjacentHTML('afterbegin',modeShortcutsHTML());
 
   document.getElementById('checkin').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
@@ -2222,6 +2231,8 @@ function renderFinal(r,tasksAdded,docOk){
     fb.textContent='Nothing to show — try a more detailed dump or check your connection.';
     container.appendChild(fb);
   }
+  const outSc=document.getElementById('outputShortcuts');
+  if(outSc)outSc.innerHTML=modeShortcutsHTML();
   document.getElementById('output').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -2256,6 +2267,14 @@ function resetApp(){
   document.getElementById('outCards').innerHTML='';
   document.getElementById('dumpText').value='';
   resetToMain();
+}
+
+function modeShortcutsHTML(){
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+    <button onclick="resetToMain();setTimeout(()=>launchMode('checkin'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-list-check" aria-hidden="true"></i>Check in</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('quick'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-bolt" aria-hidden="true"></i>Quick dump</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('full'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-brain" aria-hidden="true"></i>Full dump</button>
+  </div>`;
 }
 
 document.addEventListener('click',e=>{
