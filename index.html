@@ -620,7 +620,8 @@ function getDateLabels(){
   const fmt=d=>d.toLocaleDateString('en-CA',{month:'short',day:'numeric'});
   const lastDay=new Date(now.getFullYear(),now.getMonth()+1,0);
   const lastDayNextMonth=new Date(now.getFullYear(),now.getMonth()+2,0);
-  return{today:fmt(today),tomorrow:fmt(tom),thisWeek:'by Sun '+fmt(sun),nextWeek:'from '+fmt(mon),thisMonth:'by '+fmt(lastDay),nextMonth:'by '+fmt(lastDayNextMonth)};
+  const nextSun=localMidnight(daysToSun+7);
+  return{today:fmt(today),tomorrow:fmt(tom),thisWeek:'by Sun '+fmt(sun),nextWeek:'by Sun '+fmt(nextSun),thisMonth:'by '+fmt(lastDay),nextMonth:'by '+fmt(lastDayNextMonth)};
 }
 
 // Store task data by ddId to avoid passing long IDs through onclick attributes
@@ -670,9 +671,9 @@ function setCiDate(ddId,slId,label,hint,key){
     dueDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()+daysToSun).toISOString().split('T')[0];
   }
   else if(key==='next_week'){
-    // Start of next week = next Monday
-    const daysToMon=dow2===0?1:8-dow2;
-    dueDate=new Date(now.getFullYear(),now.getMonth(),now.getDate()+daysToMon).toISOString().split('T')[0];
+    // End of next week = next Sunday
+    const dtsNW=dow2===0?7:7-dow2;
+    dueDate=localDateStr(localMidnight(dtsNW+7));
   }
   else if(key==='this_month'){dueDate=new Date(now.getFullYear(),now.getMonth()+1,0).toISOString().split('T')[0];}
   else if(key==='next_month'){dueDate=new Date(now.getFullYear(),now.getMonth()+2,0).toISOString().split('T')[0];}
@@ -2144,7 +2145,7 @@ async function saveAndDone(){
         if(key==='today')dueDate=now.toISOString().split('T')[0];
         else if(key==='tomorrow'){const d=new Date(now);d.setDate(d.getDate()+1);dueDate=d.toISOString().split('T')[0];}
         else if(key==='this_week'){const d=new Date(now);const dow=d.getDay();d.setDate(d.getDate()+(dow===0?0:7-dow));dueDate=d.toISOString().split('T')[0];}
-        else if(key==='next_week'){const d=new Date(now);const dow=d.getDay();d.setDate(d.getDate()+(dow===0?1:8-dow));dueDate=d.toISOString().split('T')[0];}
+        else if(key==='next_week'){const dow4=new Date().getDay();const dts4=dow4===0?7:7-dow4;dueDate=localDateStr(localMidnight(dts4+7));}
         else if(key==='this_month'){const d=new Date(now.getFullYear(),now.getMonth()+1,0);dueDate=d.toISOString().split('T')[0];}
         else if(key==='next_month'){const d=new Date(now.getFullYear(),now.getMonth()+1,1);dueDate=d.toISOString().split('T')[0];}
       }
