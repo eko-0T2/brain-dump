@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.23</title>
+<title>Brain Dump v1.2.24</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -359,7 +359,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.23</div>
+  <div class="version-tag">v1.2.24</div>
 </div>
 
 <!-- SETUP -->
@@ -535,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.23';
+const VERSION='1.2.24';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1549,51 +1549,74 @@ async function processDump(extraContext){
     const{listId,tasks}=tr;taskListId=listId;
     const calTxt=cal.length?cal.map(e=>{const s=e.start.dateTime||e.start.date;return`- ${e.summary} (${new Date(s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})})`;}).join('\n'):'No events in next 7 days';
     const tasksSummary=tasks.slice(0,30).map(t=>`- ${t.title}${t.due?' (due '+localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+')':''}${t.notes?' — '+t.notes.slice(0,50):''}`).join('\n')||'No existing tasks';
-    const annualCtx='';
     const standingCtx=localStorage.getItem('bd_context')||'';
     const today=new Date().toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     const L=getDateLabels();
 
-    const sys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety. Present everything as potential tasks she can decide what to do with.
+    // Quick dump: task capture only — no thought analysis
+    const quickSys=`You are a task capture assistant. Extract clear tasks from Erin's input and nothing else. No analysis, no anxiety commentary, no feelings.
 
-Today: ${today}. Mode: ${mode.toUpperCase()}.
-Week starts Monday. This week = by Sunday ${L.thisWeek.replace('by Sun ','')}. Next week starts ${L.nextWeek}. Next month = ${L.nextMonth}.
+Today: ${today}.
+Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
+
+Existing tasks (do NOT re-add — surface relevant ones only):
+${tasksSummary}
+
+RULES:
+- Extract only concrete tasks from the input
+- If input mentions something that matches an existing task, put it in existing_tasks_to_surface — do NOT also add it as a new item
+- Suggest a due date for each task based on any urgency cues in the input
+- No sub-commentary, no anxiety noise, no overnight thoughts
+- Keep task text clean and actionable
+
+Respond ONLY with valid JSON:
+{
+  "mode":"quick",
+  "meta":"one sentence summary of tasks captured",
+  "items":{"urgent":[],"soon":[],"someday":[]},
+  "existing_tasks_to_surface":[],
+  "first_move":{"action":"","why":""}
+}
+Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|next_month|none"}`;
+
+    // Full dump: full thought sorting
+    const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
+
+Today: ${today}.
+Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
 
 STANDING CONTEXT:
 ${standingCtx||'None saved yet.'}
 
-ANNUAL CONTEXT (upcoming key events):
-${annualCtx||'None — suggest user runs annual refresh.'}
-
 Google Calendar next 7 days (ONLY reference events explicitly listed here):
 ${calTxt}
 
-Existing tasks (summarised — do NOT re-add these, surface relevant ones):
+Existing tasks (do NOT re-add — surface relevant ones only):
 ${tasksSummary}
 
 RULES:
-- Present EVERYTHING as a task candidate
-- NEVER invent calendar events — only reference what appears above
-- Do not duplicate existing tasks — surface relevant ones in existing_tasks_to_surface
-- existing_tasks_to_surface: only tasks relevant to THIS dump's timeframe and topics, max 5
-- context_suggestions: ONLY stable recurring facts still true in a month, second person, empty array if nothing qualifies. Never one-time events, trips, purchases.
-- category_suggestions: only after 3+ mentions, never first use
-- For each task suggest a due date label: "today", "tomorrow", "this_week", "next_week", "next_month", or "none"
+- Present EVERYTHING as a task candidate first
+- NEVER invent calendar events
+- Do not duplicate existing tasks
+- existing_tasks_to_surface: only tasks relevant to this dump's topics, max 5
+- context_suggestions: ONLY stable recurring facts, second person, empty array if nothing qualifies
+- For each task suggest a due date: "today", "tomorrow", "this_week", "next_week", "next_month", or "none"
 
 Respond ONLY with valid JSON:
 {
-  "mode":"${mode}",
+  "mode":"full",
   "meta":"one sentence summary",
   "overnight":[],
   "items":{"urgent":[],"soon":[],"someday":[]},
   "anxiety_noise":[],
   "existing_tasks_to_surface":[],
   "first_move":{"action":"","why":""},
-  "context_suggestions":[],
-  "category_suggestions":[]
+  "context_suggestions":[]
 }
 Each item: {"text":"...","sub":"optional context","cal":false,"suggested_due":"today|tomorrow|this_week|next_week|next_month|none"}
 overnight items also have "real": true/false`;
+
+    const sys=mode==='quick'?quickSys:fullSys;
 
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
@@ -1704,10 +1727,12 @@ function buildReview(result,listId,existingTasks){
   document.getElementById('existingTitle').style.display=existing.length?'flex':'none';
   if(existing.length){
     const card=document.createElement('div');card.className='existing-card';
-    existing.forEach(t=>{
-      const div=document.createElement('div');div.className='existing-item';
+    existing.forEach((t,ei)=>{
       const title=typeof t==='string'?t:(t.title||t.text||JSON.stringify(t));
-      div.innerHTML=`<span class="existing-dot"></span><span>${title}</span>`;
+      const eid='ex-'+itemIdx++;
+      const div=document.createElement('div');div.className='existing-item';
+      div.id='exrow-'+eid;
+      div.innerHTML=`<span class="existing-dot"></span><span style="flex:1">${title}</span><button onclick="rejectMatch('${eid}','${title.replace(/'/g,"\\'")}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this — new task</button>`;
       card.appendChild(div);
     });
     existingContainer.appendChild(card);
@@ -1759,6 +1784,46 @@ function buildMiniCheckin(tasks,listId){
   });
   container.appendChild(card);
   document.getElementById('miniCheckin').style.display='block';
+}
+
+function rejectMatch(eid,title){
+  // Remove from existing list
+  const row=document.getElementById('exrow-'+eid);
+  if(row)row.remove();
+  // Check if existing card is now empty
+  const card=row?.closest('.existing-card');
+  if(card&&!card.querySelector('.existing-item'))card.remove();
+  const existTitle=document.getElementById('existingTitle');
+  if(existTitle&&!document.querySelector('.existing-item'))existTitle.style.display='none';
+  // Add as new task in review — create a new item card at top
+  const container=document.getElementById('reviewItems');
+  const id='item-'+Date.now();
+  const L=getDateLabels();
+  const wrap=document.createElement('div');
+  wrap.innerHTML=`
+    <div class="item-row" id="row-${id}">
+      <span class="odot blue"></span>
+      <div class="item-body">
+        <div class="item-text" id="txt-${id}">${title}</div>
+      </div>
+      <button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Task ▾</button>
+    </div>
+    <div class="item-dropdown" id="dd-${id}">
+      <div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div>
+      <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div>
+      <div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save anywhere</div>
+    </div>
+    <div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">
+      ${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k==='none'?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}
+    </div>
+    <div class="ntd-hint" id="hint-${id}">New task — choose a due date</div>
+    <div class="edit-panel" id="ep-${id}">
+      <div class="edit-fields">
+        <div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${title.replace(/"/g,'&quot;')}"></div>
+        <div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div>
+      </div>
+    </div>`;
+  container.insertBefore(wrap, container.firstChild);
 }
 
 function toggleItemDD(id){
@@ -1894,11 +1959,51 @@ function renderFinal(r,tasksAdded,docOk){
     container.appendChild(c);
   }
 
+  // Build output from actual selected dates, not AI categories
+  const _dow=new Date().getDay();
+  const _dts=_dow===0?7:7-_dow;
+  const _endWeek=localMidnight(_dts);
+  const _endNxtWeek=localMidnight(_dts+7);
+  const _endMonth=new Date(new Date().getFullYear(),new Date().getMonth()+1,0);
+  const _endNxtMonth=new Date(new Date().getFullYear(),new Date().getMonth()+2,0);
+
+  // Collect all saved tasks with their actual selected due dates
+  const urgentItems=[],soonItems=[],laterItems=[],somedayItems=[];
+  document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
+    if(!sbtn.classList.contains('task'))return;
+    const id=sbtn.id.replace('sbtn-','');
+    const nameEl=document.getElementById('ename-'+id);
+    const txtEl=document.getElementById('txt-'+id);
+    const title=nameEl?.value?.trim()||txtEl?.textContent?.replace(/📅/g,'').trim()||'';
+    if(!title)return;
+    // Get selected due date
+    const selChip=document.querySelector(`#dates-${id} .ntd.sel`);
+    const key=selChip?.getAttribute('data-key')||'none';
+    const pickerVal=document.getElementById('pdate-'+id)?.value;
+    let dueDate=null;
+    if(pickerVal)dueDate=localDateFromStr(pickerVal);
+    else if(key!=='none'){
+      if(key==='today')dueDate=localMidnight(0);
+      else if(key==='tomorrow')dueDate=localMidnight(1);
+      else if(key==='this_week')dueDate=_endWeek;
+      else if(key==='next_week')dueDate=_endNxtWeek;
+      else if(key==='this_month')dueDate=_endMonth;
+      else if(key==='next_month')dueDate=_endNxtMonth;
+    }
+    const item={text:title};
+    if(!dueDate||key==='none')somedayItems.push(item);
+    else if(dueDate<=_endWeek)urgentItems.push(item);
+    else if(dueDate<=_endNxtWeek)soonItems.push(item);
+    else if(dueDate<=_endNxtMonth)laterItems.push(item);
+    else somedayItems.push(item);
+  });
+
   const items=r.items||{};
   if(r.overnight?.length)card('ideas','🌙 Overnight thoughts','Things your 2am brain flagged',r.overnight,'purple');
-  if(items.urgent?.length)card('urgent','🔴 Saved — urgent','Added to Google Tasks',items.urgent,'red');
-  if(items.soon?.length)card('soon','🟡 Saved — soon','Added to Google Tasks',items.soon,'orange');
-  if(items.someday?.length)card('someday','🔵 Saved — someday','Added to Google Tasks',items.someday,'blue');
+  if(urgentItems.length)card('urgent','🔴 Saved — this week','Added to Google Tasks',urgentItems,'red');
+  if(soonItems.length)card('soon','🟡 Saved — next week','Added to Google Tasks',soonItems,'orange');
+  if(laterItems.length)card('someday','🔵 Saved — next month','Added to Google Tasks',laterItems,'blue');
+  if(somedayItems.length)card('noise','⏳ Saved — no date yet','Added to Google Tasks',somedayItems,'gray');
   if(r.anxiety_noise?.length)card('noise','🧠 Anxiety noise — named and set down','Real feelings, not actionable right now',r.anxiety_noise,'gray');
 
   if(r.first_move&&r.first_move.action){
