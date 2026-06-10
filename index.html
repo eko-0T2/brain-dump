@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.19</title>
+<title>Brain Dump v1.2.20</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -203,38 +203,14 @@ textarea::placeholder { color:var(--text-dimmer); }
 .fm-why { font-size:13px; color:var(--fm-sub); line-height:1.6; font-weight:300; }
 
 /* Monthly banner */
-.monthly-banner { background:var(--surface2); border:1px solid var(--border2); border-radius:12px; padding:12px 14px; margin-bottom:14px; display:flex; align-items:flex-start; gap:10px; }
-.mb-text { flex:1; font-size:13px; color:var(--text); line-height:1.5; }
-.mb-sub { font-size:11px; color:var(--text-dimmer); margin-top:2px; }
-.mb-btns { display:flex; gap:6px; flex-shrink:0; flex-direction:column; }
-.mb-yes { font-size:11px; font-weight:600; padding:5px 12px; border-radius:8px; background:rgba(37,99,235,0.12); color:var(--blue); border:none; cursor:pointer; font-family:'DM Sans',sans-serif; }
-.mb-later { font-size:11px; color:var(--text-dimmer); background:none; border:none; cursor:pointer; font-family:'DM Sans',sans-serif; text-align:right; }
 
-/* Annual refresh */
-.annual { display:none; }
-.diff-section { margin-bottom:12px; }
-.diff-lbl { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:6px; }
-.diff-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-.diff-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); }
-.diff-item:last-child { border-bottom:none; }
-.diff-new { border-left:3px solid var(--green); }
-.diff-same { border-left:3px solid var(--border2); opacity:0.7; }
-.diff-gone { border-left:3px solid var(--red); opacity:0.5; }
-.diff-body { flex:1; font-size:13px; color:var(--text); }
-.diff-body-sub { font-size:11px; color:var(--text-dimmer); margin-top:1px; }
-.diff-gone .diff-body { text-decoration:line-through; }
-.diff-exclude { font-size:11px; color:var(--text-dimmer); background:none; border:1px solid var(--border2); border-radius:7px; padding:3px 9px; cursor:pointer; flex-shrink:0; font-family:'DM Sans',sans-serif; }
 
-.excluded-section { margin-top:14px; border-top:1px solid var(--border); padding-top:12px; display:none; }
-.excl-lbl { font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--text-dimmer); margin-bottom:8px; }
-.excl-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; overflow:hidden; margin-bottom:10px; opacity:0.6; }
-.excl-item { display:flex; align-items:center; gap:10px; padding:10px 14px; border-bottom:1px solid var(--border); }
-.excl-item:last-child { border-bottom:none; }
-.excl-body { flex:1; font-size:13px; color:var(--text); text-decoration:line-through; }
-.excl-sub { font-size:11px; color:var(--text-dimmer); margin-top:1px; text-decoration:none; }
-.add-back { font-size:11px; color:var(--accent); background:none; border:1px solid var(--accent); border-radius:7px; padding:3px 9px; cursor:pointer; flex-shrink:0; font-family:'DM Sans',sans-serif; }
 
-.save-ctx-btn { width:100%; padding:12px; border-radius:12px; border:none; background:rgba(22,163,74,0.15); color:var(--green); font-size:13px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; margin-top:10px; }
+
+
+
+
+
 .note-text { font-size:11px; color:var(--text-dimmer); text-align:center; margin-top:8px; }
 
 /* Review screen */
@@ -380,7 +356,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.19</div>
+  <div class="version-tag">v1.2.20</div>
 </div>
 
 <!-- SETUP -->
@@ -423,11 +399,7 @@ textarea::placeholder { color:var(--text-dimmer); }
         <div id="modelSuggestion" style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.5;display:none"></div>
       </div>
     </div>
-    <div class="field">
-      <label class="field-label">Annual context</label>
-      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px" id="annualContextStatus">Never refreshed</div>
-      <button onclick="saveSetupThenRefresh()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;font-family:inherit;width:100%">🔄 Refresh annual context now</button>
-    </div>
+
     <div class="field">
       <label class="field-label">Calendars to show in Check in</label>
       <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px">Uncheck calendars you don't want to see</div>
@@ -455,14 +427,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 
 <!-- MAIN -->
 <div id="screenMain" style="display:none">
-  <div id="monthlyBanner" class="monthly-banner" style="display:none">
-    <i class="ti ti-calendar-month" style="font-size:20px;color:var(--text-dimmer);flex-shrink:0;margin-top:2px" aria-hidden="true"></i>
-    <div class="mb-text">It's a new month — refresh your annual context?<div class="mb-sub" id="lastRefreshedNote"></div></div>
-    <div class="mb-btns">
-      <button class="mb-yes" onclick="startAnnualRefresh()">Refresh now</button>
-      <button class="mb-later" onclick="dismissMonthlyBanner()">Later</button>
-    </div>
-  </div>
+
   <div class="status-bar"><span class="sdot"></span><span id="statusText">Google connected · ready</span></div>
 
   <!-- Mode picker shown by default -->
@@ -531,19 +496,7 @@ textarea::placeholder { color:var(--text-dimmer); }
   <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
 
-<!-- ANNUAL REFRESH -->
-<div class="annual" id="annualRefresh">
-  <div id="annualCards"></div>
-  <button class="save-ctx-btn" onclick="saveAnnualContext()">✓ Save this context</button>
-  <div class="excluded-section" id="excludedSection">
-    <div class="excl-lbl">Previously excluded — add back?</div>
-    <div class="excl-card"><div id="excludedList"></div></div>
-    <button class="save-ctx-btn">✓ Save this context</button>
-    <div class="note-text">Saves to your idea library · replaces last month's context</div>
-  </div>
-  <div class="note-text" id="annualNote">Saves to your idea library · replaces last month's context · uses one small AI call</div>
-  <button class="new-dump" onclick="resetToMain()" style="margin-top:10px">↩ Back</button>
-</div>
+
 
 <!-- REVIEW -->
 <div class="review" id="review">
@@ -579,7 +532,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.19';
+const VERSION='1.2.20';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -604,7 +557,7 @@ let mode='quick', gToken=null, taskListId=null, currentResult=null;
 let CFG={apiKey:'',clientId:'',docId:''};
 const SCOPES='https://www.googleapis.com/auth/calendar.readonly https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/documents';
 const LOAD_MSGS=[['Reading your calendar...','checking what is actually scheduled'],['Sorting your tasks...','signal vs noise'],['Thinking it through...','separating real from anxiety'],['Almost there...','finding your first move']];
-let loadTimer, annualExcluded=[];
+let loadTimer;
 
 // DATE HELPERS
 function getDateLabels(){
@@ -801,25 +754,11 @@ window.addEventListener('load',()=>{
     .catch(()=>checkMonthlyBanner());
 });
 
-function checkMonthlyBanner(){
-  const lastRefresh=localStorage.getItem('bd_annual_refresh_month');
-  const currentMonth=new Date().toISOString().substring(0,7);
-  const lastShown=localStorage.getItem('bd_banner_shown_today');
-  const today=new Date().toISOString().substring(0,10);
-  if(lastRefresh!==currentMonth&&lastShown!==today){
-    const banner=document.getElementById('monthlyBanner');
-    banner.style.display='flex';
-    const note=document.getElementById('lastRefreshedNote');
-    note.textContent=lastRefresh?'Last updated: '+lastRefresh:'Never refreshed';
-  }
-}
-function dismissMonthlyBanner(){
-  document.getElementById('monthlyBanner').style.display='none';
-  localStorage.setItem('bd_banner_shown_today',new Date().toISOString().substring(0,10));
-}
+function checkMonthlyBanner(){}
+function dismissMonthlyBanner(){}
 
 // SCREENS
-let annualRefreshActive=false;
+
 function showScreen(name){
   ['Setup','Auth','Main'].forEach(s=>{
     const el=document.getElementById('screen'+s);
@@ -829,25 +768,7 @@ function showScreen(name){
     const el=document.getElementById(id);
     if(el){el.classList.remove('on');el.style.display='';}
   });
-  // Never touch annualRefresh from here — it manages itself
-  if(name==='main'&&!annualRefreshActive)checkMonthlyBanner();
-}
-function saveSetupThenRefresh(){
-  // Save settings first without navigating away, then start refresh
-  const k=document.getElementById("inApiKey").value.trim();
-  const c=document.getElementById("inClientId").value.trim();
-  const d=document.getElementById("inDocId").value.trim();
-  if(k) localStorage.setItem("bd_api_key",k);
-  if(c) localStorage.setItem("bd_client_id",c);
-  if(d) localStorage.setItem("bd_doc_id",d);
-  const mq=document.getElementById("modelQuick")?.value||"claude-haiku-4-5-20251001";
-  const mf=document.getElementById("modelFull")?.value||"claude-sonnet-4-6";
-  localStorage.setItem("bd_model_quick",mq);
-  localStorage.setItem("bd_model_full",mf);
-  CFG={apiKey:k||CFG.apiKey,clientId:c||CFG.clientId,docId:d||CFG.docId};
-  // Now start refresh without navigating
-  document.getElementById("screenSetup").style.display="none";
-  startAnnualRefresh();
+  if(name==='main')checkMonthlyBanner();
 }
 function cancelSetup(){
   if(gToken)resetToMain();
@@ -864,9 +785,7 @@ function showSetup(){
   if(mqEl)mqEl.value=mq;
   if(mfEl)mfEl.value=mf;
   // Always read fresh from localStorage
-  const lastRefresh=localStorage.getItem('bd_annual_refresh_month');
-  const statusEl=document.getElementById('annualContextStatus');
-  if(statusEl)statusEl.textContent=lastRefresh?'Last refreshed: '+lastRefresh:'Never refreshed';
+
   showScreen('setup');
   // Load calendar checkboxes
   loadCalendarCheckboxes();
@@ -1647,7 +1566,30 @@ async function saveCiAndSummary(){
     summaryCard('📅 Due tomorrow',tomorrowTasks,'var(--blue)');
   }
 
-  if(!overdueTasks.length&&!todayTasks.length&&!tomorrowTasks.length&&!updated){
+  // This week — tasks due after tomorrow but before end of Sunday
+  const dow=new Date().getDay();
+  const daysToSun=dow===0?7:7-dow;
+  const endOfWeek=localMidnight(daysToSun);
+  const thisWeekTasks=tasks.filter(t=>{
+    if(!t.due||t.status==='completed')return false;
+    const d=localDateFromStr(t.due.split('T')[0]);
+    return d>=t2&&d<=endOfWeek;
+  });
+  if(thisWeekTasks.length){
+    const card=document.createElement('div');
+    card.className='ci-card';
+    card.style.borderLeftColor='var(--blue)';
+    card.innerHTML='<div class="ci-lbl">📅 This week</div>';
+    thisWeekTasks.forEach(t=>{
+      const dueFmt=localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+      const row=document.createElement('div');row.className='ci-row';
+      row.innerHTML=`<div class="ci-icon ic-blue"><i class="ti ti-check" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><span style="font-size:10px;color:var(--text-dimmer);flex-shrink:0">${dueFmt}</span>`;
+      card.appendChild(row);
+    });
+    container.appendChild(card);
+  }
+
+  if(!overdueTasks.length&&!todayTasks.length&&!tomorrowTasks.length&&!thisWeekTasks.length&&!updated){
     const all=document.createElement('div');
     all.style.cssText='text-align:center;padding:30px 20px;color:var(--text-dimmer);font-size:14px';
     all.textContent='All clear — nothing urgent right now.';
@@ -1688,194 +1630,6 @@ async function saveCiAndBack(){
   resetToMain();
 }
 
-// ANNUAL REFRESH
-async function startAnnualRefresh(){
-  dismissMonthlyBanner();
-  // Hide everything cleanly
-  annualRefreshActive=true;
-  document.getElementById('screenMain').style.display='none';
-  document.getElementById('screenSetup').style.display='none';
-  document.getElementById('annualRefresh').style.display='none';
-  const loading=document.getElementById('loading');
-  loading.classList.add('on');
-  document.getElementById('loadTxt').textContent='Reading your year ahead...';
-  document.getElementById('loadSub').textContent='this may take up to 30 seconds';
-  startLoad();
-  try{
-    console.log('[Annual] Starting calendar fetch...');
-    const yearEvents=await fetchCalYear();
-    console.log('[Annual] Calendar fetch complete, events:', yearEvents.length);
-    if(!yearEvents.length){
-      stopLoad();
-      loading.classList.remove('on');
-      annualRefreshActive=false;
-      document.getElementById('screenMain').style.display='block';
-      document.getElementById('modePicker').style.display='block';
-      const e=document.getElementById('mainErr');
-      e.textContent='Could not read your calendar — check your Google connection and try again.';
-      e.classList.add('on');
-      return;
-    }
-    document.getElementById('loadTxt').textContent='Extracting key events...';
-    document.getElementById('loadSub').textContent='asking AI to find what matters';
-    console.log('[Annual] Starting AI call...');
-    await buildAnnualRefresh(yearEvents);
-    console.log('[Annual] buildAnnualRefresh complete');
-    stopLoad();
-    loading.classList.remove('on');
-    console.log('[Annual] Done — annualRefresh div display:', document.getElementById('annualRefresh').style.display);
-  }catch(err){
-    console.error('[Annual] Error:', err);
-    stopLoad();
-    loading.classList.remove('on');
-    annualRefreshActive=false;
-    document.getElementById('screenMain').style.display='block';
-    document.getElementById('modePicker').style.display='block';
-    const e=document.getElementById('mainErr');
-    e.textContent='Annual refresh failed: '+(err.message||'unknown error')+'. Check your connection and try again from Settings.';
-    e.classList.add('on');
-  }
-}
-
-async function buildAnnualRefresh(events){
-  console.log('[Annual] buildAnnualRefresh called with',events.length,'events');
-  const prevContext=localStorage.getItem('bd_annual_context')||'';
-  const evtTxt=events.map(e=>`${e.summary} — ${e.start.dateTime||e.start.date}`).join('\n');
-  const sys=`You help extract meaningful upcoming events from a calendar for use as context in a personal AI assistant.
-
-Extract only events worth knowing about for planning purposes — special occasions, important appointments, trips, performances, milestone events, family events, birthdays.
-EXCLUDE: weekly recurring classes, regular work days, weekly meetings, anything that recurs more than 4 times with the same name.
-
-Previous context (for comparison):
-${prevContext||'None'}
-
-Respond ONLY with valid JSON:
-{
-  "new_events": [{"title":"...","date":"...","note":"..."}],
-  "carried_over": [{"title":"...","date":"...","note":"..."}],
-  "removed": [{"title":"...","date":"..."}]
-}
-new_events: events not in previous context
-carried_over: events still in previous context and still upcoming
-removed: events that were in previous context but are now past`;
-
-  console.log('[Annual] Sending to AI, event count:',events.length);
-  const res=await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','x-api-key':CFG.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:[{role:'user',content:'Calendar events for next 12 months:\n\n'+evtTxt}]})
-  });
-  console.log('[Annual] AI response status:', res.status);
-  if(!res.ok){const errData=await res.json();console.error('[Annual] API error:',errData);throw new Error('API error: '+errData.error?.message);}
-  const rawText=(await res.json()).content[0].text;
-  console.log('[Annual] AI raw response (first 500 chars):', rawText.substring(0,500));
-  const result=JSON.parse(rawText.replace(/```json|```/g,'').trim());
-  console.log('[Annual] Parsed result:', result);
-
-  const container=document.getElementById('annualCards');
-  container.innerHTML='';
-  annualExcluded=JSON.parse(localStorage.getItem('bd_annual_excluded')||'[]');
-
-  function diffCard(lbl,items,cls,showExclude){
-    if(!items?.length)return;
-    const sec=document.createElement('div');sec.className='diff-section';
-    sec.innerHTML=`<div class="diff-lbl">${lbl}</div>`;
-    const card=document.createElement('div');card.className='diff-card';
-    items.forEach(item=>{
-      const div=document.createElement('div');
-      div.className=`diff-item ${cls}`;
-      div.innerHTML=`<div class="diff-body">${item.title}<div class="diff-body-sub">${item.date}${item.note?' · '+item.note:''}</div></div>${showExclude?`<button class="diff-exclude" onclick="excludeAnnual(this,'${item.title.replace(/'/g,"\\'")}','${item.date}')">exclude</button>`:''}`;
-      card.appendChild(div);
-    });
-    sec.appendChild(card);
-    container.appendChild(sec);
-  }
-
-  diffCard('✨ New this month',result.new_events,'diff-new',true);
-  diffCard('Carried over',result.carried_over,'diff-same',true);
-  diffCard('Removed — now past',result.removed,'diff-gone',false);
-
-  // Show previously excluded
-  if(annualExcluded.length){
-    const excSec=document.getElementById('excludedSection');
-    const excList=document.getElementById('excludedList');
-    excList.innerHTML='';
-    excSec.style.display='block';
-    annualExcluded.forEach(item=>{
-      const div=document.createElement('div');
-      div.className='excl-item';
-      div.setAttribute('data-key',item.title);
-      div.innerHTML=`<div class="excl-body">${item.title}<div class="excl-sub">${item.date}</div></div><button class="add-back" onclick="addBackAnnual(this,'${item.title.replace(/'/g,"\\'")}')">Add back</button>`;
-      excList.appendChild(div);
-    });
-    document.getElementById('annualNote').style.display='none';
-  }
-
-  // Show error if no content was generated
-  const hasContent=container.querySelectorAll('.diff-item').length>0;
-  if(!hasContent){
-    container.innerHTML='<div class="err on" style="margin-bottom:10px">No events found to display — your calendar may be empty or the AI response was unexpected. Try again.</div>';
-  }
-  const ar=document.getElementById('annualRefresh');
-  ar.style.display='block';
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function excludeAnnual(btn,title,date){
-  const item=btn.closest('.diff-item');
-  item.style.display='none';
-  annualExcluded.push({title,date});
-  localStorage.setItem('bd_annual_excluded',JSON.stringify(annualExcluded));
-  const excSec=document.getElementById('excludedSection');
-  const excList=document.getElementById('excludedList');
-  excSec.style.display='block';
-  document.getElementById('annualNote').style.display='none';
-  const div=document.createElement('div');
-  div.className='excl-item';div.setAttribute('data-key',title);
-  div.innerHTML=`<div class="excl-body">${title}<div class="excl-sub">${date}</div></div><button class="add-back" onclick="addBackAnnual(this,'${title.replace(/'/g,"\\'")}')">Add back</button>`;
-  excList.appendChild(div);
-}
-function addBackAnnual(btn,title){
-  annualExcluded=annualExcluded.filter(i=>i.title!==title);
-  localStorage.setItem('bd_annual_excluded',JSON.stringify(annualExcluded));
-  btn.closest('[data-key]').remove();
-  if(!document.getElementById('excludedList').children.length){
-    document.getElementById('excludedSection').style.display='none';
-    document.getElementById('annualNote').style.display='block';
-  }
-}
-async function saveAnnualContext(){
-  const items=[];
-  document.querySelectorAll('#annualCards .diff-item').forEach(el=>{
-    // Skip excluded items (hidden)
-    if(el.style.display==='none')return;
-    const body=el.querySelector('.diff-body');
-    if(!body)return;
-    const title=body.childNodes[0]?.textContent?.trim()||'';
-    const sub=body.querySelector('.diff-body-sub')?.textContent?.trim()||'';
-    if(title)items.push(title+(sub?' — '+sub:''));
-  });
-  const contextText=items.join('\n');
-  const currentMonth=new Date().toISOString().substring(0,7);
-  // Save to localStorage first
-  localStorage.setItem('bd_annual_context',contextText);
-  localStorage.setItem('bd_annual_refresh_month',currentMonth);
-  localStorage.setItem('bd_annual_excluded',JSON.stringify(annualExcluded));
-  // Show saving state
-  document.querySelectorAll('.save-ctx-btn').forEach(b=>{b.textContent='Saving...';b.disabled=true;});
-  // Append to doc
-  try{
-    await appendDoc('[ANNUAL CONTEXT — '+currentMonth+']\n'+contextText+'\n');
-  }catch(e){
-    console.error('Doc append failed:',e);
-  }
-  // Update settings display
-  const statusEl=document.getElementById('annualContextStatus');
-  if(statusEl)statusEl.textContent='Last refreshed: '+currentMonth;
-  resetToMain();
-}
-
-// MAIN PROCESS
 async function processDump(extraContext){
   const baseTxt=document.getElementById('dumpText').value.trim();
   const alsoTxt=document.getElementById('alsoText')?.value?.trim()||'';
@@ -1891,7 +1645,7 @@ async function processDump(extraContext){
     const{listId,tasks}=tr;taskListId=listId;
     const calTxt=cal.length?cal.map(e=>{const s=e.start.dateTime||e.start.date;return`- ${e.summary} (${new Date(s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})})`;}).join('\n'):'No events in next 7 days';
     const tasksSummary=tasks.slice(0,30).map(t=>`- ${t.title}${t.due?' (due '+localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+')':''}${t.notes?' — '+t.notes.slice(0,50):''}`).join('\n')||'No existing tasks';
-    const annualCtx=localStorage.getItem('bd_annual_context')||'';
+    const annualCtx='';
     const standingCtx=localStorage.getItem('bd_context')||'';
     const today=new Date().toLocaleDateString('en-CA',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     const L=getDateLabels();
@@ -2276,9 +2030,8 @@ function resetToMain(){
   });
   const ciSum=document.getElementById('ciSummary');
   if(ciSum)ciSum.style.display='none';
-  annualRefreshActive=false;
-  const ar=document.getElementById('annualRefresh');
-  if(ar)ar.style.display='none';
+  
+
   showScreen('main');
   document.getElementById('screenMain').style.display='block';
   document.getElementById('modePicker').style.display='block';
