@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.26</title>
+<title>Brain Dump v1.2.27</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -340,6 +340,10 @@ textarea::placeholder { color:var(--text-dimmer); }
 ::-webkit-scrollbar{width:4px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.cal-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.edit-input{width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit}
+.badge-right{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+.mode-shortcut-btn{flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
 .loc-line{display:flex;align-items:center;gap:4px;margin-top:2px}
 .loc-pin{font-size:11px;flex-shrink:0;color:var(--text-dimmer)}
 .sub-line{display:flex;align-items:center;gap:4px}
@@ -359,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.26</div>
+  <div class="version-tag">v1.2.27</div>
 </div>
 
 <!-- SETUP -->
@@ -424,7 +428,6 @@ textarea::placeholder { color:var(--text-dimmer); }
       <svg width="17" height="17" viewBox="0 0 18 18"><path fill="#4285F4" d="M16.51 8H8.98v3h4.3c-.18 1-.74 1.48-1.6 2.04v2.01h2.6a7.8 7.8 0 0 0 2.38-5.88c0-.57-.05-.66-.15-1.18z"/><path fill="#34A853" d="M8.98 17c2.16 0 3.97-.72 5.3-1.94l-2.6-2a4.8 4.8 0 0 1-7.18-2.54H1.83v2.07A8 8 0 0 0 8.98 17z"/><path fill="#FBBC05" d="M4.5 10.52a4.8 4.8 0 0 1 0-3.04V5.41H1.83a8 8 0 0 0 0 7.18l2.67-2.07z"/><path fill="#EA4335" d="M8.98 4.18c1.17 0 2.23.4 3.06 1.2l2.3-2.3A8 8 0 0 0 1.83 5.4L4.5 7.49a4.77 4.77 0 0 1 4.48-3.3z"/></svg>
       Connect Google Account
     </button>
-    <div style="font-size:12px;color:var(--text-dimmer);text-align:center;margin-top:8px">A popup will open — if nothing happens, allow popups for this site</div>
     <button class="btn btn-secondary" onclick="showSetup()">← Back to settings</button>
   </div>
 </div>
@@ -537,7 +540,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.26';
+const VERSION='1.2.27';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -674,27 +677,6 @@ function toggleDD(ddId){
   document.querySelectorAll('.custom-dp').forEach(c=>c.classList.remove('show'));
   if(!isOpen)dd.classList.add('open');
 }
-function setDateFromDD(ddId,slId,label,hint){
-  document.getElementById(ddId).classList.remove('open');
-  const sl=document.getElementById(slId);
-  sl.textContent='📅 Due: '+label+' — '+hint;
-  sl.classList.add('show');
-}
-function showCustomDP(ddId,cpId){
-  document.getElementById(ddId).classList.remove('open');
-  document.getElementById(cpId).classList.add('show');
-  document.getElementById(cpId).querySelector('input').focus();
-}
-function confirmCustomDP(cpId,slId,ciId){
-  const val=document.getElementById(ciId).value;
-  if(!val)return;
-  const d=new Date(val+'T00:00:00');
-  const fmt=d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-  document.getElementById(cpId).classList.remove('show');
-  const sl=document.getElementById(slId);
-  sl.textContent='📅 Due: '+fmt;
-  sl.classList.add('show');
-}
 
 // THEME
 function setTheme(name,el){
@@ -731,14 +713,11 @@ window.addEventListener('load',()=>{
   fetch('https://www.googleapis.com/calendar/v3/calendars/primary/events?maxResults=1&timeMin='+new Date().toISOString(),{headers:{Authorization:'Bearer '+gToken}})
     .then(r=>{
       if(r.status===401){
-        const dv=document.getElementById('dumpText')?.value||'';
-        if(dv)localStorage.setItem('bd_saved_dump',dv);
-        gToken=null;localStorage.removeItem('bd_google_token');showScreen('auth');
-      } else {
-        checkMonthlyBanner();
+        gToken=null;localStorage.removeItem('bd_google_token');
+        handleAuth();
       }
     })
-    .catch(()=>checkMonthlyBanner());
+    .catch(()=>{});
 });
 
 
@@ -827,58 +806,12 @@ function saveSetup(){
   gToken?showScreen('main'):showScreen('auth');
 }
 function handleAuth(){
-  const uri=window.location.href.split('?')[0].split('#')[0];
-  const p=new URLSearchParams({client_id:CFG.clientId,redirect_uri:uri,response_type:'token',scope:SCOPES,prompt:'select_account'});
-  const authUrl='https://accounts.google.com/o/oauth2/v2/auth?'+p;
-
-  // Save any in-progress dump text
   const dumpVal=document.getElementById('dumpText')?.value||'';
   if(dumpVal)localStorage.setItem('bd_saved_dump',dumpVal);
-
-  // Try popup first
-  const pw=600,ph=700;
-  const pl=Math.round(window.screenX+(window.outerWidth-pw)/2);
-  const pt=Math.round(window.screenY+(window.outerHeight-ph)/2);
-  const popup=window.open(authUrl,'GoogleAuth','width='+pw+',height='+ph+',left='+pl+',top='+pt+',toolbar=no,menubar=no,scrollbars=yes');
-
-  if(!popup||popup.closed||typeof popup.closed==='undefined'){
-    // Popup blocked — fall back to redirect
-    window.location.href=authUrl;
-    return;
-  }
-
-  // Poll until popup closes with token
-  const poll=setInterval(()=>{
-    try{
-      if(popup.closed){
-        clearInterval(poll);
-        const tok=localStorage.getItem('bd_google_token');
-        if(tok){
-          gToken=tok;
-          const saved=localStorage.getItem('bd_saved_dump');
-          if(saved){document.getElementById('dumpText').value=saved;localStorage.removeItem('bd_saved_dump');}
-          if(document.getElementById('screenAuth').style.display!=='none'){showScreen('main');}
-        }
-        return;
-      }
-      const hash=popup.location.hash;
-      if(hash&&hash.includes('access_token')){
-        const tp=new URLSearchParams(hash.replace('#',''));
-        const token=tp.get('access_token');
-        if(token){
-          gToken=token;
-          localStorage.setItem('bd_google_token',token);
-          popup.close();
-          clearInterval(poll);
-          const saved=localStorage.getItem('bd_saved_dump');
-          if(saved){document.getElementById('dumpText').value=saved;localStorage.removeItem('bd_saved_dump');}
-          showScreen('main');
-        }
-      }
-    }catch(e){/* cross-origin while on Google — keep polling */}
-  },500);
+  const uri=window.location.href.split('?')[0].split('#')[0];
+  const p=new URLSearchParams({client_id:CFG.clientId,redirect_uri:uri,response_type:'token',scope:SCOPES,prompt:'select_account'});
+  window.location.href='https://accounts.google.com/o/oauth2/v2/auth?'+p;
 }
-
 // MODE
 function launchMode(m){
   mode=m;
@@ -1017,6 +950,8 @@ async function appendDoc(content){
   }catch(e){return false;}
 }
 function saveDumpAndReauth(){
+  const dumpVal=document.getElementById('dumpText')?.value||'';
+  if(dumpVal)localStorage.setItem('bd_saved_dump',dumpVal);
   gToken=null;localStorage.removeItem('bd_google_token');
   handleAuth();
 }
@@ -1238,7 +1173,7 @@ function buildCheckin(cal,tasks,listId){
           <div class="ci-icon ${isOverdue?'ic-red':'ic-orange'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div>
           <div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}</div>${t.notes?`<div class="ci-sub" id="notes-${id}">${t.notes}</div>`:''}</div>
           <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0" title="Edit task"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+          <div class="badge-right">
           <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${(()=>{
             if(isOverdue)return'overdue';
             if(!t.due)return'no date';
@@ -1259,8 +1194,8 @@ function buildCheckin(cal,tasks,listId){
         </div>
         <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-            <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
-            <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+            <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div>
+            <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div>
           </div>
           <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
           <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
@@ -1305,7 +1240,7 @@ function buildCheckin(cal,tasks,listId){
         <div class="ci-row" id="${id}">
           <div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div>
           <div class="ci-body"><div class="ci-text">${t.title}</div><div class="ci-sub">${[isOldest?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div>
-          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+          <div class="badge-right">
           ${futureDueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${futureDueFmt}</span>`:''}
           </div>
         </div>
@@ -1381,13 +1316,6 @@ async function updateTaskDue(listId,taskId,dueDate){
     if(!res.ok){const err=await res.json();console.error('updateTaskDue error:',err);}
     return res.ok;
   }catch(e){console.error('Update task due:',e);return false;}
-}
-async function ciMakeTask(text,listId){
-  if(!listId)return;
-  try{
-    await addTask(listId,text,'','');
-    return true;
-  }catch(e){return false;}
 }
 function selAsk(el){el.closest('.ask-again').querySelectorAll('.ask-chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
 
@@ -1576,6 +1504,14 @@ async function saveCiAndSummary(){
     container.appendChild(all);
   }
 
+  const _sumSc=document.getElementById('ciSummary').querySelector('.summary-shortcuts');
+  if(!_sumSc){
+    const _sc=document.createElement('div');
+    _sc.className='summary-shortcuts';
+    _sc.style.cssText='margin-bottom:12px';
+    _sc.innerHTML=modeShortcutsHTML();
+    document.getElementById('ciSummaryCards').before(_sc);
+  }
   document.getElementById('ciSummary').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -2116,7 +2052,7 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
               ${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}
             </div>
             <button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${taskListId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>
-            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0">
+            <div class="badge-right">
               <span class="ci-badge ${isOverdue?'cb-red':'cb-orange'}" id="badge-${id}">${isOverdue?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):''}</span>
               ${dueFmt?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}
             </div>
@@ -2129,8 +2065,8 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
           </div>
           <div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)">
             <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">
-              <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
-              <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit"></div>
+              <div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div>
+              <div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div>
             </div>
             <div class="edit-field-label" style="margin-bottom:3px">Notes</div>
             <textarea id="enotes-${id}" style="width:100%;padding:7px 10px;font-size:13px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;color:var(--text);outline:none;font-family:inherit;resize:none;min-height:44px">${t.notes||''}</textarea>
@@ -2316,9 +2252,9 @@ function resetApp(){
 
 function modeShortcutsHTML(){
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-    <button onclick="resetToMain();setTimeout(()=>launchMode('checkin'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-list-check" aria-hidden="true"></i>Check in</button>
-    <button onclick="resetToMain();setTimeout(()=>launchMode('quick'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-bolt" aria-hidden="true"></i>Quick dump</button>
-    <button onclick="resetToMain();setTimeout(()=>launchMode('full'),50)" style="flex:1;padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px"><i class="ti ti-brain" aria-hidden="true"></i>Full dump</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('checkin'),50)" class="mode-shortcut-btn"><i class="ti ti-list-check" aria-hidden="true"></i>Check in</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('quick'),50)" class="mode-shortcut-btn"><i class="ti ti-bolt" aria-hidden="true"></i>Quick dump</button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('full'),50)" class="mode-shortcut-btn"><i class="ti ti-brain" aria-hidden="true"></i>Full dump</button>
   </div>`;
 }
 
