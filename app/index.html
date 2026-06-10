@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.29</title>
+<title>Brain Dump v1.2.30</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.29</div>
+  <div class="version-tag">v1.2.30</div>
 </div>
 
 <!-- SETUP -->
@@ -512,12 +512,17 @@ textarea::placeholder { color:var(--text-dimmer); }
   <div id="reviewItems"></div>
   <div class="sec-title" id="existingTitle" style="display:none">📌 Already on your list</div>
   <div id="existingItems"></div>
-  <!-- Mini task check-in in review -->
   <div id="miniCheckin" style="display:none;margin-bottom:12px">
     <div class="sec-title">📋 Quick — while you're here</div>
     <div id="miniCheckinCards"></div>
   </div>
-
+  <div class="review-actions" id="reviewActions" style="display:none">
+    <div class="review-hint" id="reviewHint">Set dates above, action tasks below, then save</div>
+    <div class="action-bar">
+      <button class="abtn abtn-start" onclick="startOver()"><i class="ti ti-arrow-back-up" style="font-size:16px" aria-hidden="true"></i> Start over</button>
+      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600"><i class="ti ti-check" style="font-size:16px" aria-hidden="true"></i> Save &amp; see summary</button>
+    </div>
+  </div>
   </div>
 </div>
 
@@ -529,7 +534,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.29';
+const VERSION='1.2.30';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -816,8 +821,8 @@ function launchMode(m){
     picker.style.display='none';
     dump.style.display='block';
     if(m==='quick'){
-      lbl.textContent="What's on your mind?";
-      ta.placeholder="A few things... tasks, something that came up, a quick worry.";
+      lbl.textContent="What do you need to do?";
+      ta.placeholder="What do you need to do? Just list the tasks.";
       ta.rows=5;
       btn.innerHTML='<i class="ti ti-bolt" style="font-size:16px" aria-hidden="true"></i> Sort it';
     } else {
@@ -861,7 +866,8 @@ async function fetchAllCalendarIds(){
 async function fetchCal(){
   try{
     const now=new Date();
-    // Use start of today so ongoing multi-day events that started earlier are included
+    // Fetch from 30 days ago to catch ongoing multi-day events
+    const thirtyDaysAgo=new Date(now.getFullYear(),now.getMonth(),now.getDate()-30);
     const startOfToday=new Date(now.getFullYear(),now.getMonth(),now.getDate(),0,0,0);
     const end=new Date(now.getFullYear(),now.getMonth(),now.getDate()+8,0,0,0);
     const calIds=await fetchAllCalendarIds();
@@ -869,7 +875,7 @@ async function fetchCal(){
     await Promise.all(calIds.map(async calId=>{
       try{
         const enc=encodeURIComponent(calId);
-        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${startOfToday.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
+        const r=await fetch(`https://www.googleapis.com/calendar/v3/calendars/${enc}/events?timeMin=${thirtyDaysAgo.toISOString()}&timeMax=${end.toISOString()}&singleEvents=true&maxResults=50`,{headers:{Authorization:'Bearer '+gToken}});
         if(r.ok){
           const d=await r.json();
           // Tag each event with the calendar id so we can display it
@@ -1256,6 +1262,11 @@ async function saveCiAndSummary(){
       const s=(e.start.dateTime||e.start.date||'').split('T')[0];
       return s===t1s;
     });
+    // Upcoming rest of week
+    const upcomingCal=cal.filter(e=>{
+      const s=(e.start.dateTime||e.start.date||'').split('T')[0];
+      return s>t1s;
+    }).slice(0,8);
 
     function calSection(label,events,tasks,color){
       if(!events.length&&!tasks.length)return;
@@ -1312,6 +1323,8 @@ async function saveCiAndSummary(){
     container.appendChild(card);
   }
 
+  renderCalUpcoming(container,cal);
+
   if(!overdueTasks.length&&!todayTasks.length&&!tomorrowTasks.length&&!thisWeekTasks.length&&!updated){
     const all=document.createElement('div');
     all.style.cssText='text-align:center;padding:30px 20px;color:var(--text-dimmer);font-size:14px';
@@ -1352,7 +1365,7 @@ async function processDump(extraContext){
     const L=getDateLabels();
 
     // Quick dump: task capture only — no thought analysis
-    const quickSys=`You are a task capture assistant. Extract clear tasks from Erin's input and nothing else. No analysis, no anxiety commentary, no feelings.
+    const quickSys=`You are a task capture assistant. Your only job is to extract clear tasks from the input and check if they match existing tasks.
 
 Today: ${today}.
 Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
@@ -1361,24 +1374,22 @@ Existing tasks (do NOT re-add — surface relevant ones only):
 ${tasksSummary}
 
 RULES:
-- Extract only concrete tasks from the input
-- If input mentions something that matches an existing task, put it in existing_tasks_to_surface — do NOT also add it as a new item
-- Suggest a due date for each task based on any urgency cues in the input
-- No sub-commentary, no anxiety noise, no overnight thoughts
-- Keep task text clean and actionable
+- Extract only concrete tasks from the input. Nothing else.
+- If something matches an existing task, put it in existing_tasks_to_surface only — do NOT also add as new
+- Suggest a due date for each task based on urgency cues in the input
+- No analysis, no categorization, no commentary
 
 Respond ONLY with valid JSON:
 {
   "mode":"quick",
-  "meta":"one sentence summary of tasks captured",
+  "meta":"one sentence listing tasks captured",
   "items":{"urgent":[],"soon":[],"someday":[]},
   "existing_tasks_to_surface":[],
   "first_move":{"action":"","why":""}
 }
-Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|next_month|none"}`;
+Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none"}`;
 
-    // Full dump: full thought sorting
-    const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
+const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
 
 Today: ${today}.
 Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
@@ -1607,49 +1618,12 @@ function buildReview(result,listId,existingTasks){
   buildMiniCheckin(existingTasks,listId);
 
   document.getElementById('alsoText').value='';
+  const ra=document.getElementById('reviewActions');
+  if(ra)ra.style.display='block';
   document.getElementById('review').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function buildMiniCheckin(tasks,listId){
-  const now=new Date();
-  const todayStr=localDateStr(localMidnight(0));
-  const tomStr=localDateStr(localMidnight(1));
-  const _m0=localMidnight(0),_m1=localMidnight(1),_m2=localMidnight(2);
-  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<_m0);
-  const dueToday=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])>=_m0&&localDateFromStr(t.due.split('T')[0])<_m1);
-  const dueTom=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])>=_m1&&localDateFromStr(t.due.split('T')[0])<_m2);
-  const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
-  const rand=undated.sort(()=>Math.random()-0.5).slice(0,3);
-  const shown=[...new Map([...overdue,...dueToday,...dueTom,...rand].map(t=>[t.id,t])).values()].slice(0,8);
-  if(!shown.length)return;
-  const container=document.getElementById('miniCheckinCards');
-  container.innerHTML='';
-  const card=document.createElement('div');
-  card.className='ci-card';
-  card.innerHTML='<div class="ci-lbl" style="font-size:10px;color:var(--text-dimmer)">Overdue · due today/tomorrow · 3 random undated</div>';
-  let idx=0;
-  shown.forEach(t=>{
-    const isOverdue=overdue.includes(t);
-    const id='mini-'+idx++;
-    const ddId='mdd-'+id,slId='msl-'+id,cpId='mcp-'+id,ciId='mci-'+id;
-    const wrap=document.createElement('div');
-    wrap.innerHTML=`
-      <div class="ci-row" id="${id}">
-        <div class="ci-icon ${isOverdue?'ic-red':'ic-gray'}"><i class="ti ${isOverdue?'ti-alert-circle':'ti-clock'}" aria-hidden="true"></i></div>
-        <div class="ci-body"><div class="ci-text">${t.title}</div><div class="ci-sub">${t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'no date'}</div></div>
-      </div>
-      <div class="ta-row" id="ta-${id}">
-        <button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button>
-        <button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button>
-        <button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>
-        ${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}
-      </div>`;
-    card.appendChild(wrap);
-  });
-  container.appendChild(card);
-  document.getElementById('miniCheckin').style.display='block';
-}
 
 function rejectMatch(eid,title){
   // Remove from existing list
@@ -1944,6 +1918,8 @@ function resetToMain(){
     const el=document.getElementById(id);
     if(el){el.classList.remove('on');el.style.display='';}
   });
+  const _ra2=document.getElementById('reviewActions');
+  if(_ra2)_ra2.style.display='none';
   const ciSum=document.getElementById('ciSummary');
   if(ciSum)ciSum.style.display='none';
   
@@ -1962,10 +1938,19 @@ function resetApp(){
 }
 
 function modeShortcutsHTML(){
-  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-    <button onclick="resetToMain();setTimeout(()=>launchMode('checkin'),50)" class="mode-shortcut-btn"><i class="ti ti-list-check" aria-hidden="true"></i>Check in</button>
-    <button onclick="resetToMain();setTimeout(()=>launchMode('quick'),50)" class="mode-shortcut-btn"><i class="ti ti-bolt" aria-hidden="true"></i>Quick dump</button>
-    <button onclick="resetToMain();setTimeout(()=>launchMode('full'),50)" class="mode-shortcut-btn"><i class="ti ti-brain" aria-hidden="true"></i>Full dump</button>
+  return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+    <button onclick="resetToMain();setTimeout(()=>launchMode('checkin'),50)" style="flex:1;padding:10px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:inherit">
+      <div style="width:32px;height:32px;border-radius:50%;background:#EAF3DE;color:#3B6D11;display:flex;align-items:center;justify-content:center;font-size:15px"><i class="ti ti-list-check" aria-hidden="true"></i></div>
+      <span style="font-size:11px;font-weight:500;color:var(--text)">Check in</span>
+    </button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('quick'),50)" style="flex:1;padding:10px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:inherit">
+      <div style="width:32px;height:32px;border-radius:50%;background:#E6F1FB;color:#185FA5;display:flex;align-items:center;justify-content:center;font-size:15px"><i class="ti ti-bolt" aria-hidden="true"></i></div>
+      <span style="font-size:11px;font-weight:500;color:var(--text)">Quick dump</span>
+    </button>
+    <button onclick="resetToMain();setTimeout(()=>launchMode('full'),50)" style="flex:1;padding:10px 8px;border-radius:12px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:inherit">
+      <div style="width:32px;height:32px;border-radius:50%;background:#EEEDFE;color:#534AB7;display:flex;align-items:center;justify-content:center;font-size:15px"><i class="ti ti-brain" aria-hidden="true"></i></div>
+      <span style="font-size:11px;font-weight:500;color:var(--text)">Full dump</span>
+    </button>
   </div>`;
 }
 
