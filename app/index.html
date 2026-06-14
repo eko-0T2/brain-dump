@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.37</title>
+<title>Brain Dump v1.2.38</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.37</div>
+  <div class="version-tag">v1.2.38</div>
 </div>
 
 <!-- SETUP -->
@@ -536,7 +536,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.37';
+const VERSION='1.2.38';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1095,23 +1095,42 @@ function renderFutureTasksSection(container,tasks,listId,shownIds){
   const oldest=sorted.slice(0,3);
   const pool=sorted.slice(3).sort(()=>Math.random()-0.5).slice(0,3);
   const shownUndated=[...oldest,...pool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
-  const future=tasks.filter(t=>{if(!t.due||t.status==='completed'||(shownIds&&shownIds.has(t.id)))return false;return localDateFromStr(t.due.split('T')[0])>localMidnight(1);}).sort(()=>Math.random()-0.5).slice(0,3);
-  const shown=shownUndated.length?shownUndated:future;
-  if(!shown.length)return;
-  const lbl=shownUndated.length?'🗂 Old undated tasks':'🗂 Future tasks — still relevant?';
-  const tag=shownUndated.length?'3 oldest · 3 random':'3 random from upcoming';
-  const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML=`<div class="ci-lbl">${lbl} <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">${tag}</span></div>`;
-  let fi=0;
-  shown.forEach(t=>{
-    const isO=oldest.includes(t);const fid='ft-'+fi++;
-    const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
-    const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-    const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div><div class="ci-sub">${[isO?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div><div class="badge-right">${df?`<span style="font-size:10px;color:var(--text-dimmer)">${df}</span>`:''}</div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div>`;
-    card.appendChild(wrap);
-  });
-  container.appendChild(card);
+  // Future dated tasks — shown when undated list has fewer than 3, or as a second section
+  const futureDated=tasks.filter(t=>{
+    if(!t.due||t.status==='completed'||(shownIds&&shownIds.has(t.id)))return false;
+    return localDateFromStr(t.due.split('T')[0])>=localMidnight(7);
+  }).sort(()=>Math.random()-0.5).slice(0,3);
+
+  // Show undated section
+  if(shownUndated.length){
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML=`<div class="ci-lbl">🗂 Old undated tasks <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">3 oldest · 3 random</span></div>`;
+    let fi=0;
+    shownUndated.forEach(t=>{
+      const isO=oldest.includes(t);const fid='ft-'+fi++;
+      const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div><div class="ci-sub">${[isO?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div>`;
+      card.appendChild(wrap);
+    });
+    container.appendChild(card);
+  }
+
+  // Show future dated section separately
+  if(futureDated.length){
+    const card2=document.createElement('div');card2.className='ci-card';
+    card2.innerHTML=`<div class="ci-lbl">🗂 Future tasks — still relevant? <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">3 random from upcoming</span></div>`;
+    let fi2=shownUndated.length;
+    futureDated.forEach(t=>{
+      const fid='ft-'+fi2++;
+      const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
+      const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><div class="badge-right">${df?`<span style="font-size:10px;color:var(--text-dimmer)">${df}</span>`:''}</div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div>`;
+      card2.appendChild(wrap);
+    });
+    container.appendChild(card2);
+  }
 }
 
 // ─────────────────────────────────────────────────
@@ -1438,19 +1457,20 @@ async function processDump(extraContext){
     const L=getDateLabels();
 
     // Quick dump: task capture only — no thought analysis
-    const quickSys=`You are a task capture assistant. Your only job is to extract clear tasks from the input and check if they match existing tasks.
+    const quickSys=`You are a task capture assistant. Extract clear tasks from the input and check against existing tasks.
 
 Today: ${today}.
 Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
 
-Existing tasks (do NOT re-add — surface relevant ones only):
+Existing tasks:
 ${tasksSummary}
 
 RULES:
-- Extract only concrete tasks from the input. Nothing else.
-- If something matches an existing task, put it in existing_tasks_to_surface only — do NOT also add as new
-- Suggest a due date for each task based on urgency cues in the input
-- No analysis, no categorization, no commentary
+- Extract all concrete tasks from the input.
+- For EVERY new task, suggest a due date based on urgency cues. Default to "none" only if truly no urgency.
+- If a new task is very similar to an existing task, include it in items AND set duplicate_of to the matching existing task title. Do not put it in existing_tasks_to_surface.
+- existing_tasks_to_surface: existing tasks relevant to this dump's topics that are NOT duplicates, max 3.
+- No analysis, no commentary.
 
 Respond ONLY with valid JSON:
 {
@@ -1460,7 +1480,7 @@ Respond ONLY with valid JSON:
   "existing_tasks_to_surface":[],
   "first_move":{"action":"","why":""}
 }
-Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none"}`;
+Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none","duplicate_of":"exact title of existing task if suspected duplicate, else null"}`;
 
 const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
 
@@ -1528,8 +1548,11 @@ overnight items also have "real": true/false`;
 
 // Map of quick review task IDs — rowKey -> Google Tasks ID
 const quickTaskIds={};
+// Track actions for summary
+let quickSummaryStats={added:0,deleted:0,replaced:0,done:0,rescheduled:0};
 
 async function buildQuickReview(result,listId,tasks,cal){
+  quickSummaryStats={added:0,deleted:0,replaced:0,done:0,rescheduled:0};
   const items=result.items||{};
   const allNew=[...(items.urgent||[]),...(items.soon||[]),...(items.someday||[])];
   const dow=new Date().getDay();
@@ -1548,7 +1571,7 @@ async function buildQuickReview(result,listId,tasks,cal){
     else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
     else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
     const task=await addTask(listId,title,'',dueDate);
-    if(task?.id)quickTaskIds['qnew-'+idx]=task.id;
+    if(task?.id){quickTaskIds['qnew-'+idx]=task.id;quickSummaryStats.added++;}
     allNew[idx]._createdDue=dueDate;
     allNew[idx]._rowKey='qnew-'+idx;
   }));
@@ -1557,19 +1580,21 @@ async function buildQuickReview(result,listId,tasks,cal){
   container.innerHTML='';
   const L=getDateLabels();
 
-  function makeDateChips(rowKey,sugDue){
-    return ['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>{
+  function makeQDateChips(rowKey,sugDue){
+    const chips=[];
+    ['today','tomorrow','this_week','next_week','this_month','next_month','none'].forEach(k=>{
       const lbl=k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1);
       const sp=document.createElement('span');
       sp.className='ntd'+(k===sugDue?' sel':'');
       sp.dataset.key=k;
       sp.textContent=lbl;
       sp.addEventListener('click',function(){selectQuickDate(this,rowKey,k);});
-      return sp;
+      chips.push(sp);
     });
+    return chips;
   }
 
-  // NEW TASKS
+  // NEW TASKS (including duplicates)
   if(allNew.length){
     const nc=document.createElement('div');
     nc.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden';
@@ -1583,6 +1608,7 @@ async function buildQuickReview(result,listId,tasks,cal){
       const rowKey=i._rowKey||'qnew-'+idx;
       const taskId=quickTaskIds[rowKey]||'';
       const sugDue=i.suggested_due||'none';
+      const dupeOf=i.duplicate_of||null;
       const dueLabelMap={today:L.today,tomorrow:L.tomorrow,this_week:L.thisWeek,next_week:L.nextWeek,this_month:L.thisMonth,next_month:L.nextMonth,none:'No date'};
 
       const wrap=document.createElement('div');
@@ -1590,6 +1616,31 @@ async function buildQuickReview(result,listId,tasks,cal){
       wrap.style.cssText='border-bottom:1px solid var(--border)';
       wrap.dataset.taskId=taskId;
       wrap.dataset.listId=listId;
+
+      // Duplicate warning banner if suspected duplicate
+      if(dupeOf){
+        const dupeBanner=document.createElement('div');
+        dupeBanner.style.cssText='padding:8px 14px;background:rgba(245,158,11,0.08);border-bottom:1px solid rgba(245,158,11,0.2);font-size:11px;color:var(--orange)';
+        dupeBanner.innerHTML='<i class="ti ti-alert-triangle" style="font-size:12px" aria-hidden="true"></i> Possible duplicate of: <strong>'+dupeOf+'</strong>';
+        wrap.appendChild(dupeBanner);
+
+        const dupeActions=document.createElement('div');
+        dupeActions.style.cssText='display:flex;gap:6px;padding:6px 14px 8px;background:rgba(245,158,11,0.04);border-bottom:1px solid rgba(245,158,11,0.15);flex-wrap:wrap';
+        const keepBtn=document.createElement('button');
+        keepBtn.style.cssText='font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:inherit;color:var(--text)';
+        keepBtn.textContent='Keep as new';
+        keepBtn.addEventListener('click',()=>{dupeBanner.remove();dupeActions.remove();});
+        const delBtn2=document.createElement('button');
+        delBtn2.style.cssText='font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid rgba(220,38,38,0.3);background:rgba(220,38,38,0.06);cursor:pointer;font-family:inherit;color:var(--red)';
+        delBtn2.textContent='Delete this';
+        delBtn2.addEventListener('click',()=>deleteQuickTask(rowKey));
+        const replaceBtn=document.createElement('button');
+        replaceBtn.style.cssText='font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid rgba(37,99,235,0.3);background:rgba(37,99,235,0.06);cursor:pointer;font-family:inherit;color:var(--blue)';
+        replaceBtn.textContent='Replace existing';
+        replaceBtn.addEventListener('click',()=>replaceExistingTask(rowKey,dupeOf,tasks,listId));
+        dupeActions.appendChild(keepBtn);dupeActions.appendChild(delBtn2);dupeActions.appendChild(replaceBtn);
+        wrap.appendChild(dupeActions);
+      }
 
       // Header row
       const row=document.createElement('div');
@@ -1611,7 +1662,7 @@ async function buildQuickReview(result,listId,tasks,cal){
       const datesDiv=document.createElement('div');
       datesDiv.id='qdates-'+rowKey;
       datesDiv.style.cssText='padding:4px 14px 6px 42px;background:var(--surface2);display:flex;gap:4px;flex-wrap:wrap';
-      makeDateChips(rowKey,sugDue).forEach(sp=>datesDiv.appendChild(sp));
+      makeQDateChips(rowKey,sugDue).forEach(sp=>datesDiv.appendChild(sp));
       wrap.appendChild(datesDiv);
 
       // Hint
@@ -1691,10 +1742,10 @@ async function buildQuickReview(result,listId,tasks,cal){
       const taRow=document.createElement('div');
       taRow.className='ta-row';
       taRow.id='qexta-'+rowKey;
-      taRow.innerHTML='<button class="ta ta-done">✓ Done</button><button class="ta ta-still">Still on it ▾</button><button class="ta ta-skip">Not doing it</button>'+buildCiDateDD(ddId,slId,cpId,ciId,exId,listId);
-      taRow.querySelector('.ta-done').addEventListener('click',()=>ciDone('qexmain-'+rowKey,'qexta-'+rowKey,slId,exId,listId));
+      taRow.innerHTML='<button class="ta ta-done">\u2713 Done</button><button class="ta ta-still">Still on it \u25be</button><button class="ta ta-skip">Not doing it</button>'+buildCiDateDD(ddId,slId,cpId,ciId,exId,listId);
+      taRow.querySelector('.ta-done').addEventListener('click',()=>{ciDone('qexmain-'+rowKey,'qexta-'+rowKey,slId,exId,listId);quickSummaryStats.done++;});
       taRow.querySelector('.ta-still').addEventListener('click',()=>toggleDD(ddId));
-      taRow.querySelector('.ta-skip').addEventListener('click',()=>ciSkip('qexmain-'+rowKey,'qexta-'+rowKey,slId,exId,listId));
+      taRow.querySelector('.ta-skip').addEventListener('click',()=>{ciSkip('qexmain-'+rowKey,'qexta-'+rowKey,slId,exId,listId);quickSummaryStats.done++;});
       div.appendChild(taRow);
 
       const exEp=document.createElement('div');
@@ -1716,12 +1767,87 @@ async function buildQuickReview(result,listId,tasks,cal){
     container.appendChild(ec);
   }
 
+  // FULL CHECK-IN VIEW BELOW — overdue → day by day → future/undated
+  // Use a sub-container so it's visually separated
+  const ciSection=document.createElement('div');
+  ciSection.style.cssText='margin-top:4px';
+
+  // Overdue
+  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<localMidnight(0))
+    .sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]));
+  const shownIds=new Set();
+  if(overdue.length){
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">\ud83d\udd34 Overdue</div>';
+    overdue.forEach(t=>{shownIds.add(t.id);renderNeedsAttentionRow(card,t,true,listId,'qci');});
+    ciSection.appendChild(card);
+  }
+
+  // Day by day
+  for(let d=0;d<7;d++){
+    const dk=localDateStr(localMidnight(d));
+    const dayDate=localDateFromStr(dk);
+    const isToday=d===0;
+    const dayLabel=(isToday?'\ud83d\udcc5 Today \u2014 ':'\ud83d\udcc5 ')+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+    const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;return false;});
+    const dayTasks=tasks.filter(t=>{if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;return t.due.split('T')[0]===dk;});
+    dayTasks.forEach(t=>shownIds.add(t.id));
+    if(!dayCal.length&&!dayTasks.length)continue;
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
+    dayCal.forEach(e=>{
+      const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
+      const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+      let badge=tl;
+      if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+      const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
+      row.innerHTML='<div class="ci-icon" style="background:'+cc+'22;color:'+cc+';margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+e.summary+'</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:'+cc+'"></span>'+[badge,cn].filter(Boolean).join(' \xb7 ')+'</div></div>';
+      card.appendChild(row);
+    });
+    dayTasks.forEach(t=>renderNeedsAttentionRow(card,t,false,listId,'qci'));
+    ciSection.appendChild(card);
+  }
+
+  renderFutureTasksSection(ciSection,tasks,listId,shownIds);
+  container.appendChild(ciSection);
+
   const mc=document.getElementById('miniCheckin');if(mc)mc.style.display='none';
   const ra=document.getElementById('reviewActions');if(ra)ra.style.display='block';
   setModeBar('reviewModeBar','quick');
   document.getElementById('review').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+// Shared helper: render a single interactive task row for check-in style views
+// prefix allows unique IDs across different usages
+let _rnaIdx=0;
+function renderNeedsAttentionRow(card,t,isOv,listId,prefix){
+  prefix=prefix||'rna';
+  const id=prefix+'-'+(_rnaIdx++);
+  const ddId='dd-'+id,slId='sl-'+id,cpId='cp-'+id,ciId='ci-'+id;
+  const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+  const t0=localMidnight(0),t1=localMidnight(1);
+  const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+  const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
+  const wrap=document.createElement('div');
+  wrap.innerHTML='<div class="ci-row" id="'+id+'"><div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+id+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+id+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span>'+(dueFmt&&!isOv?'<span style="font-size:10px;color:var(--text-dimmer)">'+dueFmt+'</span>':'')+'</div></div><div class="ta-row" id="ta-'+id+'"><button class="ta ta-done" onclick="ciDone(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">✓ Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still on it ▾</button><button class="ta ta-skip" onclick="ciSkip(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Not doing it</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+id+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+id+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+id+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+id+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+id+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>';
+  card.appendChild(wrap);
+}
+
+async function replaceExistingTask(rowKey,dupeTitle,tasks,listId){
+  // Find the existing task by title
+  const existing=tasks.find(t=>t.title===dupeTitle);
+  if(!existing){alert('Could not find existing task to replace.');return;}
+  const wrap=document.getElementById('qrow-'+rowKey);
+  const newTaskId=wrap?.dataset.taskId;
+  const newTitle=document.getElementById('qtitle-'+rowKey)?.textContent||'';
+  // Delete the existing task
+  if(existing.id)await deleteTask(listId,existing.id);
+  quickSummaryStats.replaced++;
+  // Remove the duplicate UI on the new task
+  wrap.querySelectorAll('div[style*="rgba(245,158,11"]').forEach(el=>el.remove());
+}
+
 
 function selectQuickDate(el,rowKey,key){
   document.querySelectorAll('#qdates-'+rowKey+' .ntd').forEach(c=>c.classList.remove('sel'));
@@ -2066,9 +2192,8 @@ async function saveAndDone(){
       const tEl=document.getElementById('qtitle-'+k);
       return tEl?.textContent||'';
     }).filter(Boolean));
-    const count=Object.keys(quickTaskIds).length;
     btn.disabled=false;
-    await renderCheckinAfterSave(count,newlyAdded);
+    await renderQuickSummary(quickSummaryStats,newlyAdded,currentResult);
     return;
   }
 
@@ -2126,7 +2251,7 @@ async function saveAndDone(){
   renderFinal(currentResult,tasksAdded,docOk);
 }
 
-async function renderCheckinAfterSave(tasksAdded,newlyAdded){
+async function renderQuickSummary(stats,newlyAdded,aiResult){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
 
@@ -2136,9 +2261,30 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
   const bar=document.getElementById('modeShortcutsBar');
   if(bar)bar.innerHTML=modeShortcutsHTML();
 
-  const hdr=document.createElement('div');
-  hdr.innerHTML=`<div style="font-size:12px;font-weight:500;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-check" aria-hidden="true"></i> ${tasksAdded} task${tasksAdded!==1?'s':''} saved \u00b7 here's your plate</div>`;
-  container.appendChild(hdr);
+  // Stats + AI summary at top
+  const summaryParts=[];
+  if(stats.added>0)summaryParts.push(stats.added+' task'+(stats.added!==1?'s':'')+' added');
+  if(stats.replaced>0)summaryParts.push(stats.replaced+' replaced');
+  if(stats.done>0)summaryParts.push(stats.done+' marked done');
+
+  if(summaryParts.length||aiResult?.meta){
+    const topCard=document.createElement('div');
+    topCard.className='ci-card';
+    topCard.style.borderLeftColor='var(--green)';
+    let inner='';
+    if(summaryParts.length)inner+='<div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:'+(aiResult?.meta?'6px':'0')+'">'+summaryParts.join(' \u00b7 ')+'</div>';
+    if(aiResult?.meta)inner+='<div style="font-size:12px;color:var(--text-dim)">'+aiResult.meta+'</div>';
+    topCard.innerHTML=inner;
+    container.appendChild(topCard);
+  }
+
+  // First move
+  if(aiResult?.first_move?.action){
+    const fm=document.createElement('div');
+    fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-bottom:4px;border-radius:0 8px 8px 0';
+    fm.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">'+aiResult.first_move.action+'</div>'+(aiResult.first_move.why?'<div style="font-size:12px;color:var(--text-dim);margin-top:3px">'+aiResult.first_move.why+'</div>':'');
+    container.appendChild(fm);
+  }
 
   startLoad();document.getElementById('loading').classList.add('on');
   try{
@@ -2146,27 +2292,26 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
     stopLoad();document.getElementById('loading').classList.remove('on');
     const{listId,tasks}=tr;taskListId=listId;
 
-    // Day-by-day layout matching buildCheckin
-    let taskIdx=0;
-    function renderTaskRowSummary(t){
-      const id='ps-'+(taskIdx++);
+    // Read-only summary row helper
+    let sumIdx=0;
+    function sumRow(t,isOv){
+      const id='qs-'+(sumIdx++);
       const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
       const t0=localMidnight(0),t1=localMidnight(1);
       const isNew=newlyAdded&&newlyAdded.has(t.title);
-      const isOv=due&&due<t0;
       const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
       const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="ci-row" id="${id}"><div class="ci-icon ${isOv?'ic-red':'ic-orange'}"><i class="ti ${isOv?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}${isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':''}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><div class="badge-right"><span class="ci-badge ${isOv?'cb-red':'cb-orange'}">${badgeLbl}</span></div></div>`;
+      wrap.innerHTML='<div class="ci-row"><div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+(isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':'')+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div></div>';
       return wrap;
     }
 
-    const t0=localMidnight(0),t0s=localDateStr(t0);
+    const t0=localMidnight(0);
     const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0);
     if(overdue.length){
       const card=document.createElement('div');card.className='ci-card';
       card.innerHTML='<div class="ci-lbl">\ud83d\udd34 Overdue</div>';
-      overdue.forEach(t=>card.appendChild(renderTaskRowSummary(t)));
+      overdue.forEach(t=>card.appendChild(sumRow(t,true)));
       container.appendChild(card);
     }
     const shownIds=new Set(overdue.map(t=>t.id));
@@ -2174,7 +2319,7 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
       const dk=localDateStr(localMidnight(d));
       const dayDate=localDateFromStr(dk);
       const isToday=d===0;
-      const dayLabel=isToday?'\ud83d\udcc5 Today \u2014 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'\ud83d\udcc5 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+      const dayLabel=(isToday?'\ud83d\udcc5 Today \u2014 ':'\ud83d\udcc5 ')+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
       const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;return false;});
       const dayTasks=tasks.filter(t=>{if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;return t.due.split('T')[0]===dk;});
       dayTasks.forEach(t=>shownIds.add(t.id));
@@ -2184,31 +2329,26 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
       dayCal.forEach(e=>{
         const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
         const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+        let badge=tl;
+        if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
         const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
-        row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${[tl,cn].filter(Boolean).join(' \xb7 ')}</div></div>`;
+        row.innerHTML='<div class="ci-icon" style="background:'+cc+'22;color:'+cc+';margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+e.summary+'</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:'+cc+'"></span>'+[badge,cn].filter(Boolean).join(' \xb7 ')+'</div>'+(e.location?'<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>'+e.location+'</span></div>':'')+'</div>';
         card.appendChild(row);
       });
-      dayTasks.forEach(t=>card.appendChild(renderTaskRowSummary(t)));
+      dayTasks.forEach(t=>card.appendChild(sumRow(t,false)));
       container.appendChild(card);
-    }
-
-    // First move from AI
-    if(currentResult?.first_move?.action){
-      const fm=document.createElement('div');
-      fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-top:4px;border-radius:0 8px 8px 0';
-      fm.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">${currentResult.first_move.action}</div>${currentResult.first_move.why?`<div style="font-size:12px;color:var(--text-dim);margin-top:3px">${currentResult.first_move.why}</div>`:''}`;
-      container.appendChild(fm);
     }
   }catch(err){
     stopLoad();document.getElementById('loading').classList.remove('on');
-    console.error('renderCheckinAfterSave:',err);
+    console.error('renderQuickSummary:',err);
   }
 
   document.getElementById('checkin').classList.add('on');
-  document.querySelectorAll('#ciCards .diff-exclude').forEach(b=>b.style.display='none');
   setModeBar('checkinModeBar','quick');
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+
 function renderFinal(r,tasksAdded,docOk){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
