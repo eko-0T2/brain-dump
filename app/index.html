@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.38</title>
+<title>Brain Dump v1.2.39</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.38</div>
+  <div class="version-tag">v1.2.39</div>
 </div>
 
 <!-- SETUP -->
@@ -519,9 +519,8 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div id="miniCheckinCards"></div>
   </div>
   <div class="review-actions" id="reviewActions" style="display:none">
-    <div class="review-hint" id="reviewHint">Set dates above, action tasks below, then save</div>
     <div class="action-bar">
-      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600"><i class="ti ti-check" style="font-size:16px" aria-hidden="true"></i> Save &amp; see summary</button>
+      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600;width:100%;justify-content:center"><i class="ti ti-arrow-right" style="font-size:16px" aria-hidden="true"></i> See summary</button>
     </div>
   </div>
   </div>
@@ -536,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.38';
+const VERSION='1.2.39';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1110,7 +1109,7 @@ function renderFutureTasksSection(container,tasks,listId,shownIds){
       const isO=oldest.includes(t);const fid='ft-'+fi++;
       const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div><div class="ci-sub">${[isO?'oldest':'random',t.notes].filter(Boolean).join(' · ')}</div></div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div>`;
+      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div><div class="ci-sub">${isO?'oldest':'random'}${t.notes?' · '+t.notes:''}</div></div><button class="diff-exclude" onclick="toggleTaskEdit('${fid}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${fid}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${fid}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${fid}" value="" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${fid}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${fid}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
       card.appendChild(wrap);
     });
     container.appendChild(card);
@@ -1126,7 +1125,7 @@ function renderFutureTasksSection(container,tasks,listId,shownIds){
       const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
       const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><div class="badge-right">${df?`<span style="font-size:10px;color:var(--text-dimmer)">${df}</span>`:''}</div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div>`;
+      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><button class="diff-exclude" onclick="toggleTaskEdit('${fid}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right">${df?`<span style="font-size:10px;color:var(--text-dimmer)">${df}</span>`:''}</div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${fid}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${fid}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${fid}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${fid}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${fid}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
       card2.appendChild(wrap);
     });
     container.appendChild(card2);
@@ -1176,11 +1175,18 @@ function buildCheckin(cal,tasks,listId){
       ?'📅 Today — '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})
       :'📅 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
 
-    // Cal events for this day
+    // Cal events for this day (all-day AND timed spanning)
     const dayCal=cal.filter(e=>{
       const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
       if(s===dk)return true;
+      // All-day multi-day spanning
       if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;
+      // Timed multi-day spanning
+      if(e.start.dateTime&&e.end?.dateTime){
+        const evS=e.start.dateTime.slice(0,10);
+        const evE=e.end.dateTime.slice(0,10);
+        return evS<dk&&evE>=dk;
+      }
       return false;
     });
 
@@ -1591,6 +1597,13 @@ async function buildQuickReview(result,listId,tasks,cal){
       sp.addEventListener('click',function(){selectQuickDate(this,rowKey,k);});
       chips.push(sp);
     });
+    // Pick a date chip
+    const pick=document.createElement('span');
+    pick.className='ntd';
+    pick.dataset.key='pick';
+    pick.textContent='📅 Pick';
+    pick.addEventListener('click',()=>showQuickDatePicker(rowKey));
+    chips.push(pick);
     return chips;
   }
 
@@ -1664,6 +1677,14 @@ async function buildQuickReview(result,listId,tasks,cal){
       datesDiv.style.cssText='padding:4px 14px 6px 42px;background:var(--surface2);display:flex;gap:4px;flex-wrap:wrap';
       makeQDateChips(rowKey,sugDue).forEach(sp=>datesDiv.appendChild(sp));
       wrap.appendChild(datesDiv);
+
+      // Custom date picker (hidden)
+      const pickerDiv=document.createElement('div');
+      pickerDiv.id='qpicker-'+rowKey;
+      pickerDiv.style.cssText='display:none;padding:4px 14px 8px 42px;background:var(--surface2);gap:8px;align-items:center';
+      pickerDiv.innerHTML='<input type="date" id="qpdate-'+rowKey+'" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;background:var(--surface);color:var(--text)"><button style="padding:4px 12px;border-radius:6px;border:none;background:var(--accent);color:var(--accent-text);font-family:inherit;font-size:11px;font-weight:600;cursor:pointer">Set</button>';
+      pickerDiv.querySelector('button').addEventListener('click',()=>confirmQuickDatePicker(rowKey));
+      wrap.appendChild(pickerDiv);
 
       // Hint
       const hint=document.createElement('div');
@@ -1789,7 +1810,7 @@ async function buildQuickReview(result,listId,tasks,cal){
     const dayDate=localDateFromStr(dk);
     const isToday=d===0;
     const dayLabel=(isToday?'\ud83d\udcc5 Today \u2014 ':'\ud83d\udcc5 ')+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-    const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;return false;});
+    const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;if(e.start.dateTime&&e.end?.dateTime){const evS=e.start.dateTime.slice(0,10);const evE=e.end.dateTime.slice(0,10);return evS<dk&&evE>=dk;}return false;});
     const dayTasks=tasks.filter(t=>{if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;return t.due.split('T')[0]===dk;});
     dayTasks.forEach(t=>shownIds.add(t.id));
     if(!dayCal.length&&!dayTasks.length)continue;
@@ -1876,6 +1897,36 @@ function selectQuickDate(el,rowKey,key){
     });
   }
 }
+
+function showQuickDatePicker(rowKey){
+  const pd=document.getElementById('qpicker-'+rowKey);
+  if(!pd)return;
+  pd.style.display=pd.style.display==='none'?'flex':'none';
+  if(pd.style.display!=='none')document.getElementById('qpdate-'+rowKey)?.focus();
+}
+
+async function confirmQuickDatePicker(rowKey){
+  const val=document.getElementById('qpdate-'+rowKey)?.value;
+  if(!val)return;
+  const pd=document.getElementById('qpicker-'+rowKey);
+  if(pd)pd.style.display='none';
+  const hint=document.getElementById('qhint-'+rowKey);
+  const wrap=document.getElementById('qrow-'+rowKey);
+  const taskId=wrap?.dataset.taskId;
+  const listId=wrap?.dataset.listId;
+  const d=new Date(val+'T12:00:00');
+  const fmt=d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+  if(hint)hint.innerHTML='<span style="color:var(--text-dimmer)">saving...</span>';
+  if(taskId&&listId){
+    const ok=await updateTaskDue(listId,taskId,val);
+    if(hint)hint.innerHTML=ok?'<span style="color:var(--green)">✓ '+fmt+' — saved</span>':'<span style="color:var(--red)">save failed</span>';
+  }
+  // Mark pick chip as selected
+  document.querySelectorAll('#qdates-'+rowKey+' .ntd').forEach(c=>c.classList.remove('sel'));
+  const pickChip=document.querySelector('#qdates-'+rowKey+' [data-key="pick"]');
+  if(pickChip){pickChip.classList.add('sel');pickChip.textContent='📅 '+fmt;}
+}
+
 
 function toggleQuickEdit(rowKey){
   const ep=document.getElementById('qep-'+rowKey);
@@ -2152,35 +2203,6 @@ function confirmPicker(id){
   if(hint){const d=new Date(val+'T00:00:00');hint.textContent='📅 Specific date: '+d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
 }
 
-
-async function saveQuickDirect(result,listId){
-  // Save all extracted tasks immediately, then show check-in summary
-  const items=result.items||{};
-  const allNew=[...(items.urgent||[]),...(items.soon||[]),...(items.someday||[])];
-  let tasksAdded=0;
-  const newlyAddedTitles=new Set();
-  const L=getDateLabels();
-  const dow=new Date().getDay();
-
-  await Promise.all(allNew.map(async it=>{
-    const i=typeof it==='string'?{text:it}:it;
-    const title=i.text?.trim();
-    if(!title)return;
-    // Compute due date from suggested_due
-    let dueDate='';
-    const key=i.suggested_due||'none';
-    if(key==='today')dueDate=localDateStr(localMidnight(0));
-    else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
-    else if(key==='this_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts));}
-    else if(key==='next_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts+7));}
-    else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
-    else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
-    const ok=await addTask(listId,title,i.sub||'',dueDate);
-    if(ok){tasksAdded++;newlyAddedTitles.add(title);}
-  }));
-
-  await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
-}
 
 async function saveAndDone(){
   const btn=document.querySelector('.abtn-save');
