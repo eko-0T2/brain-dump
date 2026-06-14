@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.31</title>
+<title>Brain Dump v1.2.33</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.31</div>
+  <div class="version-tag">v1.2.33</div>
 </div>
 
 <!-- SETUP -->
@@ -500,7 +500,6 @@ textarea::placeholder { color:var(--text-dimmer); }
 <!-- Check-in summary screen -->
 <div id="ciSummary" style="display:none">
   <div id="ciSummaryCards"></div>
-  <button class="new-dump" onclick="resetToMain()" style="margin-top:10px">↩ Done</button>
   <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
 
@@ -534,7 +533,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.31';
+const VERSION='1.2.33';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -967,9 +966,9 @@ function stopLoad(){clearInterval(loadTimer);}
 
 // CHECK-IN
 async function runCheckin(){
-  // Show mode shortcuts at top of checkin
+  // Clear shortcuts bar on check-in first page (shortcuts only on summary pages)
   const bar=document.getElementById('modeShortcutsBar');
-  if(bar)bar.innerHTML=modeShortcutsHTML();
+  if(bar)bar.innerHTML='';
   document.getElementById('screenMain').style.display='none';
   document.getElementById('loading').classList.add('on');
   document.getElementById('loadTxt').textContent='Reading your calendar...';
@@ -1356,9 +1355,9 @@ async function saveCiAndSummary(){
   if(!_sumSc){
     const _sc=document.createElement('div');
     _sc.className='summary-shortcuts';
-    _sc.style.cssText='margin-bottom:12px';
+    _sc.style.cssText='margin-top:16px;margin-bottom:4px';
     _sc.innerHTML=modeShortcutsHTML();
-    document.getElementById('ciSummaryCards').before(_sc);
+    document.getElementById('ciSummaryCards').after(_sc);
   }
   document.getElementById('ciSummary').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
@@ -1516,11 +1515,13 @@ async function buildQuickReview(result,listId,tasks,cal){
 
   // ── REUSE SHARED HELPERS for cal + tasks ──
   renderCalToday(container,cal);
+  renderCalUpcoming(container,cal);
   const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId)||{overdue:[],thisWeek:[]};
   const shownIds=new Set([...(overdue||[]),...(thisWeek||[])].map(t=>t.id));
   renderFutureTasksSection(container,tasks,listId,shownIds);
 
   const mc=document.getElementById('miniCheckin');if(mc)mc.style.display='none';
+  const ra=document.getElementById('reviewActions');if(ra)ra.style.display='block';
   document.getElementById('review').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1717,6 +1718,15 @@ function toggleEditPanel(id){
 function selectDate(el,id,key){
   document.querySelectorAll(`#dates-${id} .ntd`).forEach(c=>c.classList.remove('sel'));
   el.classList.add('sel');
+  // Show visual confirmation (tasks save on "Save & see summary")
+  const hint=document.getElementById('hint-'+id);
+  if(hint){
+    const labels={'today':'Today','tomorrow':'Tomorrow','this_week':'This week','next_week':'Next week','this_month':'This month','next_month':'Next month','none':'No date'};
+    const lbl=labels[key]||key;
+    hint.innerHTML=key==='none'
+      ?'<span style="color:var(--text-dimmer)">No date set</span>'
+      :`<span style="color:var(--green)">✓ ${lbl} — will save with summary</span>`;
+  }
 }
 function showDatePicker(id){
   document.querySelectorAll(`#dates-${id} .ntd`).forEach(c=>c.classList.remove('sel'));
