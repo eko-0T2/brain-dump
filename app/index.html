@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.35</title>
+<title>Brain Dump v1.2.37</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.35</div>
+  <div class="version-tag">v1.2.37</div>
 </div>
 
 <!-- SETUP -->
@@ -470,7 +470,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 
   <!-- Dump input shown after mode selected -->
   <div id="modeDump" style="display:none">
-    <button onclick="backToModePicker()" style="background:none;border:none;color:var(--text-dimmer);font-size:12px;cursor:pointer;font-family:inherit;margin-bottom:10px;padding:0">← Back</button>
+    <div id="dumpModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px"></div>
     <div class="dump-wrap">
       <div class="dump-lbl" id="dumpLabel">What's on your mind?</div>
       <textarea id="dumpText" placeholder="A few things... tasks, something that came up, a quick worry." rows="5"></textarea>
@@ -486,6 +486,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 
 <!-- CHECK-IN OUTPUT -->
 <div class="checkin" id="checkin">
+  <div id="checkinModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px"></div>
   <div id="modeShortcutsBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
   <div id="ciCards"></div>
   <div class="first-move" id="ciFM" style="display:none">
@@ -499,6 +500,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 
 <!-- Check-in summary screen -->
 <div id="ciSummary" style="display:none">
+  <div id="ciSummaryModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px"></div>
   <div id="ciSummaryCards"></div>
   <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
@@ -507,6 +509,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 
 <!-- REVIEW -->
 <div class="review" id="review">
+  <div id="reviewModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"></div>
   <div class="review-topbar"><span>Review before saving</span><span style="font-size:11px;color:var(--text-dimmer)">nothing saved yet</span></div>
   <div id="reviewItems"></div>
   <div class="sec-title" id="existingTitle" style="display:none">📌 Already on your list</div>
@@ -526,13 +529,14 @@ textarea::placeholder { color:var(--text-dimmer); }
 
 <!-- OUTPUT -->
 <div class="output" id="output">
+  <div id="outputModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:8px"></div>
   <div class="out-meta" id="outMeta"></div>
   <div id="outCards"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px" id="outputShortcuts"></div>
 </div>
 
 <script>
-const VERSION='1.2.35';
+const VERSION='1.2.37';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -819,6 +823,7 @@ function launchMode(m){
   } else {
     picker.style.display='none';
     dump.style.display='block';
+    setModeBar('dumpModeBar',m);
     if(m==='quick'){
       lbl.textContent="What do you need to do?";
       ta.placeholder="What do you need to do? Just list the tasks.";
@@ -911,13 +916,14 @@ async function fetchTasks(){
   }catch(e){return{listId:null,tasks:[]};}
 }
 async function addTask(lid,title,notes,due){
-  if(!lid)return false;
+  if(!lid)return null;
   try{
     const body={title,notes:notes||''};
     if(due){const _p=due.split('-');const _ln=new Date(parseInt(_p[0]),parseInt(_p[1])-1,parseInt(_p[2]),12,0,0);body.due=_ln.toISOString();}
-    await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks`,{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
-    return true;
-  }catch(e){return false;}
+    const r=await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks`,{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(!r.ok)return null;
+    return await r.json(); // returns task object with .id
+  }catch(e){return null;}
 }
 async function completeTask(lid,taskId){
   if(!lid||!taskId)return false;
@@ -1113,20 +1119,87 @@ function renderFutureTasksSection(container,tasks,listId,shownIds){
 function buildCheckin(cal,tasks,listId){
   const container=document.getElementById('ciCards');
   container.innerHTML='';
+  let taskIdx=0;
 
-  // Calendar today + upcoming
-  renderCalToday(container,cal);
-  renderCalUpcoming(container,cal);
+  // Helper: render a single interactive task row (overdue or upcoming)
+  function renderTaskRow(t,isOv){
+    const id='na-'+taskIdx++;
+    const ddId='nadd-'+id,slId='nasl-'+id,cpId='nacp-'+id,ciId='naci-'+id;
+    const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+    const t0=localMidnight(0);const t1=localMidnight(1);
+    const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+    const badgeLbl=isOv?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':dueFmt;
+    const wrap=document.createElement('div');
+    wrap.innerHTML=`<div class="ci-row" id="${id}"><div class="ci-icon ${isOv?'ic-red':'ic-orange'}"><i class="ti ${isOv?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge ${isOv?'cb-red':'cb-orange'}">${badgeLbl}</span>${dueFmt&&!isOv?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}</div></div><div class="ta-row" id="ta-${id}"><button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button><button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${id}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${id}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
+    return wrap;
+  }
 
-  // Needs attention
-  const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId)||{overdue:[],thisWeek:[]};
+  const t0=localMidnight(0);
+  const t0s=localDateStr(t0);
 
-  // Future tasks
-  const shownIds=new Set([...(overdue||[]),...(thisWeek||[])].map(t=>t.id));
+  // 1. OVERDUE — always first
+  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0)
+    .sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]));
+  if(overdue.length){
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">🔴 Overdue</div>';
+    overdue.forEach(t=>card.appendChild(renderTaskRow(t,true)));
+    container.appendChild(card);
+  }
+
+  // 2. DAY-BY-DAY: today through +7 days — cal events + tasks together
+  const shownIds=new Set(overdue.map(t=>t.id));
+  for(let d=0;d<7;d++){
+    const dk=localDateStr(localMidnight(d));
+    const dayDate=localDateFromStr(dk);
+    const isToday=d===0;
+    const dayLabel=isToday
+      ?'📅 Today — '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})
+      :'📅 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+
+    // Cal events for this day
+    const dayCal=cal.filter(e=>{
+      const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
+      if(s===dk)return true;
+      if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;
+      return false;
+    });
+
+    // Tasks due this day (not already shown as overdue)
+    const dayTasks=tasks.filter(t=>{
+      if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;
+      return t.due.split('T')[0]===dk;
+    });
+    dayTasks.forEach(t=>shownIds.add(t.id));
+
+    if(!dayCal.length&&!dayTasks.length)continue;
+
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
+
+    // Calendar events
+    dayCal.forEach(e=>{
+      const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
+      const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+      let badge=tl;
+      if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
+      const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
+      row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${[badge,cn].filter(Boolean).join(' · ')}</div>${e.location?`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div>`;
+      card.appendChild(row);
+    });
+
+    // Tasks for this day (interactive)
+    dayTasks.forEach(t=>card.appendChild(renderTaskRow(t,false)));
+
+    container.appendChild(card);
+  }
+
+  // 3. FUTURE / UNDATED tasks at bottom
   renderFutureTasksSection(container,tasks,listId,shownIds);
 
   document.getElementById('checkin').classList.add('on');
   document.getElementById('screenMain').style.display='none';
+  setModeBar('checkinModeBar','checkin');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1336,6 +1409,7 @@ async function saveCiAndSummary(){
     container.after(_sc);
   }
   document.getElementById('ciSummary').style.display='block';
+  setModeBar('ciSummaryModeBar','checkin');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1451,60 +1525,290 @@ overnight items also have "real": true/false`;
   }
 }
 
+
+// Map of quick review task IDs — rowKey -> Google Tasks ID
+const quickTaskIds={};
+
 async function buildQuickReview(result,listId,tasks,cal){
+  const items=result.items||{};
+  const allNew=[...(items.urgent||[]),...(items.soon||[]),...(items.someday||[])];
+  const dow=new Date().getDay();
+
+  // Create all new tasks immediately to get IDs for instant updates
+  await Promise.all(allNew.map(async(it,idx)=>{
+    const i=typeof it==='string'?{text:it}:it;
+    const title=i.text?.trim();
+    if(!title)return;
+    let dueDate='';
+    const key=i.suggested_due||'none';
+    if(key==='today')dueDate=localDateStr(localMidnight(0));
+    else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
+    else if(key==='this_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts));}
+    else if(key==='next_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts+7));}
+    else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+    else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
+    const task=await addTask(listId,title,'',dueDate);
+    if(task?.id)quickTaskIds['qnew-'+idx]=task.id;
+    allNew[idx]._createdDue=dueDate;
+    allNew[idx]._rowKey='qnew-'+idx;
+  }));
+
   const container=document.getElementById('reviewItems');
   container.innerHTML='';
   const L=getDateLabels();
-  const dueLabelMap={'today':L.today,'tomorrow':L.tomorrow,'this_week':L.thisWeek,'next_week':L.nextWeek,'this_month':L.thisMonth,'next_month':L.nextMonth,'none':'No date'};
-  let itemIdx=0;
 
-  // ── NEW TASKS ──
-  const items=result.items||{};
-  const allNew=[...(items.urgent||[]),...(items.soon||[]),...(items.someday||[])];
+  function makeDateChips(rowKey,sugDue){
+    return ['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>{
+      const lbl=k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1);
+      const sp=document.createElement('span');
+      sp.className='ntd'+(k===sugDue?' sel':'');
+      sp.dataset.key=k;
+      sp.textContent=lbl;
+      sp.addEventListener('click',function(){selectQuickDate(this,rowKey,k);});
+      return sp;
+    });
+  }
+
+  // NEW TASKS
   if(allNew.length){
-    const nc=document.createElement('div');nc.className='tcard urgent';nc.style.cssText='margin-bottom:10px';
-    nc.innerHTML=`<div class="tcard-lbl" style="background:var(--surface2);border-color:var(--border)"><i class="ti ti-plus" aria-hidden="true"></i> ${allNew.length} new task${allNew.length!==1?'s':''} — set dates</div><div style="font-size:11px;color:var(--text-dimmer);padding:4px 12px 2px;font-style:italic">Task by default — tap status to change</div>`;
-    allNew.forEach(it=>{
+    const nc=document.createElement('div');
+    nc.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden';
+    const hdr=document.createElement('div');
+    hdr.style.cssText='padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-dim);display:flex;align-items:center;gap:6px';
+    hdr.innerHTML='<i class="ti ti-plus" aria-hidden="true"></i> '+allNew.length+' new task'+(allNew.length!==1?'s':'')+' \u2014 review &amp; edit';
+    nc.appendChild(hdr);
+
+    allNew.forEach((it,idx)=>{
       const i=typeof it==='string'?{text:it}:it;
-      const id='item-'+itemIdx++;
+      const rowKey=i._rowKey||'qnew-'+idx;
+      const taskId=quickTaskIds[rowKey]||'';
       const sugDue=i.suggested_due||'none';
+      const dueLabelMap={today:L.today,tomorrow:L.tomorrow,this_week:L.thisWeek,next_week:L.nextWeek,this_month:L.thisMonth,next_month:L.nextMonth,none:'No date'};
+
       const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="item-row" id="row-${id}"><span class="odot blue"></span><div class="item-body"><div class="item-text" id="txt-${id}">${i.text}</div>${i.sub?`<div class="item-sub">${i.sub}</div>`:''}</div><button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Task ▾</button></div><div class="item-dropdown" id="dd-${id}"><div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div><div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div><div class="dd-opt2 dd-edit" onclick="toggleEditPanel('${id}')"><i class="ti ti-pencil" style="transform:rotate(-45deg);display:inline-block" aria-hidden="true"></i>Edit details</div><div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save</div></div><div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k===sugDue?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}<span class="ntd" onclick="showDatePicker('${id}')" data-key="pick">📅 Pick</span></div><div class="ntd-hint" id="hint-${id}">AI suggested: ${dueLabelMap[sugDue]||'No date'}</div><div class="edit-panel" id="ep-${id}"><div class="edit-fields"><div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${i.text.replace(/"/g,'&quot;')}"></div><div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div></div></div>`;
+      wrap.id='qrow-'+rowKey;
+      wrap.style.cssText='border-bottom:1px solid var(--border)';
+      wrap.dataset.taskId=taskId;
+      wrap.dataset.listId=listId;
+
+      // Header row
+      const row=document.createElement('div');
+      row.className='ci-row';
+      row.style.cssText='align-items:flex-start;padding:10px 14px';
+      const icon=document.createElement('div');icon.className='ci-icon ic-blue';icon.style.marginTop='2px';icon.innerHTML='<i class="ti ti-check" aria-hidden="true"></i>';
+      const body=document.createElement('div');body.className='ci-body';body.style.flex='1';
+      const titleEl=document.createElement('div');titleEl.id='qtitle-'+rowKey;titleEl.style.cssText='font-size:13px;font-weight:500;color:var(--text)';titleEl.textContent=i.text;
+      body.appendChild(titleEl);
+      if(i.sub){const sub=document.createElement('div');sub.className='ci-sub';sub.textContent=i.sub;body.appendChild(sub);}
+      const delBtn=document.createElement('button');
+      delBtn.style.cssText='font-size:11px;color:var(--red);background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap';
+      delBtn.textContent='Not a task';
+      delBtn.addEventListener('click',()=>deleteQuickTask(rowKey));
+      row.appendChild(icon);row.appendChild(body);row.appendChild(delBtn);
+      wrap.appendChild(row);
+
+      // Date chips
+      const datesDiv=document.createElement('div');
+      datesDiv.id='qdates-'+rowKey;
+      datesDiv.style.cssText='padding:4px 14px 6px 42px;background:var(--surface2);display:flex;gap:4px;flex-wrap:wrap';
+      makeDateChips(rowKey,sugDue).forEach(sp=>datesDiv.appendChild(sp));
+      wrap.appendChild(datesDiv);
+
+      // Hint
+      const hint=document.createElement('div');
+      hint.id='qhint-'+rowKey;
+      hint.className='ntd-hint';
+      hint.style.cssText='padding:2px 14px 6px 42px;font-size:10px;color:var(--green)';
+      hint.textContent='\u2713 '+(dueLabelMap[sugDue]||'No date')+' \u2014 saved';
+      wrap.appendChild(hint);
+
+      // Edit panel
+      const ep=document.createElement('div');
+      ep.id='qep-'+rowKey;
+      ep.style.cssText='display:none;padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border)';
+      ep.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+        '<div><div class="edit-field-label">Title</div><input type="text" id="qename-'+rowKey+'" value="'+i.text.replace(/"/g,'&quot;')+'" class="edit-input"></div>'+
+        '<div><div class="edit-field-label">Due date</div><input type="date" id="qedate-'+rowKey+'" value="'+(i._createdDue||'')+'" class="edit-input"></div>'+
+        '</div><div class="edit-field-label" style="margin-bottom:3px">Notes</div>'+
+        '<textarea id="qenotes-'+rowKey+'" class="edit-input" style="resize:none;min-height:44px" placeholder="Add context..."></textarea>';
+      const saveBtn=document.createElement('button');
+      saveBtn.style.cssText='margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer';
+      saveBtn.textContent='\u2713 Save changes';
+      saveBtn.addEventListener('click',()=>saveQuickEdit(rowKey));
+      ep.appendChild(saveBtn);
+      wrap.appendChild(ep);
+
+      // Edit toggle link
+      const editRow=document.createElement('div');
+      editRow.style.cssText='padding:4px 14px 8px 42px;background:var(--surface2);border-top:1px solid var(--border)';
+      const editLink=document.createElement('button');
+      editLink.style.cssText='font-size:11px;color:var(--text-dim);background:none;border:none;cursor:pointer;font-family:inherit;padding:0';
+      editLink.innerHTML='<i class="ti ti-pencil" style="font-size:12px" aria-hidden="true"></i> Edit title / notes';
+      editLink.addEventListener('click',()=>toggleQuickEdit(rowKey));
+      editRow.appendChild(editLink);
+      wrap.appendChild(editRow);
+
       nc.appendChild(wrap);
     });
     container.appendChild(nc);
   }
 
-  // ── ALREADY ON YOUR LIST ──
+  // EXISTING TASKS surfaced by AI
   const existing=result.existing_tasks_to_surface||[];
   if(existing.length){
-    const ec=document.createElement('div');ec.className='tcard';ec.style.cssText='margin-bottom:10px;border-left-color:var(--green)';
-    ec.innerHTML='<div class="tcard-lbl" style="color:var(--green);background:rgba(22,163,74,0.06);border-color:rgba(22,163,74,0.2)"><i class="ti ti-list-check" aria-hidden="true"></i> Already on your list</div>';
+    const ec=document.createElement('div');
+    ec.style.cssText='background:var(--surface);border:1px solid rgba(22,163,74,0.25);border-radius:12px;margin-bottom:12px;overflow:hidden';
+    const exHdr=document.createElement('div');
+    exHdr.style.cssText='padding:10px 14px;background:rgba(22,163,74,0.06);border-bottom:1px solid rgba(22,163,74,0.2);font-size:12px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:6px';
+    exHdr.innerHTML='<i class="ti ti-list-check" aria-hidden="true"></i> Already on your list';
+    ec.appendChild(exHdr);
+
     existing.forEach((t,ei)=>{
       const title=typeof t==='string'?t:(t.title||t.text||'');
-      const eid='ex-'+itemIdx++;
       const exId=typeof t==='string'?'':(t.id||'');
-      const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
-      const safeTitle=title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-      const div=document.createElement('div');div.id='exrow-'+eid;div.style.cssText='padding:0;display:block';
-      div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0"><span class="existing-dot" style="flex-shrink:0"></span><span style="flex:1;font-size:13px">${title}</span><button onclick="toggleDD('${ddExId}')" style="font-size:11px;color:var(--blue);background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Redate ▾</button><button onclick="rejectMatch('${eid}','${safeTitle}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this</button></div>${buildCiDateDD(ddExId,slExId,cpExId,ciExId,exId,taskListId)}`;
+      const rowKey='qex-'+ei;
+      const ddId='qexdd-'+rowKey,slId='qexsl-'+rowKey,cpId='qexcp-'+rowKey,ciId='qexci-'+rowKey;
+
+      const div=document.createElement('div');
+      div.id='qexrow-'+rowKey;
+      div.style.cssText='border-bottom:1px solid var(--border)';
+
+      const mainRow=document.createElement('div');
+      mainRow.className='ci-row';
+      mainRow.id='qexmain-'+rowKey;
+      const exIcon=document.createElement('div');exIcon.className='ci-icon ic-green';exIcon.innerHTML='<i class="ti ti-list" aria-hidden="true"></i>';
+      const exBody=document.createElement('div');exBody.className='ci-body';
+      const exTitle=document.createElement('div');exTitle.className='ci-text';exTitle.id='qextitle-'+rowKey;exTitle.textContent=title;
+      exBody.appendChild(exTitle);
+      const pencilBtn=document.createElement('button');
+      pencilBtn.className='diff-exclude';
+      pencilBtn.style.cssText='margin-right:4px;flex-shrink:0';
+      pencilBtn.innerHTML='<i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i>';
+      pencilBtn.addEventListener('click',()=>toggleQExEdit(rowKey));
+      mainRow.appendChild(exIcon);mainRow.appendChild(exBody);mainRow.appendChild(pencilBtn);
+      div.appendChild(mainRow);
+
+      const taRow=document.createElement('div');
+      taRow.className='ta-row';
+      taRow.id='qexta-'+rowKey;
+      taRow.innerHTML='<button class="ta ta-done">✓ Done</button><button class="ta ta-still">Still on it ▾</button><button class="ta ta-skip">Not doing it</button>'+buildCiDateDD(ddId,slId,cpId,ciId,exId,listId);
+      taRow.querySelector('.ta-done').addEventListener('click',()=>ciDone('qexmain-'+rowKey,'qexta-'+rowKey,slId,exId,listId));
+      taRow.querySelector('.ta-still').addEventListener('click',()=>toggleDD(ddId));
+      taRow.querySelector('.ta-skip').addEventListener('click',()=>ciSkip('qexmain-'+rowKey,'qexta-'+rowKey,slId,exId,listId));
+      div.appendChild(taRow);
+
+      const exEp=document.createElement('div');
+      exEp.id='qexep-'+rowKey;
+      exEp.style.cssText='display:none;padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border)';
+      exEp.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+        '<div><div class="edit-field-label">Title</div><input type="text" id="qexename-'+rowKey+'" value="'+title.replace(/"/g,'&quot;')+'" class="edit-input"></div>'+
+        '<div><div class="edit-field-label">Due date</div><input type="date" id="qexedate-'+rowKey+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div>'+
+        '</div><div class="edit-field-label" style="margin-bottom:3px">Notes</div>'+
+        '<textarea id="qexenotes-'+rowKey+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea>';
+      const exSaveBtn=document.createElement('button');
+      exSaveBtn.style.cssText='margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer';
+      exSaveBtn.textContent='\u2713 Save changes';
+      exSaveBtn.addEventListener('click',()=>saveQExEdit(rowKey,exId,listId));
+      exEp.appendChild(exSaveBtn);
+      div.appendChild(exEp);
       ec.appendChild(div);
     });
     container.appendChild(ec);
   }
 
-  // ── REUSE SHARED HELPERS for cal + tasks ──
-  renderCalToday(container,cal);
-  renderCalUpcoming(container,cal);
-  const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId)||{overdue:[],thisWeek:[]};
-  const shownIds=new Set([...(overdue||[]),...(thisWeek||[])].map(t=>t.id));
-  renderFutureTasksSection(container,tasks,listId,shownIds);
-
   const mc=document.getElementById('miniCheckin');if(mc)mc.style.display='none';
   const ra=document.getElementById('reviewActions');if(ra)ra.style.display='block';
+  setModeBar('reviewModeBar','quick');
   document.getElementById('review').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
+
+function selectQuickDate(el,rowKey,key){
+  document.querySelectorAll('#qdates-'+rowKey+' .ntd').forEach(c=>c.classList.remove('sel'));
+  el.classList.add('sel');
+  const hint=document.getElementById('qhint-'+rowKey);
+  const wrap=document.getElementById('qrow-'+rowKey);
+  const taskId=wrap?.dataset.taskId;
+  const listId=wrap?.dataset.listId;
+  if(!taskId||!listId){if(hint)hint.innerHTML='<span style="color:var(--text-dimmer)">not yet saved</span>';return;}
+  const dow=new Date().getDay();
+  let dueDate='';
+  if(key==='today')dueDate=localDateStr(localMidnight(0));
+  else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
+  else if(key==='this_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts));}
+  else if(key==='next_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts+7));}
+  else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+  else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
+  const L=getDateLabels();
+  const labels={today:L.today,tomorrow:L.tomorrow,this_week:L.thisWeek,next_week:L.nextWeek,this_month:L.thisMonth,next_month:L.nextMonth,none:'No date'};
+  if(key==='none'){
+    updateTaskDue(listId,taskId,'').then(()=>{if(hint)hint.innerHTML='<span style="color:var(--text-dimmer)">No date \u2014 saved</span>';});
+  } else {
+    if(hint)hint.innerHTML='<span style="color:var(--text-dimmer)">saving...</span>';
+    updateTaskDue(listId,taskId,dueDate).then(ok=>{
+      if(hint)hint.innerHTML=ok?'<span style="color:var(--green)">\u2713 '+labels[key]+' \u2014 saved</span>':'<span style="color:var(--red)">save failed</span>';
+    });
+  }
+}
+
+function toggleQuickEdit(rowKey){
+  const ep=document.getElementById('qep-'+rowKey);
+  if(!ep)return;
+  ep.style.display=ep.style.display==='none'?'block':'none';
+  if(ep.style.display!=='none')document.getElementById('qename-'+rowKey)?.focus();
+}
+
+async function saveQuickEdit(rowKey){
+  const wrap=document.getElementById('qrow-'+rowKey);
+  const taskId=wrap?.dataset.taskId;
+  const listId=wrap?.dataset.listId;
+  const title=document.getElementById('qename-'+rowKey)?.value.trim();
+  const date=document.getElementById('qedate-'+rowKey)?.value;
+  const notes=document.getElementById('qenotes-'+rowKey)?.value.trim();
+  if(!taskId||!listId||!title)return;
+  const btn=document.querySelector('#qep-'+rowKey+' button');
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+  try{
+    const body={title,notes:notes||''};
+    if(date){const p=date.split('-');body.due=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]),12,0,0).toISOString();}else{body.due=null;}
+    const res=await fetch('https://tasks.googleapis.com/tasks/v1/lists/'+encodeURIComponent(listId)+'/tasks/'+encodeURIComponent(taskId),{method:'PATCH',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(res.ok){const tEl=document.getElementById('qtitle-'+rowKey);if(tEl)tEl.textContent=title;document.getElementById('qep-'+rowKey).style.display='none';if(btn){btn.textContent='\u2713 Save changes';btn.disabled=false;}}
+    else{if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}}
+  }catch(e){if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}}
+}
+
+function toggleQExEdit(rowKey){
+  const ep=document.getElementById('qexep-'+rowKey);
+  if(!ep)return;
+  ep.style.display=ep.style.display==='none'?'block':'none';
+  if(ep.style.display!=='none')document.getElementById('qexename-'+rowKey)?.focus();
+}
+
+async function saveQExEdit(rowKey,taskId,listId){
+  const title=document.getElementById('qexename-'+rowKey)?.value.trim();
+  const date=document.getElementById('qexedate-'+rowKey)?.value;
+  const notes=document.getElementById('qexenotes-'+rowKey)?.value.trim();
+  if(!taskId||!listId||!title)return;
+  const btn=document.querySelector('#qexep-'+rowKey+' button');
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+  try{
+    const body={title,notes:notes||''};
+    if(date){const p=date.split('-');body.due=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]),12,0,0).toISOString();}else{body.due=null;}
+    const res=await fetch('https://tasks.googleapis.com/tasks/v1/lists/'+encodeURIComponent(listId)+'/tasks/'+encodeURIComponent(taskId),{method:'PATCH',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(res.ok){const tEl=document.getElementById('qextitle-'+rowKey);if(tEl)tEl.textContent=title;document.getElementById('qexep-'+rowKey).style.display='none';if(btn){btn.textContent='\u2713 Save changes';btn.disabled=false;}}
+    else{if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}}
+  }catch(e){if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}}
+}
+
+async function deleteQuickTask(rowKey){
+  const wrap=document.getElementById('qrow-'+rowKey);
+  const taskId=wrap?.dataset.taskId;
+  const listId=wrap?.dataset.listId;
+  if(taskId&&listId)await deleteTask(listId,taskId);
+  if(wrap)wrap.remove();
+  delete quickTaskIds[rowKey];
+}
+
 
 function buildReview(result,listId,existingTasks){
   const container=document.getElementById('reviewItems');
@@ -1621,6 +1925,7 @@ function buildReview(result,listId,existingTasks){
   document.getElementById('alsoText').value='';
   const ra=document.getElementById('reviewActions');
   if(ra)ra.style.display='block';
+  setModeBar('reviewModeBar','full');
   document.getElementById('review').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1722,9 +2027,52 @@ function confirmPicker(id){
 }
 
 
+async function saveQuickDirect(result,listId){
+  // Save all extracted tasks immediately, then show check-in summary
+  const items=result.items||{};
+  const allNew=[...(items.urgent||[]),...(items.soon||[]),...(items.someday||[])];
+  let tasksAdded=0;
+  const newlyAddedTitles=new Set();
+  const L=getDateLabels();
+  const dow=new Date().getDay();
+
+  await Promise.all(allNew.map(async it=>{
+    const i=typeof it==='string'?{text:it}:it;
+    const title=i.text?.trim();
+    if(!title)return;
+    // Compute due date from suggested_due
+    let dueDate='';
+    const key=i.suggested_due||'none';
+    if(key==='today')dueDate=localDateStr(localMidnight(0));
+    else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
+    else if(key==='this_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts));}
+    else if(key==='next_week'){const dts=dow===0?7:7-dow;dueDate=localDateStr(localMidnight(dts+7));}
+    else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
+    else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
+    const ok=await addTask(listId,title,i.sub||'',dueDate);
+    if(ok){tasksAdded++;newlyAddedTitles.add(title);}
+  }));
+
+  await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
+}
+
 async function saveAndDone(){
   const btn=document.querySelector('.abtn-save');
   btn.disabled=true;btn.textContent='Saving...';
+
+  if(mode==='quick'){
+    // Tasks already created/updated on review page — just show summary
+    const newlyAdded=new Set(Object.keys(quickTaskIds).map(k=>{
+      const tEl=document.getElementById('qtitle-'+k);
+      return tEl?.textContent||'';
+    }).filter(Boolean));
+    const count=Object.keys(quickTaskIds).length;
+    btn.disabled=false;
+    await renderCheckinAfterSave(count,newlyAdded);
+    return;
+  }
+
+  // Full dump — save all items
   let tasksAdded=0;
   const ideaLines=[];
   const newlyAddedTitles=new Set();
@@ -1739,19 +2087,18 @@ async function saveAndDone(){
     const title=nameEl?nameEl.value.trim():txtEl?.textContent?.replace(/📅/g,'').trim()||'';
     if(!title)return;
 
-    // Get selected date
     let dueDate='';
-    const selChip=document.querySelector(`#dates-${id} .ntd.sel`);
+    const selChip=document.querySelector('#dates-'+id+' .ntd.sel');
     if(selChip){
       const key=selChip.getAttribute('data-key');
       if(key&&key!=='none'){
-        {const _dow=new Date().getDay();
+        const _dow=new Date().getDay();
         if(key==='today')dueDate=localDateStr(localMidnight(0));
         else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
         else if(key==='this_week'){const _dts=_dow===0?7:7-_dow;dueDate=localDateStr(localMidnight(_dts));}
         else if(key==='next_week'){const _dts=_dow===0?7:7-_dow;dueDate=localDateStr(localMidnight(_dts+7));}
         else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
-        else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));}
+        else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
       }
     }
     const pickerDate=document.getElementById('pdate-'+id)?.value;
@@ -1759,7 +2106,7 @@ async function saveAndDone(){
 
     if(status==='task'){
       newlyAddedTitles.add(title);
-      savePromises.push(addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(ok=>{if(ok)tasksAdded++;}));
+      savePromises.push(addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(task=>{if(task)tasksAdded++;}));
     } else if(status==='idea'){
       ideaLines.push(title+(notesEl?.value?.trim()?` — ${notesEl.value.trim()}`:''));
     }
@@ -1769,37 +2116,28 @@ async function saveAndDone(){
   if(ideaLines.length){
     const d=new Date().toISOString().split('T')[0];
     docOk=await appendDoc(ideaLines.map(l=>`[${d}] ${l}`).join('\n'));
-    // Update S2 frequency counts
     const counts=JSON.parse(localStorage.getItem('bd_s2_counts')||'{}');
     ideaLines.forEach(l=>{const key=l.split(' — ')[0];counts[key]=(counts[key]||0)+1;});
     localStorage.setItem('bd_s2_counts',JSON.stringify(counts));
   }
 
-  // Wait for ALL saves to complete before rendering
   await Promise.all(savePromises);
   btn.disabled=false;btn.textContent='✓ Save & see summary';
-  if(mode==='quick'){
-    await renderCheckinAfterSave(tasksAdded,newlyAddedTitles);
-  } else {
-    renderFinal(currentResult,tasksAdded,docOk);
-  }
+  renderFinal(currentResult,tasksAdded,docOk);
 }
 
 async function renderCheckinAfterSave(tasksAdded,newlyAdded){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
 
-  // Use ciCards only — never wipe the outer checkin div (that would destroy ciCards itself)
   const container=document.getElementById('ciCards');
   container.innerHTML='';
 
-  // Show mode shortcuts in the bar above
   const bar=document.getElementById('modeShortcutsBar');
   if(bar)bar.innerHTML=modeShortcutsHTML();
 
-  // Saved confirmation header
   const hdr=document.createElement('div');
-  hdr.innerHTML=`<div style="font-size:12px;font-weight:500;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-check" aria-hidden="true"></i> ${tasksAdded} task${tasksAdded!==1?'s':''} saved · here's your plate</div>`;
+  hdr.innerHTML=`<div style="font-size:12px;font-weight:500;color:var(--green);margin-bottom:8px;display:flex;align-items:center;gap:6px"><i class="ti ti-check" aria-hidden="true"></i> ${tasksAdded} task${tasksAdded!==1?'s':''} saved \u00b7 here's your plate</div>`;
   container.appendChild(hdr);
 
   startLoad();document.getElementById('loading').classList.add('on');
@@ -1808,14 +2146,56 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
     stopLoad();document.getElementById('loading').classList.remove('on');
     const{listId,tasks}=tr;taskListId=listId;
 
-    renderCalToday(container,cal);
-    const{overdue,thisWeek}=renderNeedsAttention(container,tasks,listId,newlyAdded)||{overdue:[],thisWeek:[]};
-    renderCalUpcoming(container,cal);
+    // Day-by-day layout matching buildCheckin
+    let taskIdx=0;
+    function renderTaskRowSummary(t){
+      const id='ps-'+(taskIdx++);
+      const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+      const t0=localMidnight(0),t1=localMidnight(1);
+      const isNew=newlyAdded&&newlyAdded.has(t.title);
+      const isOv=due&&due<t0;
+      const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+      const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
+      const wrap=document.createElement('div');
+      wrap.innerHTML=`<div class="ci-row" id="${id}"><div class="ci-icon ${isOv?'ic-red':'ic-orange'}"><i class="ti ${isOv?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}${isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':''}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><div class="badge-right"><span class="ci-badge ${isOv?'cb-red':'cb-orange'}">${badgeLbl}</span></div></div>`;
+      return wrap;
+    }
 
-    // First move if available
+    const t0=localMidnight(0),t0s=localDateStr(t0);
+    const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0);
+    if(overdue.length){
+      const card=document.createElement('div');card.className='ci-card';
+      card.innerHTML='<div class="ci-lbl">\ud83d\udd34 Overdue</div>';
+      overdue.forEach(t=>card.appendChild(renderTaskRowSummary(t)));
+      container.appendChild(card);
+    }
+    const shownIds=new Set(overdue.map(t=>t.id));
+    for(let d=0;d<7;d++){
+      const dk=localDateStr(localMidnight(d));
+      const dayDate=localDateFromStr(dk);
+      const isToday=d===0;
+      const dayLabel=isToday?'\ud83d\udcc5 Today \u2014 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'\ud83d\udcc5 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+      const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;return false;});
+      const dayTasks=tasks.filter(t=>{if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;return t.due.split('T')[0]===dk;});
+      dayTasks.forEach(t=>shownIds.add(t.id));
+      if(!dayCal.length&&!dayTasks.length)continue;
+      const card=document.createElement('div');card.className='ci-card';
+      card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
+      dayCal.forEach(e=>{
+        const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
+        const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
+        const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
+        row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${[tl,cn].filter(Boolean).join(' \xb7 ')}</div></div>`;
+        card.appendChild(row);
+      });
+      dayTasks.forEach(t=>card.appendChild(renderTaskRowSummary(t)));
+      container.appendChild(card);
+    }
+
+    // First move from AI
     if(currentResult?.first_move?.action){
       const fm=document.createElement('div');
-      fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-top:4px';
+      fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-top:4px;border-radius:0 8px 8px 0';
       fm.innerHTML=`<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">${currentResult.first_move.action}</div>${currentResult.first_move.why?`<div style="font-size:12px;color:var(--text-dim);margin-top:3px">${currentResult.first_move.why}</div>`:''}`;
       container.appendChild(fm);
     }
@@ -1825,9 +2205,10 @@ async function renderCheckinAfterSave(tasksAdded,newlyAdded){
   }
 
   document.getElementById('checkin').classList.add('on');
+  document.querySelectorAll('#ciCards .diff-exclude').forEach(b=>b.style.display='none');
+  setModeBar('checkinModeBar','quick');
   window.scrollTo({top:0,behavior:'smooth'});
 }
-
 function renderFinal(r,tasksAdded,docOk){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
@@ -1914,6 +2295,7 @@ function renderFinal(r,tasksAdded,docOk){
   }
   const outSc=document.getElementById('outputShortcuts');
   if(outSc)outSc.innerHTML=modeShortcutsHTML();
+  setModeBar('outputModeBar',r.mode||mode);
   document.getElementById('output').classList.add('on');
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -1967,6 +2349,20 @@ function modeShortcutsHTML(){
       <span style="font-size:11px;font-weight:500;color:var(--text)">Full dump</span>
     </button>
   </div>`;
+}
+
+function modeBarHTML(m){
+  const cfg={
+    checkin:{bg:'#EAF3DE',color:'#3B6D11',icon:'ti-list-check',label:'Check in'},
+    quick:  {bg:'#E6F1FB',color:'#185FA5',icon:'ti-bolt',       label:'Quick dump'},
+    full:   {bg:'#EEEDFE',color:'#534AB7',icon:'ti-brain',      label:'Full dump'}
+  }[m]||{bg:'#EAF3DE',color:'#3B6D11',icon:'ti-list-check',label:'Check in'};
+  return `<div style="width:24px;height:24px;border-radius:50%;background:${cfg.bg};color:${cfg.color};display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0"><i class="ti ${cfg.icon}" aria-hidden="true"></i></div><span style="font-size:12px;font-weight:600;color:var(--text-dim);letter-spacing:0.02em">${cfg.label}</span>`;
+}
+
+function setModeBar(id,m){
+  const el=document.getElementById(id);
+  if(el)el.innerHTML=modeBarHTML(m);
 }
 
 document.addEventListener('click',e=>{
