@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.5</title>
+<title>Brain Dump v1.3.6</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.5</div>
+  <div class="version-tag">v1.3.6</div>
 </div>
 
 <!-- SETUP -->
@@ -492,6 +492,7 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div class="err" id="mainErr"></div>
     <button class="btn btn-primary" id="sortBtn" onclick="processDump()"><i class="ti ti-bolt" style="font-size:16px" aria-hidden="true"></i> Sort it</button>
     <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
+    <div class="settings-link"><button onclick="showSetup()">⚙ Settings & theme</button></div>
   </div>
 </div>
 
@@ -549,7 +550,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.5';
+const VERSION='1.3.6';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1011,13 +1012,24 @@ async function fetchTasks(){
 }
 
 async function fetchProjectLists(){
-  // Returns all lists with role 'project' from Settings
+  // Returns all visible lists — stored as 'list'/'project', OR new ones not yet in storage
   try{
     const r=await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists',{headers:{Authorization:'Bearer '+gToken}});
     if(!r.ok)return[];
     const data=await r.json();
     const roles=getListRoles();
-    return(data.items||[]).filter(l=>roles[l.id]==='list'||roles[l.id]==='project');
+    const allLists=data.items||[];
+    // Auto-register any new lists (not in storage yet) as 'list'
+    let changed=false;
+    allLists.forEach((l,i)=>{
+      if(!roles[l.id]){
+        roles[l.id]=i===0?'main':'list';
+        changed=true;
+      }
+    });
+    if(changed)localStorage.setItem('bd_list_roles',JSON.stringify(roles));
+    // Return all visible lists (not main, not hidden)
+    return allLists.filter(l=>roles[l.id]==='list'||roles[l.id]==='project');
   }catch(e){return[];}
 }
 async function addTask(lid,title,notes,due){
@@ -1513,7 +1525,7 @@ EXTRACT EVERY SINGLE ITEM MENTIONED — nothing is too small or casual to captur
 TASKS — actions to DO with a clear owner and endpoint:
 book, call, email, pay, schedule, research, fix (with deadline), follow up, arrange, register.
 - suggested_due: use urgency signals. Specific date if mentioned, else "this_week", "next_week", "this_month", "none" only if genuinely no urgency.
-- If nearly identical to an existing task, set duplicate_of to the matching task title.
+- If nearly identical OR semantically the same as an existing task (e.g. 'call mom' matches 'call my mom', 'phone mom', 'ring mom'), set duplicate_of to the matching task title. Be aggressive — partial matches count.
 - Do NOT put sewing/crafting/hobby queue items here unless they have a specific deadline.
 
 LIST ITEMS — anything that belongs grouped on a named list:
@@ -1762,15 +1774,25 @@ async function buildQuickReview(result,listId,tasks,cal){
       hint.textContent='\u2713 '+(dueLabelMap[sugDue]||'No date')+' \u2014 saved';
       wrap.appendChild(hint);
 
-      // ── List picker (shown for list items) ──
+      // ── List picker (collapsible dropdown) ──
       const listPicker=document.createElement('div');
       listPicker.id='qlistpicker-'+rowKey;
-      listPicker.style.cssText='padding:8px 14px 10px 42px;background:var(--surface2)'+(aiType!=='list'?';display:none':'');
-      listPicker.dataset.sugList=sugList; // store AI suggestion for loadListPickerOptions
-      listPicker.innerHTML='<div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Add to which list?</div><div id="qlistopts-'+rowKey+'"><div style="font-size:11px;color:var(--text-dimmer)">Loading lists...</div></div>';
+      listPicker.style.cssText='padding:6px 14px 8px 42px;background:var(--surface2)'+(aiType!=='list'?';display:none':'');
+      listPicker.dataset.sugList=sugList;
+      // Toggle button
+      const lpToggle=document.createElement('button');
+      lpToggle.style.cssText='font-size:11px;color:var(--text-dim);background:none;border:none;cursor:pointer;font-family:inherit;padding:0;display:flex;align-items:center;gap:4px';
+      lpToggle.innerHTML='<i class="ti ti-chevron-down" style="font-size:12px" aria-hidden="true"></i> Choose list';
+      lpToggle.addEventListener('click',()=>toggleListDropdown(rowKey,sugList));
+      listPicker.appendChild(lpToggle);
+      // Dropdown options (hidden initially)
+      const listOpts=document.createElement('div');
+      listOpts.id='qlistopts-'+rowKey;
+      listOpts.style.cssText='display:none;margin-top:6px';
+      listPicker.appendChild(listOpts);
       wrap.appendChild(listPicker);
-      // If AI says list item, load the picker right away
-      if(aiType==='list')setTimeout(()=>loadListPickerOptions(rowKey,sugList),0);
+      // If AI says list item, load and show the dropdown immediately
+      if(aiType==='list')setTimeout(()=>toggleListDropdown(rowKey,sugList),0);
 
       // ── Edit panel ──
       const ep=document.createElement('div');
@@ -2042,7 +2064,11 @@ async function setItemType(rowKey,type){
     if(listPicker){
       listPicker.style.display='block';
       const sg=listPicker.dataset.sugList||'';
-      loadListPickerOptions(rowKey,sg);
+      // Open the dropdown
+      const optsEl=document.getElementById('qlistopts-'+rowKey);
+      if(optsEl&&optsEl.style.display==='none'){
+        toggleListDropdown(rowKey,sg);
+      }
     }
   } else {
     // skip — hide everything
@@ -2102,6 +2128,29 @@ function selectListForItem(rowKey,listId,listName,optEl){
 async function promptNewList(rowKey){
   const name=prompt('New list name:');
   if(!name?.trim())return;
+  // Check for duplicate list name (any role including hidden)
+  const r=await fetch('https://tasks.googleapis.com/tasks/v1/users/@me/lists',{headers:{Authorization:'Bearer '+gToken}});
+  if(r.ok){
+    const data=await r.json();
+    const existing=(data.items||[]).find(l=>l.title.toLowerCase()===name.trim().toLowerCase());
+    if(existing){
+      const roles=getListRoles();
+      if(roles[existing.id]==='hidden'){
+        // Offer to make it visible
+        if(confirm('"'+existing.title+'" exists but is hidden. Make it visible and use it?')){
+          roles[existing.id]='list';
+          localStorage.setItem('bd_list_roles',JSON.stringify(roles));
+          selectListForItem(rowKey,existing.id,existing.title,null);
+          loadListPickerOptions(rowKey,'');
+        }
+      } else {
+        alert('"'+existing.title+'" already exists. Selecting it now.');
+        selectListForItem(rowKey,existing.id,existing.title,null);
+        loadListPickerOptions(rowKey,'');
+      }
+      return;
+    }
+  }
   const list=await createProjectList(name.trim());
   if(!list)return;
   // Immediately add the item to the new list
@@ -2109,13 +2158,10 @@ async function promptNewList(rowKey){
   const notes=document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
   if(title){
     await addTask(list.id,title,notes,'');
-    quickSummaryStats.added++;
-    // Mark as saved so saveAndDone skips it
     const wrap=document.getElementById('qrow-'+rowKey);
     if(wrap){wrap.dataset.selectedListId=list.id;wrap.dataset.selectedListName=list.title;wrap.dataset.alreadySaved='1';}
   }
   selectListForItem(rowKey,list.id,list.title,null);
-  // Reload options to include new list
   loadListPickerOptions(rowKey,'');
 }
 
@@ -2175,6 +2221,21 @@ async function addThoughtInline(tc,type,listId){
   tc.insertBefore(row,tc.lastElementChild);
 }
 
+async function toggleListDropdown(rowKey,sugList){
+  const optsEl=document.getElementById('qlistopts-'+rowKey);
+  const toggle=document.querySelector('#qlistpicker-'+rowKey+' button');
+  if(!optsEl)return;
+  const isOpen=optsEl.style.display!=='none';
+  if(isOpen){
+    optsEl.style.display='none';
+    if(toggle)toggle.innerHTML='<i class="ti ti-chevron-down" style="font-size:12px" aria-hidden="true"></i> Choose list';
+  } else {
+    optsEl.style.display='block';
+    if(toggle)toggle.innerHTML='<i class="ti ti-chevron-up" style="font-size:12px" aria-hidden="true"></i> Choose list';
+    await loadListPickerOptions(rowKey,sugList||'');
+  }
+}
+
 function toggleQuickEdit(rowKey){
   const ep=document.getElementById('qep-'+rowKey);
   if(!ep)return;
@@ -2189,8 +2250,21 @@ async function saveQuickEdit(rowKey){
   const title=document.getElementById('qename-'+rowKey)?.value.trim();
   const date=document.getElementById('qedate-'+rowKey)?.value;
   const notes=document.getElementById('qenotes-'+rowKey)?.value.trim();
-  if(!taskId||!listId||!title)return;
+  if(!title)return;
   const btn=document.querySelector('#qep-'+rowKey+' button');
+
+  // If no taskId yet (list item not yet saved), just update the display title
+  // The actual save happens at "Save & see summary"
+  if(!taskId){
+    const tEl=document.getElementById('qtitle-'+rowKey);
+    if(tEl)tEl.textContent=title;
+    // Store notes on the row for save time
+    if(wrap)wrap.dataset.pendingNotes=notes||'';
+    if(document.getElementById('qep-'+rowKey))document.getElementById('qep-'+rowKey).style.display='none';
+    if(btn){btn.textContent='\u2713 Saved locally';btn.disabled=false;}
+    return;
+  }
+
   if(btn){btn.textContent='Saving...';btn.disabled=true;}
   try{
     const body={title,notes:notes||''};
@@ -2470,7 +2544,7 @@ async function saveAndDone(){
       const selectedListId=wrap.dataset.selectedListId;
       const selectedListName=wrap.dataset.selectedListName||'list';
       const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
-      const notes=document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
+      const notes=wrap.dataset.pendingNotes||document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
       if(!title)return;
       if(taskId&&mainListId)await deleteTask(mainListId,taskId);
       if(selectedListId&&title){
@@ -2645,6 +2719,11 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
     sc.className='summary-shortcuts';
     sc.style.cssText='margin-top:20px';
     sc.innerHTML=modeShortcutsHTML();
+    const settingsLink=document.createElement('div');
+    settingsLink.className='settings-link';
+    settingsLink.style.cssText='margin-top:12px;text-align:center';
+    settingsLink.innerHTML='<button onclick="showSetup()">\u2699 Settings &amp; theme</button>';
+    container.after(settingsLink);
     container.after(sc);
   }
 
