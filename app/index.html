@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.39</title>
+<title>Brain Dump v1.2.40</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.39</div>
+  <div class="version-tag">v1.2.40</div>
 </div>
 
 <!-- SETUP -->
@@ -535,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.39';
+const VERSION='1.2.40';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -988,39 +988,120 @@ async function runCheckin(){
 
 // ─── SHARED RENDERING HELPERS ───────────────────
 
+// ─── SHARED CALENDAR EVENT ROW RENDERER ───────────
+// Used by buildCheckin, saveCiAndSummary, buildQuickReview, renderQuickSummary
+function renderCalEventRow(e){
+  const cc=e.calendar_color||'#6b7280';
+  const cn=e.calendar_name||'';
+  let badge='';
+  if(e.start.dateTime){
+    // Timed event
+    const startTime=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
+    const startDate=e.start.dateTime.slice(0,10);
+    const endDate=e.end?.dateTime?e.end.dateTime.slice(0,10):'';
+    if(endDate&&endDate!==startDate){
+      // Multi-day timed: show date range
+      badge=localDateFromStr(startDate).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+
+        ' \u2013 '+localDateFromStr(endDate).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+    } else {
+      badge=startTime;
+    }
+  } else {
+    // All-day event
+    if(e.start.date&&e.end?.date){
+      const sd=localDateFromStr(e.start.date);
+      const ed=localDateFromStr(e.end.date);
+      ed.setDate(ed.getDate()-1);
+      if(ed>sd){
+        badge=sd.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+
+          ' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
+      } else {
+        badge='all day';
+      }
+    } else {
+      badge='all day';
+    }
+  }
+  const row=document.createElement('div');
+  row.className='ci-row';
+  row.style.alignItems='flex-start';
+  row.innerHTML=
+    '<div class="ci-icon" style="background:'+cc+'22;color:'+cc+';margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div>'+
+    '<div class="ci-body">'+
+      '<div class="ci-text">'+e.summary+'</div>'+
+      '<div class="ci-sub loc-line"><span class="cal-dot" style="background:'+cc+'"></span>'+
+        [badge,cn].filter(Boolean).join(' \xb7 ')+
+      '</div>'+
+      (e.location?'<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>'+e.location+'</span></div>':'')+
+    '</div>';
+  return row;
+}
+
+// ─── SHARED CALENDAR DAY FILTER ───────────────────
+function calEventsForDay(cal,dk){
+  return cal.filter(e=>{
+    const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
+    if(s===dk)return true;
+    // All-day multi-day spanning
+    if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;
+    // Timed multi-day spanning
+    if(e.start.dateTime&&e.end?.dateTime){
+      const evS=e.start.dateTime.slice(0,10);
+      const evE=e.end.dateTime.slice(0,10);
+      return evS<dk&&evE>=dk;
+    }
+    return false;
+  });
+}
+
+// ─── SHARED DAY-BY-DAY RENDERER ───────────────────
+// Renders overdue → today → +6 days, cal events + tasks interleaved
+// taskRowFn(card, task, isOverdue) renders the task row (interactive or read-only)
+// Returns shownIds Set
+function renderDayByDay(container,cal,tasks,taskRowFn){
+  const t0=localMidnight(0);
+  const shownIds=new Set();
+
+  // Overdue
+  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0)
+    .sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]));
+  if(overdue.length){
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">\ud83d\udd34 Overdue</div>';
+    overdue.forEach(t=>{shownIds.add(t.id);taskRowFn(card,t,true);});
+    container.appendChild(card);
+  }
+
+  // Day by day: today through +6
+  for(let d=0;d<7;d++){
+    const dk=localDateStr(localMidnight(d));
+    const dayDate=localDateFromStr(dk);
+    const isToday=d===0;
+    const dayLabel=(isToday?'\ud83d\udcc5 Today \u2014 ':'\ud83d\udcc5 ')+
+      dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+    const dayCal=calEventsForDay(cal,dk);
+    const dayTasks=tasks.filter(t=>{
+      if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;
+      return t.due.split('T')[0]===dk;
+    });
+    dayTasks.forEach(t=>shownIds.add(t.id));
+    if(!dayCal.length&&!dayTasks.length)continue;
+    const card=document.createElement('div');card.className='ci-card';
+    card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
+    dayCal.forEach(e=>card.appendChild(renderCalEventRow(e)));
+    dayTasks.forEach(t=>taskRowFn(card,t,false));
+    container.appendChild(card);
+  }
+  return shownIds;
+}
+
 function renderCalToday(container,cal){
   const ts=localDateStr(localMidnight(0));
-  const ad=cal.filter(e=>{if(e.start.dateTime)return false;const s=e.start.date||'';return s<=ts&&(e.end?.date||s)>ts;});
-  // Timed events: starts today OR spans today (started before, ends today or later)
-  const td=cal.filter(e=>{
-    if(!e.start.dateTime)return false;
-    const evStart=localDateStr(new Date(e.start.dateTime));
-    if(evStart===ts)return true;
-    // Multi-day timed event spanning today
-    const evEnd=e.end?.dateTime?localDateStr(new Date(e.end.dateTime)):'';
-    return evStart<ts&&evEnd>=ts;
-  });
-  if(!ad.length&&!td.length)return;
+  const todayCal=calEventsForDay(cal,ts);
+  if(!todayCal.length)return;
   const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML=`<div class="ci-lbl">📅 Today — ${new Date().toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})}</div>`;
-  ad.forEach(e=>{
-    const cc=e.calendar_color||'#7c6af7',cn=e.calendar_name||'';
-    let dl='all day';
-    if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)dl=sd.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-    const row=document.createElement('div');row.className='ci-row';
-    row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc}"><i class="ti ti-calendar" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${cn?`<div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${cn}</div>`:''}</div><span class="ci-badge" style="background:${cc}22;color:${cc}">${dl}</span>`;
-    if(e.location)row.querySelector('.ci-body').innerHTML+=`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`;
-    card.appendChild(row);
-  });
-  td.forEach(e=>{
-    const cc=e.calendar_color||'#2563eb',cn=e.calendar_name||'';
-    const s=new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'});
-    let tb=s;if(e.end?.dateTime){const sd=e.start.dateTime.slice(0,10),ed=e.end.dateTime.slice(0,10);if(ed!==sd)tb=localDateFromStr(sd).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+localDateFromStr(ed).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-    const row=document.createElement('div');row.className='ci-row';
-    row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc}"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div>${cn?`<div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${cn}</div>`:''}</div><span class="ci-badge" style="background:${cc}22;color:${cc}">${tb}</span>`;
-    if(e.location)row.querySelector('.ci-body').innerHTML+=`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`;
-    card.appendChild(row);
-  });
+  card.innerHTML='<div class="ci-lbl">\ud83d\udcc5 Today \u2014 '+new Date().toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})+'</div>';
+  todayCal.forEach(e=>card.appendChild(renderCalEventRow(e)));
   container.appendChild(card);
 }
 
@@ -1030,32 +1111,25 @@ function renderCalUpcoming(container,cal){
   const seen=new Set();
   const up=cal.filter(e=>{
     if(seen.has(e.id))return false;
-    const s=e.start.date||localDateStr(new Date(e.start.dateTime||''));
-    // Only events starting TOMORROW or later (today is handled by renderCalToday)
+    const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
     if(s>=tomorrow){seen.add(e.id);return true;}
-    // Multi-day all-day events that started before today but end after today
-    if(!e.start.dateTime){
-      const eEnd=e.end?.date||'';
-      if(eEnd>tomorrow){seen.add(e.id);return true;}
-    }
+    if(!e.start.dateTime&&e.start.date&&e.end?.date){if(e.end.date>tomorrow){seen.add(e.id);return true;}}
     return false;
   }).slice(0,10);
   if(!up.length)return;
   const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML='<div class="ci-lbl">📅 Coming up</div>';
+  card.innerHTML='<div class="ci-lbl">\ud83d\udcc5 Coming up</div>';
   let lastDk='';
   up.forEach(e=>{
-    const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
-    const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-    const dk=e.start.date||e.start.dateTime.slice(0,10);
-    if(dk!==lastDk){lastDk=dk;const sep=document.createElement('div');sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';sep.textContent=localDateFromStr(dk).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});card.appendChild(sep);}
-    let badge=localDateFromStr(dk).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-    if(e.start.dateTime&&e.end?.dateTime){const _s=e.start.dateTime.slice(0,10),_e=e.end.dateTime.slice(0,10);if(_e!==_s)badge=localDateFromStr(_s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+localDateFromStr(_e).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-    const subParts=[tl,cn].filter(Boolean);
-    const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
-    row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" style="white-space:normal;word-break:break-word">${e.summary}</div>${subParts.length?`<div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${subParts.join(' \xb7 ')}</div>`:''}</div>`;
-    if(e.location)row.querySelector('.ci-body').innerHTML+=`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`;
-    card.appendChild(row);
+    const dk=e.start.date||e.start.dateTime?.slice(0,10)||'';
+    if(dk!==lastDk){
+      lastDk=dk;
+      const sep=document.createElement('div');
+      sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
+      sep.textContent=localDateFromStr(dk).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
+      card.appendChild(sep);
+    }
+    card.appendChild(renderCalEventRow(e));
   });
   container.appendChild(card);
 }
@@ -1089,47 +1163,38 @@ function renderNeedsAttention(container,tasks,listId,newlyAdded){
 }
 
 function renderFutureTasksSection(container,tasks,listId,shownIds){
+  // Undated tasks: 3 oldest + 3 random (deduped)
   const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
   const sorted=[...undated].sort((a,b)=>new Date(a.updated||0)-new Date(b.updated||0));
   const oldest=sorted.slice(0,3);
   const pool=sorted.slice(3).sort(()=>Math.random()-0.5).slice(0,3);
   const shownUndated=[...oldest,...pool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
-  // Future dated tasks — shown when undated list has fewer than 3, or as a second section
+
+  // Future dated tasks: 3 random from beyond 7-day window, not already shown
   const futureDated=tasks.filter(t=>{
     if(!t.due||t.status==='completed'||(shownIds&&shownIds.has(t.id)))return false;
     return localDateFromStr(t.due.split('T')[0])>=localMidnight(7);
   }).sort(()=>Math.random()-0.5).slice(0,3);
 
-  // Show undated section
-  if(shownUndated.length){
-    const card=document.createElement('div');card.className='ci-card';
-    card.innerHTML=`<div class="ci-lbl">🗂 Old undated tasks <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">3 oldest · 3 random</span></div>`;
-    let fi=0;
-    shownUndated.forEach(t=>{
-      const isO=oldest.includes(t);const fid='ft-'+fi++;
-      const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
-      const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div><div class="ci-sub">${isO?'oldest':'random'}${t.notes?' · '+t.notes:''}</div></div><button class="diff-exclude" onclick="toggleTaskEdit('${fid}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${fid}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${fid}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${fid}" value="" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${fid}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${fid}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
-      card.appendChild(wrap);
-    });
-    container.appendChild(card);
-  }
+  const combined=[...shownUndated,...futureDated];
+  if(!combined.length)return;
 
-  // Show future dated section separately
-  if(futureDated.length){
-    const card2=document.createElement('div');card2.className='ci-card';
-    card2.innerHTML=`<div class="ci-lbl">🗂 Future tasks — still relevant? <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">3 random from upcoming</span></div>`;
-    let fi2=shownUndated.length;
-    futureDated.forEach(t=>{
-      const fid='ft-'+fi2++;
-      const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
-      const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-      const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="ci-row" id="${fid}"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${fid}">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><button class="diff-exclude" onclick="toggleTaskEdit('${fid}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right">${df?`<span style="font-size:10px;color:var(--text-dimmer)">${df}</span>`:''}</div></div><div class="ta-row" id="ta-${fid}"><button class="ta ta-done" onclick="ciDone('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still relevant ▾</button><button class="ta ta-skip" onclick="ciSkip('${fid}','ta-${fid}','${slId}','${t.id}','${listId}')">Remove</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${fid}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${fid}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${fid}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${fid}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${fid}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
-      card2.appendChild(wrap);
-    });
-    container.appendChild(card2);
-  }
+  const card=document.createElement('div');card.className='ci-card';
+  card.innerHTML='<div class="ci-lbl">\ud83d\uddc2 Older tasks <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">undated + upcoming</span></div>';
+
+  let fi=0;
+  combined.forEach(t=>{
+    const isO=oldest.includes(t);
+    const isFuture=futureDated.includes(t);
+    const fid='ft-'+fi++;
+    const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
+    const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+    const tag=isFuture?df:(isO?'oldest':'random');
+    const wrap=document.createElement('div');
+    wrap.innerHTML='<div class="ci-row" id="'+fid+'"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+fid+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'<div class="ci-sub">'+tag+'</div>')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>'+(df&&isFuture?'<div class="badge-right"><span style="font-size:10px;color:var(--text-dimmer)">'+df+'</span></div>':'')+'</div><div class="ta-row" id="ta-'+fid+'"><button class="ta ta-done" onclick="ciDone(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still relevant \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Remove</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+fid+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+fid+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+fid+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+fid+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
+    card.appendChild(wrap);
+  });
+  container.appendChild(card);
 }
 
 // ─────────────────────────────────────────────────
@@ -1137,89 +1202,21 @@ function renderFutureTasksSection(container,tasks,listId,shownIds){
 function buildCheckin(cal,tasks,listId){
   const container=document.getElementById('ciCards');
   container.innerHTML='';
-  let taskIdx=0;
 
-  // Helper: render a single interactive task row (overdue or upcoming)
-  function renderTaskRow(t,isOv){
-    const id='na-'+taskIdx++;
+  function renderTaskRow(card,t,isOv){
+    const id='na-'+(taskIdx++);
     const ddId='nadd-'+id,slId='nasl-'+id,cpId='nacp-'+id,ciId='naci-'+id;
     const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
-    const t0=localMidnight(0);const t1=localMidnight(1);
+    const t0=localMidnight(0),t1=localMidnight(1);
     const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
     const badgeLbl=isOv?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':dueFmt;
     const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="ci-row" id="${id}"><div class="ci-icon ${isOv?'ic-red':'ic-orange'}"><i class="ti ${isOv?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge ${isOv?'cb-red':'cb-orange'}">${badgeLbl}</span>${dueFmt&&!isOv?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}</div></div><div class="ta-row" id="ta-${id}"><button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button><button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${id}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${id}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
-    return wrap;
+    wrap.innerHTML='<div class="ci-row" id="'+id+'"><div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+id+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+id+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span>'+(dueFmt&&!isOv?'<span style="font-size:10px;color:var(--text-dimmer)">'+dueFmt+'</span>':'')+'</div></div><div class="ta-row" id="ta-'+id+'"><button class="ta ta-done" onclick="ciDone(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still on it \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Not doing it</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+id+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+id+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+id+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+id+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+id+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
+    card.appendChild(wrap);
   }
 
-  const t0=localMidnight(0);
-  const t0s=localDateStr(t0);
-
-  // 1. OVERDUE — always first
-  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0)
-    .sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]));
-  if(overdue.length){
-    const card=document.createElement('div');card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">🔴 Overdue</div>';
-    overdue.forEach(t=>card.appendChild(renderTaskRow(t,true)));
-    container.appendChild(card);
-  }
-
-  // 2. DAY-BY-DAY: today through +7 days — cal events + tasks together
-  const shownIds=new Set(overdue.map(t=>t.id));
-  for(let d=0;d<7;d++){
-    const dk=localDateStr(localMidnight(d));
-    const dayDate=localDateFromStr(dk);
-    const isToday=d===0;
-    const dayLabel=isToday
-      ?'📅 Today — '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})
-      :'📅 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-
-    // Cal events for this day (all-day AND timed spanning)
-    const dayCal=cal.filter(e=>{
-      const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
-      if(s===dk)return true;
-      // All-day multi-day spanning
-      if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;
-      // Timed multi-day spanning
-      if(e.start.dateTime&&e.end?.dateTime){
-        const evS=e.start.dateTime.slice(0,10);
-        const evE=e.end.dateTime.slice(0,10);
-        return evS<dk&&evE>=dk;
-      }
-      return false;
-    });
-
-    // Tasks due this day (not already shown as overdue)
-    const dayTasks=tasks.filter(t=>{
-      if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;
-      return t.due.split('T')[0]===dk;
-    });
-    dayTasks.forEach(t=>shownIds.add(t.id));
-
-    if(!dayCal.length&&!dayTasks.length)continue;
-
-    const card=document.createElement('div');card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
-
-    // Calendar events
-    dayCal.forEach(e=>{
-      const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
-      const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-      let badge=tl;
-      if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-      const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
-      row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${[badge,cn].filter(Boolean).join(' · ')}</div>${e.location?`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div>`;
-      card.appendChild(row);
-    });
-
-    // Tasks for this day (interactive)
-    dayTasks.forEach(t=>card.appendChild(renderTaskRow(t,false)));
-
-    container.appendChild(card);
-  }
-
-  // 3. FUTURE / UNDATED tasks at bottom
+  let taskIdx=0;
+  const shownIds=renderDayByDay(container,cal,tasks,renderTaskRow);
   renderFutureTasksSection(container,tasks,listId,shownIds);
 
   document.getElementById('checkin').classList.add('on');
@@ -1302,129 +1299,46 @@ async function saveTaskEdit(id,taskId,listId){
 }
 
 async function saveCiAndSummary(){
-  // Count how many dates were set
   let updated=0;
-  document.querySelectorAll('.date-set.show').forEach(sl=>{
-    if(sl.textContent.includes('saved'))updated++;
-  });
+  document.querySelectorAll('.date-set.show').forEach(sl=>{if(sl.textContent.includes('saved'))updated++;});
 
-  // Hide checkin, show summary
   document.getElementById('checkin').classList.remove('on');
   document.getElementById('checkin').style.display='';
 
   const container=document.getElementById('ciSummaryCards');
   container.innerHTML='';
 
-  // Refetch tasks and calendar
   const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
   const tasks=tr.tasks||[];
 
-  const t0=localMidnight(0);
-  const t1=localMidnight(1);
-  const t0s=localDateStr(t0);
-  const t1s=localDateStr(t1);
-  const dow=new Date().getDay();
-  const daysToSun=dow===0?7:7-dow;
-  const endOfWeek=localMidnight(daysToSun);
-
-  // Updated count badge
   if(updated>0){
     const upd=document.createElement('div');
     upd.style.cssText='background:rgba(22,163,74,0.1);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--green)';
-    upd.textContent='✓ '+updated+' task'+(updated>1?'s':'')+' updated';
+    upd.textContent='\u2713 '+updated+' task'+(updated>1?'s':'')+' updated';
     container.appendChild(upd);
   }
 
-  // Overdue tasks — always at top (these are late, not date-specific going forward)
-  const overdueTasks=tasks.filter(t=>{
-    if(!t.due||t.status==='completed')return false;
-    return localDateFromStr(t.due.split('T')[0])<t0;
-  });
-  if(overdueTasks.length){
-    const card=document.createElement('div');card.className='ci-card';
-    card.style.borderLeftColor='var(--red)';
-    card.innerHTML='<div class="ci-lbl">🔴 Still overdue</div>';
-    overdueTasks.forEach(t=>{
-      const row=document.createElement('div');row.className='ci-row';
-      row.innerHTML=`<div class="ci-icon" style="background:rgba(220,38,38,0.1);color:var(--red)"><i class="ti ti-alert-circle" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div></div>`;
-      card.appendChild(row);
-    });
-    container.appendChild(card);
+  // Read-only task row for summary
+  function sumRow(card,t,isOv){
+    const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
+    const t0=localMidnight(0),t1=localMidnight(1);
+    const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+    const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
+    const row=document.createElement('div');row.className='ci-row';
+    row.innerHTML='<div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-check')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div>';
+    card.appendChild(row);
   }
 
-  // Build day-by-day sections — interleave calendar + tasks for each day
-  // Days to show: today through end of this week
-  const dayKeys=[];
-  for(let d=0;d<=daysToSun;d++){
-    dayKeys.push(localDateStr(localMidnight(d)));
-  }
+  const shownIds=renderDayByDay(container,cal,tasks,sumRow);
 
-  dayKeys.forEach(dk=>{
-    const dayDate=localDateFromStr(dk);
-    const isToday=dk===t0s;
-    const isTomorrow=dk===t1s;
-    const dayLabel=isToday?'📅 Today — '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):
-      isTomorrow?'📅 Tomorrow — '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):
-      '📅 '+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-
-    // Cal events for this day
-    const dayCal=cal.filter(e=>{
-      const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
-      if(s===dk)return true;
-      // Multi-day spanning
-      if(!e.start.dateTime&&e.start.date&&e.end?.date){
-        return e.start.date<=dk&&e.end.date>dk;
-      }
-      return false;
-    });
-
-    // Tasks due this day
-    const dayTasks=tasks.filter(t=>{
-      if(!t.due||t.status==='completed')return false;
-      return t.due.split('T')[0]===dk;
-    });
-
-    if(!dayCal.length&&!dayTasks.length)return;
-
-    const card=document.createElement('div');card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
-
-    // Calendar events first
-    dayCal.forEach(e=>{
-      const cc=e.calendar_color||'#6b7280';
-      const cn=e.calendar_name||'';
-      const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-      let badge=tl;
-      if(e.start.date&&e.end?.date){
-        const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);
-        ed.setDate(ed.getDate()-1);
-        if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' – '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});
-      }
-      const subParts=[tl,cn].filter(Boolean);
-      const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
-      row.innerHTML=`<div class="ci-icon" style="background:${cc}22;color:${cc};margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${e.summary}</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:${cc}"></span>${[badge,cn].filter(Boolean).join(' · ')}</div>${e.location?`<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>${e.location}</span></div>`:''}</div>`;
-      card.appendChild(row);
-    });
-
-    // Tasks for this day
-    dayTasks.forEach(t=>{
-      const row=document.createElement('div');row.className='ci-row';
-      row.innerHTML=`<div class="ci-icon" style="background:rgba(37,99,235,0.1);color:var(--blue)"><i class="ti ti-check" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">${t.title}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div>`;
-      card.appendChild(row);
-    });
-
-    container.appendChild(card);
-  });
-
-  // All-clear message
-  if(!overdueTasks.length&&container.querySelectorAll('.ci-card').length===0){
+  // All-clear
+  if(!container.querySelector('.ci-card')){
     const all=document.createElement('div');
     all.style.cssText='text-align:center;padding:30px 20px;color:var(--text-dimmer);font-size:14px';
-    all.textContent='All clear — nothing urgent right now.';
+    all.textContent='All clear \u2014 nothing urgent right now.';
     container.appendChild(all);
   }
 
-  // Mode shortcuts below content
   const _sumSc=document.getElementById('ciSummary').querySelector('.summary-shortcuts');
   if(!_sumSc){
     const _sc=document.createElement('div');
@@ -1588,7 +1502,8 @@ async function buildQuickReview(result,listId,tasks,cal){
 
   function makeQDateChips(rowKey,sugDue){
     const chips=[];
-    ['today','tomorrow','this_week','next_week','this_month','next_month','none'].forEach(k=>{
+    ['today','tomorrow','this_week','next_week','this_month','next_month','pick','none'].forEach(k=>{
+      if(k==='pick'){const sp2=document.createElement('span');sp2.className='ntd';sp2.dataset.key='pick';sp2.textContent='\ud83d\udcc5 Pick';sp2.addEventListener('click',()=>showQuickDatePicker(rowKey));chips.push(sp2);return;}
       const lbl=k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1);
       const sp=document.createElement('span');
       sp.className='ntd'+(k===sugDue?' sel':'');
@@ -1788,47 +1703,10 @@ async function buildQuickReview(result,listId,tasks,cal){
     container.appendChild(ec);
   }
 
-  // FULL CHECK-IN VIEW BELOW — overdue → day by day → future/undated
-  // Use a sub-container so it's visually separated
+  // FULL CHECK-IN VIEW BELOW — uses shared renderDayByDay
   const ciSection=document.createElement('div');
   ciSection.style.cssText='margin-top:4px';
-
-  // Overdue
-  const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<localMidnight(0))
-    .sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]));
-  const shownIds=new Set();
-  if(overdue.length){
-    const card=document.createElement('div');card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">\ud83d\udd34 Overdue</div>';
-    overdue.forEach(t=>{shownIds.add(t.id);renderNeedsAttentionRow(card,t,true,listId,'qci');});
-    ciSection.appendChild(card);
-  }
-
-  // Day by day
-  for(let d=0;d<7;d++){
-    const dk=localDateStr(localMidnight(d));
-    const dayDate=localDateFromStr(dk);
-    const isToday=d===0;
-    const dayLabel=(isToday?'\ud83d\udcc5 Today \u2014 ':'\ud83d\udcc5 ')+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-    const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;if(e.start.dateTime&&e.end?.dateTime){const evS=e.start.dateTime.slice(0,10);const evE=e.end.dateTime.slice(0,10);return evS<dk&&evE>=dk;}return false;});
-    const dayTasks=tasks.filter(t=>{if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;return t.due.split('T')[0]===dk;});
-    dayTasks.forEach(t=>shownIds.add(t.id));
-    if(!dayCal.length&&!dayTasks.length)continue;
-    const card=document.createElement('div');card.className='ci-card';
-    card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
-    dayCal.forEach(e=>{
-      const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
-      const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-      let badge=tl;
-      if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-      const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
-      row.innerHTML='<div class="ci-icon" style="background:'+cc+'22;color:'+cc+';margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+e.summary+'</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:'+cc+'"></span>'+[badge,cn].filter(Boolean).join(' \xb7 ')+'</div></div>';
-      card.appendChild(row);
-    });
-    dayTasks.forEach(t=>renderNeedsAttentionRow(card,t,false,listId,'qci'));
-    ciSection.appendChild(card);
-  }
-
+  const shownIds=renderDayByDay(ciSection,cal,tasks,(card,t,isOv)=>renderNeedsAttentionRow(card,t,isOv,listId,'qci'));
   renderFutureTasksSection(ciSection,tasks,listId,shownIds);
   container.appendChild(ciSection);
 
@@ -2206,7 +2084,7 @@ function confirmPicker(id){
 
 async function saveAndDone(){
   const btn=document.querySelector('.abtn-save');
-  btn.disabled=true;btn.textContent='Saving...';
+  if(mode!=='quick'){btn.disabled=true;btn.textContent='Saving...';}
 
   if(mode==='quick'){
     // Tasks already created/updated on review page — just show summary
@@ -2281,7 +2159,7 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
   container.innerHTML='';
 
   const bar=document.getElementById('modeShortcutsBar');
-  if(bar)bar.innerHTML=modeShortcutsHTML();
+  if(bar)bar.innerHTML='';
 
   // Stats + AI summary at top
   const summaryParts=[];
@@ -2293,18 +2171,29 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
     const topCard=document.createElement('div');
     topCard.className='ci-card';
     topCard.style.borderLeftColor='var(--green)';
-    let inner='';
-    if(summaryParts.length)inner+='<div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:'+(aiResult?.meta?'6px':'0')+'">'+summaryParts.join(' \u00b7 ')+'</div>';
-    if(aiResult?.meta)inner+='<div style="font-size:12px;color:var(--text-dim)">'+aiResult.meta+'</div>';
-    topCard.innerHTML=inner;
+    topCard.style.padding='12px 14px';
+    if(summaryParts.length){
+      const statsLine=document.createElement('div');
+      statsLine.style.cssText='font-size:14px;font-weight:600;color:var(--green)'+(aiResult?.meta?';margin-bottom:6px':'');
+      statsLine.textContent=summaryParts.join(' \u00b7 ');
+      topCard.appendChild(statsLine);
+    }
+    if(aiResult?.meta){
+      const metaLine=document.createElement('div');
+      metaLine.style.cssText='font-size:12px;color:var(--text-dim)';
+      metaLine.textContent=aiResult.meta;
+      topCard.appendChild(metaLine);
+    }
     container.appendChild(topCard);
   }
 
-  // First move
+  // First move — same style as check-in summary
   if(aiResult?.first_move?.action){
     const fm=document.createElement('div');
     fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-bottom:4px;border-radius:0 8px 8px 0';
-    fm.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div><div style="font-size:14px;font-weight:500;color:var(--text)">'+aiResult.first_move.action+'</div>'+(aiResult.first_move.why?'<div style="font-size:12px;color:var(--text-dim);margin-top:3px">'+aiResult.first_move.why+'</div>':'');
+    fm.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div>'+
+      '<div style="font-size:14px;font-weight:500;color:var(--text)">'+aiResult.first_move.action+'</div>'+
+      (aiResult.first_move.why?'<div style="font-size:12px;color:var(--text-dim);margin-top:3px">'+aiResult.first_move.why+'</div>':'');
     container.appendChild(fm);
   }
 
@@ -2314,62 +2203,34 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
     stopLoad();document.getElementById('loading').classList.remove('on');
     const{listId,tasks}=tr;taskListId=listId;
 
-    // Read-only summary row helper
-    let sumIdx=0;
-    function sumRow(t,isOv){
-      const id='qs-'+(sumIdx++);
+    // Read-only summary row
+    function sumRow(card,t,isOv){
       const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
       const t0=localMidnight(0),t1=localMidnight(1);
       const isNew=newlyAdded&&newlyAdded.has(t.title);
       const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
       const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
-      const wrap=document.createElement('div');
-      wrap.innerHTML='<div class="ci-row"><div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+(isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':'')+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div></div>';
-      return wrap;
+      const row=document.createElement('div');row.className='ci-row';
+      row.innerHTML='<div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+(isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':'')+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div>';
+      card.appendChild(row);
     }
 
-    const t0=localMidnight(0);
-    const overdue=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0);
-    if(overdue.length){
-      const card=document.createElement('div');card.className='ci-card';
-      card.innerHTML='<div class="ci-lbl">\ud83d\udd34 Overdue</div>';
-      overdue.forEach(t=>card.appendChild(sumRow(t,true)));
-      container.appendChild(card);
-    }
-    const shownIds=new Set(overdue.map(t=>t.id));
-    for(let d=0;d<7;d++){
-      const dk=localDateStr(localMidnight(d));
-      const dayDate=localDateFromStr(dk);
-      const isToday=d===0;
-      const dayLabel=(isToday?'\ud83d\udcc5 Today \u2014 ':'\ud83d\udcc5 ')+dayDate.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-      const dayCal=cal.filter(e=>{const s=e.start.date||e.start.dateTime?.slice(0,10)||'';if(s===dk)return true;if(!e.start.dateTime&&e.start.date&&e.end?.date)return e.start.date<=dk&&e.end.date>dk;return false;});
-      const dayTasks=tasks.filter(t=>{if(!t.due||t.status==='completed'||shownIds.has(t.id))return false;return t.due.split('T')[0]===dk;});
-      dayTasks.forEach(t=>shownIds.add(t.id));
-      if(!dayCal.length&&!dayTasks.length)continue;
-      const card=document.createElement('div');card.className='ci-card';
-      card.innerHTML='<div class="ci-lbl">'+dayLabel+'</div>';
-      dayCal.forEach(e=>{
-        const cc=e.calendar_color||'#6b7280',cn=e.calendar_name||'';
-        const tl=e.start.dateTime?new Date(e.start.dateTime).toLocaleTimeString('en-CA',{hour:'2-digit',minute:'2-digit'}):'all day';
-        let badge=tl;
-        if(e.start.date&&e.end?.date){const sd=localDateFromStr(e.start.date),ed=localDateFromStr(e.end.date);ed.setDate(ed.getDate()-1);if(ed>sd)badge=localDateFromStr(e.start.date).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+' \u2013 '+ed.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-        const row=document.createElement('div');row.className='ci-row';row.style.alignItems='flex-start';
-        row.innerHTML='<div class="ci-icon" style="background:'+cc+'22;color:'+cc+';margin-top:2px"><i class="ti ti-calendar-event" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+e.summary+'</div><div class="ci-sub loc-line"><span class="cal-dot" style="background:'+cc+'"></span>'+[badge,cn].filter(Boolean).join(' \xb7 ')+'</div>'+(e.location?'<div class="ci-sub loc-line"><i class="ti ti-map-pin loc-pin" aria-hidden="true"></i><span>'+e.location+'</span></div>':'')+'</div>';
-        card.appendChild(row);
-      });
-      dayTasks.forEach(t=>card.appendChild(sumRow(t,false)));
-      container.appendChild(card);
-    }
+    renderDayByDay(container,cal,tasks,sumRow);
   }catch(err){
     stopLoad();document.getElementById('loading').classList.remove('on');
     console.error('renderQuickSummary:',err);
   }
 
+  // Mode shortcuts at bottom, centred
+  const sc=document.createElement('div');
+  sc.style.cssText='margin-top:20px';
+  sc.innerHTML=modeShortcutsHTML();
+  container.appendChild(sc);
+
   document.getElementById('checkin').classList.add('on');
   setModeBar('checkinModeBar','quick');
   window.scrollTo({top:0,behavior:'smooth'});
 }
-
 
 function renderFinal(r,tasksAdded,docOk){
   document.getElementById('review').classList.remove('on');
