@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.0</title>
+<title>Brain Dump v1.3.2</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.0</div>
+  <div class="version-tag">v1.3.2</div>
 </div>
 
 <!-- SETUP -->
@@ -386,21 +386,16 @@ textarea::placeholder { color:var(--text-dimmer); }
     <div class="field">
       <label class="field-label">Model selection</label>
       <div style="margin-top:4px">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-          <div>
-            <div class="field-hint" style="margin-bottom:4px">Quick dump</div>
-            <select id="modelQuick" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
-              <option value="claude-haiku-4-5-20251001">Haiku 4.5 — cheaper</option>
-              <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanced</option>
-            </select>
-          </div>
-          <div>
-            <div class="field-hint" style="margin-bottom:4px">Full dump &amp; annual</div>
-            <select id="modelFull" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
-              <option value="claude-haiku-4-5-20251001">Haiku 4.5 — cheaper</option>
-              <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanced</option>
-            </select>
-          </div>
+        <div style="margin-bottom:8px">
+          <div class="field-hint" style="margin-bottom:4px">Quick dump — always Haiku (fast &amp; efficient)</div>
+          <div style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:13px;color:var(--text-dimmer)">claude-haiku-4-5-20251001 — locked</div>
+        </div>
+        <div style="margin-bottom:8px">
+          <div class="field-hint" style="margin-bottom:4px">Full dump &amp; annual</div>
+          <select id="modelFull" style="width:100%;background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-family:inherit;font-size:13px;outline:none">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 — cheaper</option>
+            <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanced</option>
+          </select>
         </div>
         <button onclick="checkBestModels()" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:8px;padding:8px 14px;font-size:12px;color:var(--text-dim);cursor:pointer;font-family:inherit;width:100%">🔍 Check for better models</button>
         <div id="modelSuggestion" style="font-size:12px;color:var(--text-dim);margin-top:8px;line-height:1.5;display:none"></div>
@@ -554,7 +549,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.0';
+const VERSION='1.3.2';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -751,11 +746,8 @@ function showSetup(){
   document.getElementById('inApiKey').value=CFG.apiKey||'';
   document.getElementById('inClientId').value=CFG.clientId||'';
   document.getElementById('inDocId').value=CFG.docId||'';
-  const mq=localStorage.getItem('bd_model_quick')||'claude-haiku-4-5-20251001';
   const mf=localStorage.getItem('bd_model_full')||'claude-sonnet-4-6';
-  const mqEl=document.getElementById('modelQuick');
   const mfEl=document.getElementById('modelFull');
-  if(mqEl)mqEl.value=mq;
   if(mfEl)mfEl.value=mf;
   // Always read fresh from localStorage
 
@@ -875,9 +867,7 @@ function saveSetup(){
   if(d.length<20){e.textContent='Doc ID looks too short — copy the full string from the URL';e.classList.add('on');return;}
   localStorage.setItem('bd_api_key',k);localStorage.setItem('bd_client_id',c);localStorage.setItem('bd_doc_id',d);
   CFG={apiKey:k,clientId:c,docId:d};
-  const mq=document.getElementById('modelQuick')?.value||'claude-haiku-4-5-20251001';
   const mf=document.getElementById('modelFull')?.value||'claude-sonnet-4-6';
-  localStorage.setItem('bd_model_quick',mq);
   localStorage.setItem('bd_model_full',mf);
   // Hide any active screens before going to main
   ['checkin','review','output','ciSummary'].forEach(id=>{
@@ -1470,32 +1460,34 @@ async function processDump(extraContext){
     const L=getDateLabels();
 
     // Quick dump: task capture only — no thought analysis
-    const quickSys=`You are a task capture assistant. Extract clear tasks from the input and check against existing tasks.
+    const quickSys=`You are a task capture assistant. Extract tasks and list items from the input.
 
 Today: ${today}.
 Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
 
-Existing tasks:
+Existing tasks (main to-do list only):
 ${tasksSummary}
 
 RULES:
-- Extract all concrete tasks from the input.
-- For EVERY new task, suggest a due date based on urgency cues. Default to "none" only if truly no urgency.
-- If a new task is very similar to an existing task, include it in items AND set duplicate_of to the matching existing task title. Do not put it in existing_tasks_to_surface.
-- existing_tasks_to_surface: existing tasks relevant to this dump's topics that are NOT duplicates, max 3.
+- TASKS: actions you DO — book appointment, call someone, research something, fix something, schedule something.
+- LIST ITEMS: physical things to GET or BUY at a specific place — "get X from Y", "pick up X", "buy X at Y". These go in list_items, NOT items.
+- For EVERY task, suggest a due date based on urgency. Default to "none" only if truly no urgency.
+- If a new task is very similar to an existing task, set duplicate_of to the matching existing task title.
+- existing_tasks_to_surface: existing TASKS relevant to this dump's topics that are NOT duplicates, max 3. Do NOT include list items here.
 - No analysis, no commentary.
 
 Respond ONLY with valid JSON:
 {
   "mode":"quick",
-  "meta":"one sentence listing tasks captured",
+  "meta":"one sentence listing what was captured",
   "items":{"urgent":[],"soon":[],"someday":[]},
+  "list_items":[],
   "existing_tasks_to_surface":[],
   "first_move":{"action":"","why":""}
 }
-Each item: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none","duplicate_of":"exact title of existing task if suspected duplicate, else null"}`;
-
-const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
+Each item in items: {"text":"...","sub":"","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none","duplicate_of":"exact title of existing task if suspected duplicate, else null"}
+Each list_item: {"text":"...","store":"store or place name if mentioned, else null","suggested_list":"name of a logical project list e.g. Shopping, Camping, Sewing"}`
+    const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
 
 Today: ${today}.
 Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
@@ -1536,7 +1528,7 @@ overnight items also have "real": true/false`;
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':CFG.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:mode==='quick'?(localStorage.getItem('bd_model_quick')||'claude-haiku-4-5-20251001'):(localStorage.getItem('bd_model_full')||'claude-sonnet-4-6'),max_tokens:2500,system:sys,messages:[{role:'user',content:'Brain dump:\n\n'+dumpText}]})
+      body:JSON.stringify({model:mode==='quick'?'claude-haiku-4-5-20251001':(localStorage.getItem('bd_model_full')||'claude-sonnet-4-6'),max_tokens:2500,system:sys,messages:[{role:'user',content:'Brain dump:\n\n'+dumpText}]})
     });
     if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'API error');}
     const result=JSON.parse((await res.json()).content[0].text.replace(/```json|```/g,'').trim());
@@ -1733,13 +1725,13 @@ async function buildQuickReview(result,listId,tasks,cal){
     container.appendChild(nc);
   }
 
-  // EXISTING TASKS surfaced by AI
+  // EXISTING TASKS surfaced by AI — always styled as tasks (orange), never as list items
   const existing=result.existing_tasks_to_surface||[];
   if(existing.length){
     const ec=document.createElement('div');
-    ec.style.cssText='background:var(--surface);border:1px solid rgba(22,163,74,0.25);border-radius:12px;margin-bottom:12px;overflow:hidden';
+    ec.style.cssText='background:var(--surface);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden';
     const exHdr=document.createElement('div');
-    exHdr.style.cssText='padding:10px 14px;background:rgba(22,163,74,0.06);border-bottom:1px solid rgba(22,163,74,0.2);font-size:12px;font-weight:600;color:var(--green);display:flex;align-items:center;gap:6px';
+    exHdr.style.cssText='padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text-dim);display:flex;align-items:center;gap:6px';
     exHdr.innerHTML='<i class="ti ti-list-check" aria-hidden="true"></i> Already on your list';
     ec.appendChild(exHdr);
 
@@ -1756,7 +1748,7 @@ async function buildQuickReview(result,listId,tasks,cal){
       const mainRow=document.createElement('div');
       mainRow.className='ci-row';
       mainRow.id='qexmain-'+rowKey;
-      const exIcon=document.createElement('div');exIcon.className='ci-icon ic-green';exIcon.innerHTML='<i class="ti ti-list" aria-hidden="true"></i>';
+      const exIcon=document.createElement('div');exIcon.className='ci-icon ic-orange';exIcon.innerHTML='<i class="ti ti-list" aria-hidden="true"></i>';
       const exBody=document.createElement('div');exBody.className='ci-body';
       const exTitle=document.createElement('div');exTitle.className='ci-text';exTitle.id='qextitle-'+rowKey;exTitle.textContent=title;
       exBody.appendChild(exTitle);
