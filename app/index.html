@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.40</title>
+<title>Brain Dump v1.2.41</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.40</div>
+  <div class="version-tag">v1.2.41</div>
 </div>
 
 <!-- SETUP -->
@@ -535,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.40';
+const VERSION='1.2.41';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -591,8 +591,8 @@ function buildCiDateDD(ddId,slId,cpId,ciId,taskId,listId){
     <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Next week','${L.nextWeek}','next_week')"><i class="ti ti-calendar" style="font-size:14px" aria-hidden="true"></i>Next week<span class="dd-hint">${L.nextWeek}</span></div>
     <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','This month','${L.thisMonth}','this_month')"><i class="ti ti-calendar-month" style="font-size:14px" aria-hidden="true"></i>This month<span class="dd-hint">${L.thisMonth}</span></div>
     <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','Next month','${L.nextMonth}','next_month')"><i class="ti ti-calendar-month" style="font-size:14px" aria-hidden="true"></i>Next month<span class="dd-hint">${L.nextMonth}</span></div>
-    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','No date','','none')"><i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>No date</div>
     <div class="dd-opt dd-pick" onclick="showCiCustomDP('${ddId}','${cpId}')"><i class="ti ti-calendar-plus" style="font-size:14px" aria-hidden="true"></i>Pick a date...</div>
+    <div class="dd-opt" onclick="setCiDate('${ddId}','${slId}','No date','','none')"><i class="ti ti-x" style="font-size:14px" aria-hidden="true"></i>No date</div>
   </div>
   <div class="custom-dp" id="${cpId}"><input type="date" id="${ciId}"><button onclick="confirmCiDP('${cpId}','${slId}','${ciId}','${ddId}')">Set</button></div>
   <div class="date-set" id="${slId}"></div>`;
@@ -2154,6 +2154,7 @@ async function saveAndDone(){
 async function renderQuickSummary(stats,newlyAdded,aiResult){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
+  const ra=document.getElementById('reviewActions');if(ra)ra.style.display='none';
 
   const container=document.getElementById('ciCards');
   container.innerHTML='';
