@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.41</title>
+<title>Brain Dump v1.2.42</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.41</div>
+  <div class="version-tag">v1.2.42</div>
 </div>
 
 <!-- SETUP -->
@@ -520,7 +520,7 @@ textarea::placeholder { color:var(--text-dimmer); }
   </div>
   <div class="review-actions" id="reviewActions" style="display:none">
     <div class="action-bar">
-      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600;width:100%;justify-content:center"><i class="ti ti-arrow-right" style="font-size:16px" aria-hidden="true"></i> See summary</button>
+      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600;width:100%;justify-content:center"><i class="ti ti-check" style="font-size:16px" aria-hidden="true"></i> Save &amp; see summary</button>
     </div>
   </div>
   </div>
@@ -535,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.41';
+const VERSION='1.2.42';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -2087,7 +2087,9 @@ async function saveAndDone(){
   if(mode!=='quick'){btn.disabled=true;btn.textContent='Saving...';}
 
   if(mode==='quick'){
-    // Tasks already created/updated on review page — just show summary
+    btn.disabled=true;btn.textContent='Saving...';
+    // Ensure any new tasks not yet saved get saved now
+    // (tasks created on page load already have IDs; this catches edge cases)
     const newlyAdded=new Set(Object.keys(quickTaskIds).map(k=>{
       const tEl=document.getElementById('qtitle-'+k);
       return tEl?.textContent||'';
@@ -2156,7 +2158,8 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
   document.getElementById('dumpText').value='';
   const ra=document.getElementById('reviewActions');if(ra)ra.style.display='none';
 
-  const container=document.getElementById('ciCards');
+  // Use ciSummary div (same as check-in summary) so checkin div stays clean
+  const container=document.getElementById('ciSummaryCards');
   container.innerHTML='';
 
   const bar=document.getElementById('modeShortcutsBar');
@@ -2222,14 +2225,18 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
     console.error('renderQuickSummary:',err);
   }
 
-  // Mode shortcuts at bottom, centred
-  const sc=document.createElement('div');
-  sc.style.cssText='margin-top:20px';
-  sc.innerHTML=modeShortcutsHTML();
-  container.appendChild(sc);
+  // Bottom: mode shortcuts
+  const _sumSc=document.getElementById('ciSummary').querySelector('.summary-shortcuts');
+  if(!_sumSc){
+    const sc=document.createElement('div');
+    sc.className='summary-shortcuts';
+    sc.style.cssText='margin-top:20px';
+    sc.innerHTML=modeShortcutsHTML();
+    container.after(sc);
+  }
 
-  document.getElementById('checkin').classList.add('on');
-  setModeBar('checkinModeBar','quick');
+  document.getElementById('ciSummary').style.display='block';
+  setModeBar('ciSummaryModeBar','quick');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
