@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.2.42</title>
+<title>Brain Dump v1.2.43</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.2.42</div>
+  <div class="version-tag">v1.2.43</div>
 </div>
 
 <!-- SETUP -->
@@ -520,7 +520,7 @@ textarea::placeholder { color:var(--text-dimmer); }
   </div>
   <div class="review-actions" id="reviewActions" style="display:none">
     <div class="action-bar">
-      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600;width:100%;justify-content:center"><i class="ti ti-check" style="font-size:16px" aria-hidden="true"></i> Save &amp; see summary</button>
+      <button class="abtn abtn-save" onclick="saveAndDone()" style="background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600;width:100%;justify-content:center;flex-direction:row;gap:6px;align-items:center"><i class="ti ti-check" style="font-size:16px" aria-hidden="true"></i> Save &amp; see summary</button>
     </div>
   </div>
   </div>
@@ -535,7 +535,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.2.42';
+const VERSION='1.2.43';
 
 // Local timezone date helpers
 function localDateStr(d){
