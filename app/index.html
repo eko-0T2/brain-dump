@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.4</title>
+<title>Brain Dump v1.3.5</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.4</div>
+  <div class="version-tag">v1.3.5</div>
 </div>
 
 <!-- SETUP -->
@@ -549,7 +549,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.4';
+const VERSION='1.3.5';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1017,7 +1017,7 @@ async function fetchProjectLists(){
     if(!r.ok)return[];
     const data=await r.json();
     const roles=getListRoles();
-    return(data.items||[]).filter(l=>roles[l.id]==='list');
+    return(data.items||[]).filter(l=>roles[l.id]==='list'||roles[l.id]==='project');
   }catch(e){return[];}
 }
 async function addTask(lid,title,notes,due){
@@ -1505,30 +1505,33 @@ Week starts Monday. This week ends ${L.thisWeek.replace('by ','')}. Next week en
 Existing tasks (main to-do list):
 ${tasksSummary}
 
-Existing lists (not tasks — these are named lists for grouped items):
+Existing lists (these are named lists for grouped items, not tasks):
 ${listNamesSummary}
 
-EXTRACT EVERY SINGLE ITEM MENTIONED — nothing is too small or casual to capture.
-Put each item into exactly one of: tasks, list_items, or thoughts.
+EXTRACT EVERY SINGLE ITEM MENTIONED — nothing is too small or casual to capture. Every item goes into exactly one bucket.
 
 TASKS — actions to DO with a clear owner and endpoint:
 book, call, email, pay, schedule, research, fix (with deadline), follow up, arrange, register.
-- suggested_due: use urgency signals. "this_week", "next_week", "this_month", specific date, or "none" only if genuinely no urgency.
+- suggested_due: use urgency signals. Specific date if mentioned, else "this_week", "next_week", "this_month", "none" only if genuinely no urgency.
 - If nearly identical to an existing task, set duplicate_of to the matching task title.
+- Do NOT put sewing/crafting/hobby queue items here unless they have a specific deadline.
 
-LIST ITEMS — anything that belongs grouped with similar things on a named list:
-- Shopping/errands: "get milk", "pick up X at Y store"
-- Project/hobby queues: "shorten these pants" → Sewing, "print a grommet" → 3D printing, "fix this shirt" → Sewing
-- Match to closest existing list by name. If no list fits, suggest a new list name.
-- If a location/store is relevant include it in where, else leave blank.
-- If the right list is unclear set needs_clarification: true.
-- "fix/shorten/sew/alter [clothing item]" always goes to Sewing list, NOT tasks, unless it has a specific deadline.
+LIST ITEMS — anything that belongs grouped on a named list:
+- Shopping/errands: "get milk", "pick up X", "buy X at store Y"
+- Hobby queues: "shorten these pants" → Sewing, "print a grommet" → 3D printing, "fix this shirt" → Sewing
+- Match to the closest existing list by name. If no list fits, suggest a new list name.
+- If a store/location is relevant include it in where, else leave blank.
+- If the right list is genuinely unclear, set needs_clarification: true.
+- RULE: "fix/shorten/sew/alter [clothing]" → Sewing list unless it has a specific deadline.
+- RULE: if it could be a task OR list item, list item wins unless it has a deadline.
 
-THOUGHTS — not a task, not a list item. Worries, ideas, things to consider, no clear action yet.
+THOUGHTS — worries, ideas, vague things to consider with no clear action yet.
+- Capture anything that doesn't cleanly fit as a task or list item.
+- RULE: if it could be a task OR thought, thought wins if no clear action yet.
 
-RULE: if something could be a task OR list item, list item wins unless it has a deadline.
-RULE: if something could be a task OR thought, thought wins if no clear action yet.
-RULE: existing_tasks_to_surface — up to 3 existing TASKS (not list items) relevant to this dump. Do NOT surface items that are already in list_items.
+first_move: the single most important next action, plus why. Also include connections to existing tasks/lists and what could be batched or combined.
+
+existing_tasks_to_surface: up to 3 existing TASKS (not list items) relevant to this dump. Do NOT include items that belong on lists.
 
 Respond ONLY with valid JSON, no commentary:
 {
@@ -1541,7 +1544,7 @@ Respond ONLY with valid JSON, no commentary:
   "first_move":{"action":"","why":""}
 }
 tasks item: {"text":"...","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none","duplicate_of":null}
-list_item: {"text":"...","suggested_list":"exact name of matching list or new name","where":"store/place or blank","needs_clarification":false,"duplicate_of":null}
+list_item: {"text":"...","suggested_list":"exact name of matching list or suggested new name","where":"store/place or blank","needs_clarification":false,"duplicate_of":null}
 thought: {"text":"..."}`
     const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
 
@@ -1699,7 +1702,7 @@ async function buildQuickReview(result,listId,tasks,cal){
       wrap.dataset.listId=listId;
       wrap.dataset.itemType=aiType; // default from AI guess
 
-      // ── Header row ──
+      // ── Header row (title only, no side button) ──
       const row=document.createElement('div');
       row.className='ci-row';
       row.style.cssText='align-items:flex-start;padding:10px 14px';
@@ -1717,27 +1720,23 @@ async function buildQuickReview(result,listId,tasks,cal){
       titleEl.textContent=i.text;
       body.appendChild(titleEl);
       if(i.sub){const sub=document.createElement('div');sub.className='ci-sub';sub.textContent=i.sub;body.appendChild(sub);}
-      const delBtn=document.createElement('button');
-      delBtn.style.cssText='font-size:11px;color:var(--red);background:rgba(220,38,38,0.08);border:1px solid rgba(220,38,38,0.2);border-radius:6px;padding:3px 8px;cursor:pointer;font-family:inherit;flex-shrink:0;white-space:nowrap';
-      delBtn.textContent='Not a task';
-      delBtn.addEventListener('click',()=>deleteQuickTask(rowKey));
-      row.appendChild(icon);row.appendChild(body);row.appendChild(delBtn);
+      row.appendChild(icon);row.appendChild(body);
       wrap.appendChild(row);
 
-      // ── Type toggle: Task | List item ──
+      // ── Three-way toggle: Task | List item | Do nothing ──
       const toggleRow=document.createElement('div');
-      toggleRow.style.cssText='padding:6px 14px 6px 42px;background:var(--surface2);display:flex;align-items:center;gap:6px;border-bottom:1px solid var(--border)';
-      const taskBtn=document.createElement('button');
-      taskBtn.id='ttask-'+rowKey;
-      taskBtn.style.cssText=aiType==='task'?'font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-text);font-weight:600':'font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim)';
-      taskBtn.textContent='Task';
-      taskBtn.addEventListener('click',()=>setItemType(rowKey,'task'));
-      const listBtn=document.createElement('button');
-      listBtn.id='tlist-'+rowKey;
-      listBtn.style.cssText=aiType==='list'?'font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-text);font-weight:600':'font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim)';
-      listBtn.textContent='List item';
-      listBtn.addEventListener('click',()=>setItemType(rowKey,'list'));
-      toggleRow.appendChild(taskBtn);toggleRow.appendChild(listBtn);
+      toggleRow.style.cssText='padding:6px 14px 6px 42px;background:var(--surface2);display:flex;align-items:center;gap:4px;border-bottom:1px solid var(--border)';
+      const mkBtn=(label,type,isActive)=>{
+        const b=document.createElement('button');
+        b.id=(type==='task'?'ttask-':type==='list'?'tlist-':'tskip-')+rowKey;
+        b.style.cssText='font-size:11px;padding:4px 11px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid '+(isActive?(type==='skip'?'var(--red)':'var(--accent)'):'var(--border)')+';background:'+(isActive?(type==='skip'?'rgba(220,38,38,0.08)':'var(--accent)'):'var(--surface)')+';color:'+(isActive?(type==='skip'?'var(--red)':'var(--accent-text)'):'var(--text-dim)')+';font-weight:'+(isActive?'600':'400');
+        b.textContent=label;
+        b.addEventListener('click',()=>setItemType(rowKey,type));
+        return b;
+      };
+      toggleRow.appendChild(mkBtn('Task','task',aiType==='task'));
+      toggleRow.appendChild(mkBtn('List item','list',aiType==='list'));
+      toggleRow.appendChild(mkBtn('Do nothing','skip',false));
       wrap.appendChild(toggleRow);
 
       // Date chips — hidden if AI says list item
@@ -2005,24 +2004,25 @@ async function setItemType(rowKey,type){
   if(!wrap)return;
   wrap.dataset.itemType=type;
 
-  // Toggle button styles
-  const taskBtn=document.getElementById('ttask-'+rowKey);
-  const listBtn=document.getElementById('tlist-'+rowKey);
-  if(taskBtn&&listBtn){
-    if(type==='task'){
-      taskBtn.style.cssText='font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-text);font-weight:600';
-      listBtn.style.cssText='font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim)';
-    } else {
-      taskBtn.style.cssText='font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--border);background:var(--surface);color:var(--text-dim)';
-      listBtn.style.cssText='font-size:11px;padding:4px 12px;border-radius:6px;cursor:pointer;font-family:inherit;border:1.5px solid var(--accent);background:var(--accent);color:var(--accent-text);font-weight:600';
-    }
-  }
+  // Update all three button styles
+  ['task','list','skip'].forEach(t=>{
+    const id=(t==='task'?'ttask-':t==='list'?'tlist-':'tskip-')+rowKey;
+    const b=document.getElementById(id);
+    if(!b)return;
+    const isActive=t===type;
+    const isSkip=t==='skip';
+    b.style.border='1.5px solid '+(isActive?(isSkip?'var(--red)':'var(--accent)'):'var(--border)');
+    b.style.background=isActive?(isSkip?'rgba(220,38,38,0.08)':'var(--accent)'):'var(--surface)';
+    b.style.color=isActive?(isSkip?'var(--red)':'var(--accent-text)'):'var(--text-dim)';
+    b.style.fontWeight=isActive?'600':'400';
+  });
 
   // Icon
   const icon=document.getElementById('qicon-'+rowKey);
   if(icon){
-    icon.className='ci-icon '+(type==='task'?'ic-blue':'ic-teal');
-    icon.innerHTML=type==='task'?'<i class="ti ti-check" aria-hidden="true"></i>':'<i class="ti ti-list" aria-hidden="true"></i>';
+    if(type==='task'){icon.className='ci-icon ic-blue';icon.innerHTML='<i class="ti ti-check" aria-hidden="true"></i>';}
+    else if(type==='list'){icon.className='ci-icon ic-teal';icon.innerHTML='<i class="ti ti-list" aria-hidden="true"></i>';}
+    else{icon.className='ci-icon ic-gray';icon.innerHTML='<i class="ti ti-x" aria-hidden="true"></i>';}
   }
 
   // Show/hide date chips vs list picker
@@ -2030,13 +2030,12 @@ async function setItemType(rowKey,type){
   const hint=document.getElementById('qhint-'+rowKey);
   const picker=document.getElementById('qpicker-'+rowKey);
   const listPicker=document.getElementById('qlistpicker-'+rowKey);
-  const editRow=wrap.querySelector('[id^="qep-"]')?.previousSibling;
 
   if(type==='task'){
     if(datesDiv)datesDiv.style.display='flex';
     if(hint)hint.style.display='';
     if(listPicker)listPicker.style.display='none';
-  } else {
+  } else if(type==='list'){
     if(datesDiv)datesDiv.style.display='none';
     if(hint)hint.style.display='none';
     if(picker)picker.style.display='none';
@@ -2045,6 +2044,17 @@ async function setItemType(rowKey,type){
       const sg=listPicker.dataset.sugList||'';
       loadListPickerOptions(rowKey,sg);
     }
+  } else {
+    // skip — hide everything
+    if(datesDiv)datesDiv.style.display='none';
+    if(hint)hint.style.display='none';
+    if(picker)picker.style.display='none';
+    if(listPicker)listPicker.style.display='none';
+    // Delete the task that was auto-created on load
+    const taskId=wrap.dataset.taskId;
+    const listId=wrap.dataset.listId;
+    if(taskId&&listId)deleteTask(listId,taskId);
+    wrap.dataset.taskId=''; // clear so saveAndDone ignores it
   }
 }
 
@@ -2093,11 +2103,20 @@ async function promptNewList(rowKey){
   const name=prompt('New list name:');
   if(!name?.trim())return;
   const list=await createProjectList(name.trim());
-  if(list){
-    selectListForItem(rowKey,list.id,list.title,null);
-    // Reload options to include new list
-    loadListPickerOptions(rowKey);
+  if(!list)return;
+  // Immediately add the item to the new list
+  const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
+  const notes=document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
+  if(title){
+    await addTask(list.id,title,notes,'');
+    quickSummaryStats.added++;
+    // Mark as saved so saveAndDone skips it
+    const wrap=document.getElementById('qrow-'+rowKey);
+    if(wrap){wrap.dataset.selectedListId=list.id;wrap.dataset.selectedListName=list.title;wrap.dataset.alreadySaved='1';}
   }
+  selectListForItem(rowKey,list.id,list.title,null);
+  // Reload options to include new list
+  loadListPickerOptions(rowKey,'');
 }
 
 
@@ -2438,33 +2457,45 @@ async function saveAndDone(){
 
   if(mode==='quick'){
     btn.disabled=true;btn.textContent='Saving...';
-    // Save any list items that need to go to a list
-    // (tasks were already saved on page load; list items need to be moved)
+    // Save list items (delete from main list, add to selected list)
+    // Skip items already saved (e.g. new list creation)
+    // Skip items marked 'skip' (Do nothing)
     const listItemRows=document.querySelectorAll('[id^="qrow-"][data-item-type="list"]');
+    const listStats={}; // listName -> count
     await Promise.all(Array.from(listItemRows).map(async wrap=>{
       const rowKey=wrap.id.replace('qrow-','');
+      if(wrap.dataset.alreadySaved==='1')return; // already saved on new list creation
       const taskId=wrap.dataset.taskId;
       const mainListId=wrap.dataset.listId;
       const selectedListId=wrap.dataset.selectedListId;
+      const selectedListName=wrap.dataset.selectedListName||'list';
       const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
       const notes=document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
       if(!title)return;
-      // Delete from main list (was created there on page load)
       if(taskId&&mainListId)await deleteTask(mainListId,taskId);
-      // Add to selected list (if one was chosen)
       if(selectedListId&&title){
         await addTask(selectedListId,title,notes,'');
-        quickSummaryStats.added++;
+        listStats[selectedListName]=(listStats[selectedListName]||0)+1;
       }
     }));
-    const newlyAdded=new Set(Object.keys(quickTaskIds).map(k=>{
-      const wrap=document.getElementById('qrow-'+k);
-      if(wrap?.dataset.itemType==='list')return null; // handled above
-      const tEl=document.getElementById('qtitle-'+k);
-      return tEl?.textContent||'';
-    }).filter(Boolean));
+    // Also count already-saved list items (from promptNewList)
+    document.querySelectorAll('[id^="qrow-"][data-already-saved="1"]').forEach(wrap=>{
+      const n=wrap.dataset.selectedListName||'list';
+      listStats[n]=(listStats[n]||0)+1;
+    });
+    // Count tasks (items with type=task that have a taskId — were auto-created on load)
+    let taskCount=0;
+    document.querySelectorAll('[id^="qrow-"][data-item-type="task"]').forEach(wrap=>{
+      if(wrap.dataset.taskId)taskCount++;
+    });
+    const newlyAdded=new Set();
+    document.querySelectorAll('[id^="qrow-"][data-item-type="task"]').forEach(wrap=>{
+      const rowKey=wrap.id.replace('qrow-','');
+      const tEl=document.getElementById('qtitle-'+rowKey);
+      if(tEl)newlyAdded.add(tEl.textContent);
+    });
     btn.disabled=false;
-    await renderQuickSummary(quickSummaryStats,newlyAdded,currentResult);
+    await renderQuickSummary({taskCount,listStats,done:quickSummaryStats.done,replaced:quickSummaryStats.replaced},newlyAdded,currentResult);
     return;
   }
 
@@ -2527,56 +2558,70 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
   document.getElementById('dumpText').value='';
   const ra=document.getElementById('reviewActions');if(ra)ra.style.display='none';
 
-  // Use ciSummary div (same as check-in summary) so checkin div stays clean
   const container=document.getElementById('ciSummaryCards');
   container.innerHTML='';
-
   const bar=document.getElementById('modeShortcutsBar');
   if(bar)bar.innerHTML='';
 
-  // Stats + AI summary at top
-  const summaryParts=[];
-  if(stats.added>0)summaryParts.push(stats.added+' task'+(stats.added!==1?'s':'')+' added');
-  if(stats.replaced>0)summaryParts.push(stats.replaced+' replaced');
-  if(stats.done>0)summaryParts.push(stats.done+' marked done');
-
-  if(summaryParts.length||aiResult?.meta){
-    const topCard=document.createElement('div');
-    topCard.className='ci-card';
-    topCard.style.borderLeftColor='var(--green)';
-    topCard.style.padding='12px 14px';
-    if(summaryParts.length){
-      const statsLine=document.createElement('div');
-      statsLine.style.cssText='font-size:14px;font-weight:600;color:var(--green)'+(aiResult?.meta?';margin-bottom:6px':'');
-      statsLine.textContent=summaryParts.join(' \u00b7 ');
-      topCard.appendChild(statsLine);
-    }
-    if(aiResult?.meta){
-      const metaLine=document.createElement('div');
-      metaLine.style.cssText='font-size:12px;color:var(--text-dim)';
-      metaLine.textContent=aiResult.meta;
-      topCard.appendChild(metaLine);
-    }
-    container.appendChild(topCard);
+  // ── STATS CARD ──
+  const statsParts=[];
+  if(stats.taskCount>0)statsParts.push(stats.taskCount+' task'+(stats.taskCount!==1?'s':'')+' added');
+  if(stats.replaced>0)statsParts.push(stats.replaced+' replaced');
+  if(stats.done>0)statsParts.push(stats.done+' marked done');
+  if(stats.listStats&&Object.keys(stats.listStats).length){
+    Object.entries(stats.listStats).forEach(([name,count])=>{
+      statsParts.push(count+' item'+(count!==1?'s':'')+' added to '+name);
+    });
   }
 
-  // First move — same style as check-in summary
-  if(aiResult?.first_move?.action){
-    const fm=document.createElement('div');
-    fm.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-bottom:4px;border-radius:0 8px 8px 0';
-    fm.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">Your one first move</div>'+
-      '<div style="font-size:14px;font-weight:500;color:var(--text)">'+aiResult.first_move.action+'</div>'+
-      (aiResult.first_move.why?'<div style="font-size:12px;color:var(--text-dim);margin-top:3px">'+aiResult.first_move.why+'</div>':'');
-    container.appendChild(fm);
+  if(statsParts.length){
+    const statsCard=document.createElement('div');
+    statsCard.className='ci-card';
+    statsCard.style.borderLeftColor='var(--green)';
+    statsCard.style.padding='12px 14px';
+    const statsLine=document.createElement('div');
+    statsLine.style.cssText='font-size:14px;font-weight:600;color:var(--green)';
+    statsLine.textContent=statsParts.join(' \u00b7 ');
+    statsCard.appendChild(statsLine);
+    container.appendChild(statsCard);
   }
 
+  // ── AI SUMMARY CARD ──
+  if(aiResult?.meta||aiResult?.first_move?.action){
+    const aiCard=document.createElement('div');
+    aiCard.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-bottom:4px;border-radius:0 8px 8px 0';
+    if(aiResult.meta){
+      const metaEl=document.createElement('div');
+      metaEl.style.cssText='font-size:12px;color:var(--text-dim);margin-bottom:'+(aiResult.first_move?.action?'10px':'0');
+      metaEl.textContent=aiResult.meta;
+      aiCard.appendChild(metaEl);
+    }
+    if(aiResult.first_move?.action){
+      const fmLabel=document.createElement('div');
+      fmLabel.style.cssText='font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px';
+      fmLabel.textContent='Your one first move';
+      const fmText=document.createElement('div');
+      fmText.style.cssText='font-size:14px;font-weight:500;color:var(--text)';
+      fmText.textContent=aiResult.first_move.action;
+      aiCard.appendChild(fmLabel);
+      aiCard.appendChild(fmText);
+      if(aiResult.first_move.why){
+        const fmWhy=document.createElement('div');
+        fmWhy.style.cssText='font-size:12px;color:var(--text-dim);margin-top:3px';
+        fmWhy.textContent=aiResult.first_move.why;
+        aiCard.appendChild(fmWhy);
+      }
+    }
+    container.appendChild(aiCard);
+  }
+
+  // ── DAY-BY-DAY CALENDAR + TASKS ──
   startLoad();document.getElementById('loading').classList.add('on');
   try{
     const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
     stopLoad();document.getElementById('loading').classList.remove('on');
     const{listId,tasks}=tr;taskListId=listId;
 
-    // Read-only summary row
     function sumRow(card,t,isOv){
       const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
       const t0=localMidnight(0),t1=localMidnight(1);
@@ -2587,14 +2632,13 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
       row.innerHTML='<div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+(isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':'')+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div>';
       card.appendChild(row);
     }
-
     renderDayByDay(container,cal,tasks,sumRow);
   }catch(err){
     stopLoad();document.getElementById('loading').classList.remove('on');
     console.error('renderQuickSummary:',err);
   }
 
-  // Bottom: mode shortcuts
+  // ── SHORTCUTS AT BOTTOM ──
   const _sumSc=document.getElementById('ciSummary').querySelector('.summary-shortcuts');
   if(!_sumSc){
     const sc=document.createElement('div');
