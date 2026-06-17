@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.7</title>
+<title>Brain Dump v1.3.9</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.7</div>
+  <div class="version-tag">v1.3.9</div>
 </div>
 
 <!-- SETUP -->
@@ -549,7 +549,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.7';
+const VERSION='1.3.9';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -801,11 +801,6 @@ function getListRoles(){
   return JSON.parse(localStorage.getItem('bd_list_roles')||'{}');
 }
 
-function getListRole(listId){
-  const roles=getListRoles();
-  return roles[listId]||'project';
-}
-
 function setListRole(listId,role,isFirst){
   const roles=getListRoles();
   // Only one list can be 'main' — if setting this to main, demote any existing main
@@ -864,10 +859,6 @@ function toggleListVisible(listId,visible){
   localStorage.setItem('bd_list_roles',JSON.stringify(roles));
 }
 
-function applyListRole(listId,role){
-  setListRole(listId,role);
-  loadTaskListRoles();
-}
 function saveSetup(){
   const k=document.getElementById('inApiKey').value.trim();
   const c=document.getElementById('inClientId').value.trim();
@@ -931,11 +922,6 @@ function launchMode(m){
     }
   }
 }
-function backToModePicker(){
-  document.getElementById('modeDump').style.display='none';
-  document.getElementById('modePicker').style.display='block';
-}
-
 // GOOGLE APIs
 // Cache calendar metadata (id -> {name, color})
 let calendarMeta={};
@@ -1064,16 +1050,6 @@ async function deleteTask(lid,taskId){
   if(!lid||!taskId)return false;
   try{
     await fetch(`https://tasks.googleapis.com/tasks/v1/lists/${lid}/tasks/${taskId}`,{method:'DELETE',headers:{Authorization:'Bearer '+gToken}});
-    return true;
-  }catch(e){return false;}
-}
-async function appendDoc(content){
-  try{
-    const gr=await fetch(`https://docs.googleapis.com/v1/documents/${CFG.docId}`,{headers:{Authorization:'Bearer '+gToken}});
-    if(!gr.ok)throw new Error();
-    const doc=await gr.json();
-    const idx=doc.body.content[doc.body.content.length-1].endIndex-1;
-    await fetch(`https://docs.googleapis.com/v1/documents/${CFG.docId}:batchUpdate`,{method:'POST',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify({requests:[{insertText:{location:{index:idx},text:'\n'+content}}]})});
     return true;
   }catch(e){return false;}
 }
@@ -1338,73 +1314,6 @@ function renderDayByDay(container,cal,tasks,taskRowFn){
   return shownIds;
 }
 
-function renderCalToday(container,cal){
-  const ts=localDateStr(localMidnight(0));
-  const todayCal=calEventsForDay(cal,ts);
-  if(!todayCal.length)return;
-  const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML='<div class="ci-lbl">\ud83d\udcc5 Today \u2014 '+new Date().toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'})+'</div>';
-  todayCal.forEach(e=>card.appendChild(renderCalEventRow(e)));
-  container.appendChild(card);
-}
-
-function renderCalUpcoming(container,cal){
-  const ts=localDateStr(localMidnight(0));
-  const tomorrow=localDateStr(localMidnight(1));
-  const seen=new Set();
-  const up=cal.filter(e=>{
-    if(seen.has(e.id))return false;
-    const s=e.start.date||e.start.dateTime?.slice(0,10)||'';
-    if(s>=tomorrow){seen.add(e.id);return true;}
-    if(!e.start.dateTime&&e.start.date&&e.end?.date){if(e.end.date>tomorrow){seen.add(e.id);return true;}}
-    return false;
-  }).slice(0,10);
-  if(!up.length)return;
-  const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML='<div class="ci-lbl">\ud83d\udcc5 Coming up</div>';
-  let lastDk='';
-  up.forEach(e=>{
-    const dk=e.start.date||e.start.dateTime?.slice(0,10)||'';
-    if(dk!==lastDk){
-      lastDk=dk;
-      const sep=document.createElement('div');
-      sep.style.cssText='background:var(--surface2);padding:5px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';
-      sep.textContent=localDateFromStr(dk).toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'});
-      card.appendChild(sep);
-    }
-    card.appendChild(renderCalEventRow(e));
-  });
-  container.appendChild(card);
-}
-
-function renderNeedsAttention(container,tasks,listId,newlyAdded){
-  const t0=localMidnight(0);
-  const ew=localMidnight(7);
-  const ov=tasks.filter(t=>t.due&&t.status!=='completed'&&localDateFromStr(t.due.split('T')[0])<t0);
-  const tw=tasks.filter(t=>{if(!t.due||t.status==='completed')return false;const d=localDateFromStr(t.due.split('T')[0]);return d>=t0&&d<ew;});
-  const sorted=[...ov.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0])),...tw.sort((a,b)=>localDateFromStr(a.due.split('T')[0])-localDateFromStr(b.due.split('T')[0]))];
-  if(!sorted.length)return{overdue:ov,thisWeek:tw};
-  const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML='<div class="ci-lbl">📋 Needs attention</div>';
-  let lastGrp='';let idx=0;
-  sorted.forEach(t=>{
-    const isOv=ov.includes(t);
-    const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
-    const t1=localMidnight(1);
-    const grp=isOv?'Overdue':due&&localDateStr(due)===localDateStr(t0)?'Today':due&&localDateStr(due)===localDateStr(t1)?'Tomorrow':due?due.toLocaleDateString('en-CA',{weekday:'long',month:'short',day:'numeric'}):'';
-    if(grp!==lastGrp){lastGrp=grp;const sep=document.createElement('div');sep.style.cssText='background:var(--surface2);padding:4px 14px;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-dimmer);border-top:1px solid var(--border)';sep.textContent=grp;card.appendChild(sep);}
-    const id='na-'+idx++;const ddId='nadd-'+id,slId='nasl-'+id,cpId='nacp-'+id,ciId='naci-'+id;
-    const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-    const badgeLbl=isOv?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':dueFmt;
-    const isNew=newlyAdded&&newlyAdded.has(t.title);
-    const wrap=document.createElement('div');
-    wrap.innerHTML=`<div class="ci-row" id="${id}" ${isNew?'style="background:rgba(22,163,74,0.05)"':''}><div class="ci-icon ${isOv?'ic-red':'ic-orange'}"><i class="ti ${isOv?'ti-alert-circle':'ti-list'}" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-${id}">${t.title}${isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':''}</div>${t.notes?`<div class="ci-sub">${t.notes}</div>`:''}</div><button class="diff-exclude" onclick="toggleTaskEdit('${id}','${t.id}','${listId}')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge ${isOv?'cb-red':'cb-orange'}">${badgeLbl}</span>${dueFmt&&!isOv?`<span style="font-size:10px;color:var(--text-dimmer)">${dueFmt}</span>`:''}</div></div><div class="ta-row" id="ta-${id}"><button class="ta ta-done" onclick="ciDone('${id}','ta-${id}','${slId}','${t.id}','${listId}')">✓ Done</button><button class="ta ta-still" onclick="toggleDD('${ddId}')">Still on it ▾</button><button class="ta ta-skip" onclick="ciSkip('${id}','ta-${id}','${slId}','${t.id}','${listId}')">Not doing it</button>${buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)}</div><div class="edit-panel" id="ep-${id}" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-${id}" value="${t.title.replace(/"/g,'&quot;')}" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-${id}" value="${t.due?t.due.split('T')[0]:''}" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-${id}" class="edit-input" style="resize:none;min-height:44px">${t.notes||''}</textarea><button onclick="saveTaskEdit('${id}','${t.id}','${listId}')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">✓ Save changes</button></div>`;
-    card.appendChild(wrap);
-  });
-  container.appendChild(card);
-  return{overdue:ov,thisWeek:tw};
-}
-
 function renderFutureTasksSection(container,tasks,listId,shownIds){
   // Undated tasks: 3 oldest + 3 random (deduped)
   const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
@@ -1496,8 +1405,6 @@ async function updateTaskDue(listId,taskId,dueDate){
     return res.ok;
   }catch(e){console.error('Update task due:',e);return false;}
 }
-function selAsk(el){el.closest('.ask-again').querySelectorAll('.ask-chip').forEach(c=>c.classList.remove('sel'));el.classList.add('sel');}
-
 function toggleTaskEdit(id,taskId,listId){
   const ep=document.getElementById('ep-'+id);
   if(!ep)return;
@@ -1616,7 +1523,6 @@ async function processDump(extraContext){
   try{
     const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
     const{listId,tasks}=tr;taskListId=listId;
-    const calTxt=cal.length?cal.map(e=>{const s=e.start.dateTime||e.start.date;return`- ${e.summary} (${new Date(s).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})})`;}).join('\n'):'No events in next 7 days';
     const tasksSummary=tasks.slice(0,30).map(t=>`- ${t.title}${t.due?' (due '+localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'})+')':''}${t.notes?' — '+t.notes.slice(0,50):''}`).join('\n')||'No existing tasks';
     // Fetch visible lists for AI context (names only — items fetched on expand)
     const visibleLists=await fetchProjectLists();
@@ -1674,59 +1580,19 @@ Respond ONLY with valid JSON, no commentary:
 tasks item: {"text":"...","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none","duplicate_of":null}
 list_item: {"text":"...","suggested_list":"exact name of matching list or suggested new name","where":"store/place or blank","needs_clarification":false,"duplicate_of":null}
 thought: {"text":"..."}`
-    const fullSys=`You are a calm, warm assistant helping Erin sort her brain dump. Erin has ADHD and anxiety.
-
-Today: ${today}.
-Week starts Monday. This week = by ${L.thisWeek.replace('by Sun ','')}. Next week = by ${L.nextWeek.replace('by Sun ','')}. Next month = ${L.nextMonth}.
-
-STANDING CONTEXT:
-${standingCtx||'None saved yet.'}
-
-Google Calendar next 7 days (ONLY reference events explicitly listed here):
-${calTxt}
-
-Existing tasks (do NOT re-add — surface relevant ones only):
-${tasksSummary}
-
-RULES:
-- Present EVERYTHING as a task candidate first
-- NEVER invent calendar events
-- Do not duplicate existing tasks
-- existing_tasks_to_surface: only tasks relevant to this dump's topics, max 5
-- context_suggestions: ONLY stable recurring facts, second person, empty array if nothing qualifies
-- For each task suggest a due date: "today", "tomorrow", "this_week", "next_week", "next_month", or "none"
-
-Respond ONLY with valid JSON:
-{
-  "mode":"full",
-  "meta":"one sentence summary",
-  "overnight":[],
-  "items":{"urgent":[],"soon":[],"someday":[]},
-  "anxiety_noise":[],
-  "existing_tasks_to_surface":[],
-  "first_move":{"action":"","why":""},
-  "context_suggestions":[]
-}
-Each item: {"text":"...","sub":"optional context","cal":false,"suggested_due":"today|tomorrow|this_week|next_week|next_month|none"}
-overnight items also have "real": true/false`;
-
-    const sys=mode==='quick'?quickSys:fullSys;
+    const sys=quickSys; // full dump disabled — being rebuilt
 
     const res=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':CFG.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:mode==='quick'?'claude-haiku-4-5-20251001':(localStorage.getItem('bd_model_full')||'claude-sonnet-4-6'),max_tokens:2500,system:sys,messages:[{role:'user',content:'Brain dump:\n\n'+dumpText}]})
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2500,system:sys,messages:[{role:'user',content:'Brain dump:\n\n'+dumpText}]})
     });
     if(!res.ok){const err=await res.json();throw new Error(err.error?.message||'API error');}
     const result=JSON.parse((await res.json()).content[0].text.replace(/```json|```/g,'').trim());
     currentResult=result;
     stopLoad();
     document.getElementById('loading').classList.remove('on');
-    if(mode==='quick'){
-      buildQuickReview(result,listId,tasks,cal);
-    } else {
-      buildReview(result,listId,tasks);
-    }
+    buildQuickReview(result,listId,tasks,cal);
   }catch(err){
     stopLoad();
     document.getElementById('loading').classList.remove('on');
@@ -1828,13 +1694,6 @@ async function buildQuickReview(result,listId,tasks,cal){
       sp.addEventListener('click',function(){selectQuickDate(this,rowKey,k);});
       chips.push(sp);
     });
-    // Pick a date chip
-    const pick=document.createElement('span');
-    pick.className='ntd';
-    pick.dataset.key='pick';
-    pick.textContent='📅 Pick';
-    pick.addEventListener('click',()=>showQuickDatePicker(rowKey));
-    chips.push(pick);
     return chips;
   }
 
@@ -2067,21 +1926,6 @@ function renderNeedsAttentionRow(card,t,isOv,listId,prefix){
   card.appendChild(wrap);
 }
 
-async function replaceExistingTask(rowKey,dupeTitle,tasks,listId){
-  // Find the existing task by title
-  const existing=tasks.find(t=>t.title===dupeTitle);
-  if(!existing){alert('Could not find existing task to replace.');return;}
-  const wrap=document.getElementById('qrow-'+rowKey);
-  const newTaskId=wrap?.dataset.taskId;
-  const newTitle=document.getElementById('qtitle-'+rowKey)?.textContent||'';
-  // Delete the existing task
-  if(existing.id)await deleteTask(listId,existing.id);
-  quickSummaryStats.replaced++;
-  // Remove the duplicate UI on the new task
-  wrap.querySelectorAll('div[style*="rgba(245,158,11"]').forEach(el=>el.remove());
-}
-
-
 function selectQuickDate(el,rowKey,key){
   document.querySelectorAll('#qdates-'+rowKey+' .ntd').forEach(c=>c.classList.remove('sel'));
   el.classList.add('sel');
@@ -2174,7 +2018,23 @@ async function setItemType(rowKey,type){
 
   if(type==='task'){
     if(datesDiv)datesDiv.style.display='flex';
-    if(hint)hint.style.display='';
+    if(hint){
+      hint.style.display='';
+      // Restore hint to reflect currently selected date chip, not stale list text
+      const selChip=datesDiv?.querySelector('.ntd.sel');
+      const L=getDateLabels();
+      const labels={today:L.today,tomorrow:L.tomorrow,this_week:L.thisWeek,next_week:L.nextWeek,this_month:L.thisMonth,next_month:L.nextMonth,none:'No date'};
+      if(selChip){
+        const key=selChip.dataset.key;
+        if(key==='pick'){
+          hint.innerHTML='<span style="color:var(--text-dimmer)">Pick a date above</span>';
+        } else {
+          hint.innerHTML='<span style="color:var(--green)">✓ '+(labels[key]||'No date')+' — saved</span>';
+        }
+      } else {
+        hint.innerHTML='<span style="color:var(--text-dimmer)">No date — saved</span>';
+      }
+    }
     if(listPicker)listPicker.style.display='none';
   } else if(type==='list'){
     if(datesDiv)datesDiv.style.display='none';
@@ -2451,231 +2311,7 @@ async function saveQExEdit(rowKey,taskId,listId){
   }catch(e){if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}}
 }
 
-async function deleteQuickTask(rowKey){
-  const wrap=document.getElementById('qrow-'+rowKey);
-  const taskId=wrap?.dataset.taskId;
-  const listId=wrap?.dataset.listId;
-  if(taskId&&listId)await deleteTask(listId,taskId);
-  if(wrap)wrap.remove();
-  delete quickTaskIds[rowKey];
-}
 
-
-function buildReview(result,listId,existingTasks){
-  const container=document.getElementById('reviewItems');
-  container.innerHTML='';
-  const L=getDateLabels();
-  const dueLabelMap={'today':L.today,'tomorrow':L.tomorrow,'this_week':L.thisWeek,'next_week':L.nextWeek,'this_month':L.thisMonth,'next_month':L.nextMonth,'none':'No date'};
-  let itemIdx=0;
-
-  const items=result.items||{};
-  const groups=[
-    {cls:'urgent',lbl:'🔴 Urgent — this week',items:items.urgent||[]},
-    {cls:'soon',lbl:'🟡 Soon — this month',items:items.soon||[]},
-    {cls:'someday',lbl:'🔵 Someday',items:items.someday||[]}
-  ];
-
-  groups.forEach(g=>{
-    if(!g.items.length)return;
-    const card=document.createElement('div');
-    card.className='tcard '+g.cls;
-    card.innerHTML=`<div class="tcard-lbl">${g.lbl}</div><div class="default-note">Task by default — tap status to change</div>`;
-    g.items.forEach(it=>{
-      const i=typeof it==='string'?{text:it}:it;
-      const id='item-'+itemIdx++;
-      const ddId='idd-'+id,slId='isl-'+id,cpId='icp-'+id,ciId='ici-'+id;
-      const sugDue=i.suggested_due||'none';
-      const sugLabel=dueLabelMap[sugDue]||'No date';
-      const wrap=document.createElement('div');
-      wrap.innerHTML=`
-        <div class="item-row" id="row-${id}">
-          <span class="odot ${g.cls==='urgent'?'red':g.cls==='soon'?'orange':'blue'}"></span>
-          <div class="item-body">
-            <div class="item-text" id="txt-${id}">${i.text}${i.cal?'<span class="badge" style="background:rgba(37,99,235,0.1);color:var(--blue)">📅</span>':''}</div>
-            ${i.sub?`<div class="item-sub">${i.sub}</div>`:''}
-          </div>
-          <button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')" aria-label="Change status">Task ▾</button>
-        </div>
-        <div class="item-dropdown" id="dd-${id}">
-          <div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div>
-          <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div>
-          <div class="dd-opt2 dd-edit" onclick="toggleEditPanel('${id}')"><i class="ti ti-pencil" style="transform:rotate(-45deg);display:inline-block" aria-hidden="true"></i>Edit details</div>
-          <div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save anywhere</div>
-        </div>
-        <div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">
-          ${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k===sugDue?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}
-          <span class="ntd" onclick="showDatePicker('${id}')">📅 Pick</span>
-        </div>
-        <div class="ntd-hint" id="hint-${id}">AI suggested: ${sugLabel}</div>
-        <div style="display:none;padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border)" id="picker-${id}">
-          <input type="date" id="pdate-${id}" style="margin-right:8px">
-          <button onclick="confirmPicker('${id}')" style="font-size:11px;padding:5px 12px;border-radius:8px;border:none;background:var(--accent);color:var(--accent-text);cursor:pointer;font-family:inherit;font-weight:600">Set</button>
-        </div>
-        <div class="edit-panel" id="ep-${id}">
-          <div class="edit-fields">
-            <div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${i.text.replace(/"/g,'&quot;')}"></div>
-            <div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div>
-          </div>
-        </div>`;
-      card.appendChild(wrap);
-    });
-    container.appendChild(card);
-  });
-
-  // Anxiety noise
-  if(result.anxiety_noise?.length){
-    const nc=document.createElement('div');
-    nc.className='tcard';nc.style.background='var(--card-noise)';nc.style.borderLeftColor='var(--gray)';
-    nc.innerHTML='<div class="tcard-lbl">🧠 Anxiety noise — named and set down</div>';
-    result.anxiety_noise.forEach(it=>{
-      const i=typeof it==='string'?{text:it}:it;
-      const id='item-'+itemIdx++;
-      const wrap=document.createElement('div');
-      wrap.innerHTML=`<div class="item-row" id="row-${id}"><span class="odot gray"></span><div class="item-body"><div class="item-text" id="txt-${id}">${i.text}</div>${i.sub?`<div class="item-sub">${i.sub}</div>`:''}</div><button class="status-btn ignore" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Ignore ▾</button></div>
-        <div class="item-dropdown" id="dd-${id}">
-          <div class="dd-opt2 dd-task" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Make it a task</div>
-          <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Save as idea</div>
-          <div class="dd-opt2 dd-ignore active" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save</div>
-        </div>`;
-      nc.appendChild(wrap);
-    });
-    container.appendChild(nc);
-  }
-
-  // Existing tasks
-  const existingContainer=document.getElementById('existingItems');
-  existingContainer.innerHTML='';
-  const existing=result.existing_tasks_to_surface||[];
-  document.getElementById('existingTitle').style.display=existing.length?'flex':'none';
-  if(existing.length){
-    const card=document.createElement('div');card.className='existing-card';
-    existing.forEach((t,ei)=>{
-      const title=typeof t==='string'?t:(t.title||t.text||JSON.stringify(t));
-      const eid='ex-'+itemIdx++;
-      const div=document.createElement('div');div.className='existing-item';
-      div.id='exrow-'+eid;
-      const exTaskId=typeof t==='string'?'':(t.id||'');
-      const safeTitle=title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-      const ddExId='exdd-'+eid,slExId='exsl-'+eid,cpExId='excp-'+eid,ciExId='exci-'+eid;
-      div.style.cssText='padding:0;display:block';
-      div.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:6px 0">
-        <span class="existing-dot" style="flex-shrink:0"></span>
-        <span style="flex:1;font-size:13px">${title}</span>
-        <button onclick="toggleDD('${ddExId}')" style="font-size:11px;color:var(--blue);background:rgba(37,99,235,0.08);border:1px solid rgba(37,99,235,0.2);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Redate ▾</button>
-        <button onclick="rejectMatch('${eid}','${safeTitle}')" style="font-size:11px;color:var(--text-dimmer);background:none;border:1px solid var(--border);border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;flex-shrink:0">Not this</button>
-      </div>
-      ${buildCiDateDD(ddExId,slExId,cpExId,ciExId,exTaskId,taskListId)}`;
-      card.appendChild(div);
-    });
-    existingContainer.appendChild(card);
-  }
-
-  // Build mini task check-in
-  buildMiniCheckin(existingTasks,listId);
-
-  document.getElementById('alsoText').value='';
-  const ra=document.getElementById('reviewActions');
-  if(ra)ra.style.display='block';
-  setModeBar('reviewModeBar','full');
-  document.getElementById('review').classList.add('on');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-
-function rejectMatch(eid,title){
-  // Remove from existing list
-  const row=document.getElementById('exrow-'+eid);
-  if(row)row.remove();
-  // Check if existing card is now empty
-  const card=row?.closest('.existing-card');
-  if(card&&!card.querySelector('.existing-item'))card.remove();
-  const existTitle=document.getElementById('existingTitle');
-  if(existTitle&&!document.querySelector('.existing-item'))existTitle.style.display='none';
-  // Add as new task in review — create a new item card at top
-  const container=document.getElementById('reviewItems');
-  const id='item-'+Date.now();
-  const L=getDateLabels();
-  const wrap=document.createElement('div');
-  wrap.innerHTML=`
-    <div class="item-row" id="row-${id}">
-      <span class="odot blue"></span>
-      <div class="item-body">
-        <div class="item-text" id="txt-${id}">${title}</div>
-      </div>
-      <button class="status-btn task" id="sbtn-${id}" onclick="toggleItemDD('${id}')">Task ▾</button>
-    </div>
-    <div class="item-dropdown" id="dd-${id}">
-      <div class="dd-opt2 dd-task active" onclick="setStatus('${id}','task')"><i class="ti ti-check" aria-hidden="true"></i>Task — add to Google Tasks</div>
-      <div class="dd-opt2 dd-idea" onclick="setStatus('${id}','idea')"><i class="ti ti-bulb" aria-hidden="true"></i>Idea — save to idea library</div>
-      <div class="dd-opt2 dd-ignore" onclick="setStatus('${id}','ignore')"><i class="ti ti-x" aria-hidden="true"></i>Ignore — don't save anywhere</div>
-    </div>
-    <div style="padding:6px 14px 8px 30px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;gap:4px;flex-wrap:wrap" id="dates-${id}">
-      ${['today','tomorrow','this_week','next_week','this_month','next_month','none'].map(k=>`<span class="ntd${k==='none'?' sel':''}" onclick="selectDate(this,'${id}','${k}')" data-key="${k}">${k==='none'?'No date':k==='this_month'?'This month':k==='this_week'?'This week':k==='next_week'?'Next week':k==='next_month'?'Next month':k.charAt(0).toUpperCase()+k.slice(1)}</span>`).join('')}
-    </div>
-    <div class="ntd-hint" id="hint-${id}">New task — choose a due date</div>
-    <div class="edit-panel" id="ep-${id}">
-      <div class="edit-fields">
-        <div><div class="edit-field-label">Task name</div><input type="text" id="ename-${id}" value="${title.replace(/"/g,'&quot;')}"></div>
-        <div><div class="edit-field-label">Notes</div><input type="text" id="enotes-${id}" placeholder="Add context..."></div>
-      </div>
-    </div>`;
-  container.insertBefore(wrap, container.firstChild);
-}
-
-function toggleItemDD(id){
-  const dd=document.getElementById('dd-'+id);
-  const isOpen=dd.classList.contains('open');
-  document.querySelectorAll('.item-dropdown').forEach(d=>d.classList.remove('open'));
-  if(!isOpen)dd.classList.add('open');
-}
-function setStatus(id,status){
-  const btn=document.getElementById('sbtn-'+id);
-  const row=document.getElementById('row-'+id);
-  const txt=document.getElementById('txt-'+id);
-  btn.className='status-btn '+status;
-  btn.textContent={task:'Task ▾',idea:'Idea ▾',ignore:'Ignore ▾'}[status];
-  row.classList.toggle('ignored',status==='ignore');
-  txt.classList.toggle('struck',status==='ignore');
-  ['task','idea','ignore'].forEach(s=>document.querySelector(`#dd-${id} .dd-${s}`)?.classList.toggle('active',s===status));
-  document.getElementById('dd-'+id).classList.remove('open');
-  // Hide date row for non-tasks
-  const dateRow=document.getElementById('dates-'+id);
-  const hint=document.getElementById('hint-'+id);
-  if(dateRow)dateRow.style.display=status==='task'?'flex':'none';
-  if(hint)hint.style.display=status==='task'?'block':'none';
-}
-function toggleEditPanel(id){
-  const ep=document.getElementById('ep-'+id);
-  const isOpen=ep.classList.contains('open');
-  document.querySelectorAll('.edit-panel').forEach(p=>p.classList.remove('open'));
-  if(!isOpen){ep.classList.add('open');document.getElementById('ename-'+id).focus();}
-  document.getElementById('dd-'+id).classList.remove('open');
-}
-function selectDate(el,id,key){
-  document.querySelectorAll(`#dates-${id} .ntd`).forEach(c=>c.classList.remove('sel'));
-  el.classList.add('sel');
-  // Show visual confirmation (tasks save on "Save & see summary")
-  const hint=document.getElementById('hint-'+id);
-  if(hint){
-    const labels={'today':'Today','tomorrow':'Tomorrow','this_week':'This week','next_week':'Next week','this_month':'This month','next_month':'Next month','none':'No date'};
-    const lbl=labels[key]||key;
-    hint.innerHTML=key==='none'
-      ?'<span style="color:var(--text-dimmer)">No date set</span>'
-      :`<span style="color:var(--green)">✓ ${lbl} — will save with summary</span>`;
-  }
-}
-function showDatePicker(id){
-  document.querySelectorAll(`#dates-${id} .ntd`).forEach(c=>c.classList.remove('sel'));
-  document.getElementById('picker-'+id).style.display='flex';
-  document.getElementById('pdate-'+id).focus();
-}
-function confirmPicker(id){
-  const val=document.getElementById('pdate-'+id).value;
-  if(!val)return;
-  document.getElementById('picker-'+id).style.display='none';
-  const hint=document.getElementById('hint-'+id);
-  if(hint){const d=new Date(val+'T00:00:00');hint.textContent='📅 Specific date: '+d.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'});}
-}
 
 
 async function saveAndDone(){
@@ -2725,59 +2361,6 @@ async function saveAndDone(){
     await renderQuickSummary({taskCount,listStats,done:quickSummaryStats.done,replaced:quickSummaryStats.replaced},newlyAdded,currentResult);
     return;
   }
-
-  // Full dump — save all items
-  let tasksAdded=0;
-  const ideaLines=[];
-  const newlyAddedTitles=new Set();
-  const savePromises=[];
-
-  document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
-    const id=sbtn.id.replace('sbtn-','');
-    const status=sbtn.classList.contains('task')?'task':sbtn.classList.contains('idea')?'idea':'ignore';
-    const nameEl=document.getElementById('ename-'+id);
-    const notesEl=document.getElementById('enotes-'+id);
-    const txtEl=document.getElementById('txt-'+id);
-    const title=nameEl?nameEl.value.trim():txtEl?.textContent?.replace(/📅/g,'').trim()||'';
-    if(!title)return;
-
-    let dueDate='';
-    const selChip=document.querySelector('#dates-'+id+' .ntd.sel');
-    if(selChip){
-      const key=selChip.getAttribute('data-key');
-      if(key&&key!=='none'){
-        const _dow=new Date().getDay();
-        if(key==='today')dueDate=localDateStr(localMidnight(0));
-        else if(key==='tomorrow')dueDate=localDateStr(localMidnight(1));
-        else if(key==='this_week'){const _dts=_dow===0?7:7-_dow;dueDate=localDateStr(localMidnight(_dts));}
-        else if(key==='next_week'){const _dts=_dow===0?7:7-_dow;dueDate=localDateStr(localMidnight(_dts+7));}
-        else if(key==='this_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+1,0));
-        else if(key==='next_month')dueDate=localDateStr(new Date(new Date().getFullYear(),new Date().getMonth()+2,0));
-      }
-    }
-    const pickerDate=document.getElementById('pdate-'+id)?.value;
-    if(pickerDate)dueDate=pickerDate;
-
-    if(status==='task'){
-      newlyAddedTitles.add(title);
-      savePromises.push(addTask(taskListId,title,notesEl?notesEl.value.trim():'',dueDate).then(task=>{if(task)tasksAdded++;}));
-    } else if(status==='idea'){
-      ideaLines.push(title+(notesEl?.value?.trim()?` — ${notesEl.value.trim()}`:''));
-    }
-  });
-
-  let docOk=false;
-  if(ideaLines.length){
-    const d=new Date().toISOString().split('T')[0];
-    docOk=await appendDoc(ideaLines.map(l=>`[${d}] ${l}`).join('\n'));
-    const counts=JSON.parse(localStorage.getItem('bd_s2_counts')||'{}');
-    ideaLines.forEach(l=>{const key=l.split(' — ')[0];counts[key]=(counts[key]||0)+1;});
-    localStorage.setItem('bd_s2_counts',JSON.stringify(counts));
-  }
-
-  await Promise.all(savePromises);
-  btn.disabled=false;btn.textContent='✓ Save & see summary';
-  renderFinal(currentResult,tasksAdded,docOk);
 }
 
 async function renderQuickSummary(stats,newlyAdded,aiResult){
@@ -2885,132 +2468,6 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
-function renderFinal(r,tasksAdded,docOk){
-  document.getElementById('review').classList.remove('on');
-  document.getElementById('dumpText').value='';
-  const container=document.getElementById('outCards');
-  container.innerHTML='';
-  let delay=0;
-  const mLabels={quick:'⚡ Quick dump',full:'🧠 Full dump'};
-  document.getElementById('outMeta').innerHTML=
-    `<span>${mLabels[r.mode]||r.mode}</span><span style="opacity:.4">·</span><span>${r.meta}</span>`+
-    (tasksAdded>0?`<span class="badge" style="background:rgba(22,163,74,0.1);color:var(--green)">+${tasksAdded} tasks saved</span>`:'')+
-    (docOk?`<span class="badge" style="background:rgba(124,58,237,0.1);color:var(--purple)">ideas saved</span>`:'');
-
-  function card(cls,lbl,title,items,dotColor){
-    if(!items?.length)return;
-    const c=document.createElement('div');c.className='ocard '+cls;c.style.animationDelay=delay+'s';delay+=0.07;
-    c.innerHTML=`<div class="ocard-lbl">${lbl}</div><div class="ocard-title">${title}</div>`+
-      items.map(it=>{
-        const i=typeof it==='string'?{text:it}:it;
-        const rb=i.real===true?`<span class="badge" style="background:rgba(22,163,74,0.1);color:var(--green)">probably real</span>`:i.real===false?`<span class="badge" style="background:rgba(180,83,9,0.1);color:var(--amber)">3am brain</span>`:'';
-        const sub=i.sub?`<div class="oitem-sub">${i.sub}</div>`:'';
-        return`<div class="oitem"><span class="odot2 ${dotColor}"></span><div class="oitem-body"><div>${i.text}${rb}</div>${sub}</div></div>`;
-      }).join('');
-    container.appendChild(c);
-  }
-
-  // Build output from actual selected dates, not AI categories
-  const _dow=new Date().getDay();
-  const _dts=_dow===0?7:7-_dow;
-  const _endWeek=localMidnight(_dts);
-  const _endNxtWeek=localMidnight(_dts+7);
-  const _endMonth=new Date(new Date().getFullYear(),new Date().getMonth()+1,0);
-  const _endNxtMonth=new Date(new Date().getFullYear(),new Date().getMonth()+2,0);
-
-  // Collect all saved tasks with their actual selected due dates
-  const urgentItems=[],soonItems=[],laterItems=[],somedayItems=[];
-  document.querySelectorAll('[id^="sbtn-"]').forEach(sbtn=>{
-    if(!sbtn.classList.contains('task'))return;
-    const id=sbtn.id.replace('sbtn-','');
-    const nameEl=document.getElementById('ename-'+id);
-    const txtEl=document.getElementById('txt-'+id);
-    const title=nameEl?.value?.trim()||txtEl?.textContent?.replace(/📅/g,'').trim()||'';
-    if(!title)return;
-    // Get selected due date
-    const selChip=document.querySelector(`#dates-${id} .ntd.sel`);
-    const key=selChip?.getAttribute('data-key')||'none';
-    const pickerVal=document.getElementById('pdate-'+id)?.value;
-    let dueDate=null;
-    if(pickerVal)dueDate=localDateFromStr(pickerVal);
-    else if(key!=='none'){
-      if(key==='today')dueDate=localMidnight(0);
-      else if(key==='tomorrow')dueDate=localMidnight(1);
-      else if(key==='this_week')dueDate=_endWeek;
-      else if(key==='next_week')dueDate=_endNxtWeek;
-      else if(key==='this_month')dueDate=_endMonth;
-      else if(key==='next_month')dueDate=_endNxtMonth;
-    }
-    const item={text:title};
-    if(!dueDate||key==='none')somedayItems.push(item);
-    else if(dueDate<=_endWeek)urgentItems.push(item);
-    else if(dueDate<=_endNxtWeek)soonItems.push(item);
-    else if(dueDate<=_endNxtMonth)laterItems.push(item);
-    else somedayItems.push(item);
-  });
-
-  const items=r.items||{};
-  if(r.overnight?.length)card('ideas','🌙 Overnight thoughts','Things your 2am brain flagged',r.overnight,'purple');
-  if(urgentItems.length)card('urgent','🔴 Saved — this week','Added to Google Tasks',urgentItems,'red');
-  if(soonItems.length)card('soon','🟡 Saved — next week','Added to Google Tasks',soonItems,'orange');
-  if(laterItems.length)card('someday','🔵 Saved — next month','Added to Google Tasks',laterItems,'blue');
-  if(somedayItems.length)card('noise','⏳ Saved — no date yet','Added to Google Tasks',somedayItems,'gray');
-  if(r.anxiety_noise?.length)card('noise','🧠 Anxiety noise — named and set down','Real feelings, not actionable right now',r.anxiety_noise,'gray');
-
-  if(r.first_move&&r.first_move.action){
-    const fm=document.createElement('div');fm.className='fm-final';fm.style.animationDelay=delay+'s';
-    fm.innerHTML=`<div class="fm-lbl">Your one first move</div><div class="fm-action">${r.first_move.action}</div><div class="fm-why">${r.first_move.why||''}</div><div class="fm-note">Can't do this now? Everything is saved. Your brain can let go.</div>`;
-    container.appendChild(fm);
-  }
-  // If nothing was rendered at all, show a fallback
-  if(container.children.length===0){
-    const fb=document.createElement('div');
-    fb.style.cssText='padding:20px;text-align:center;color:var(--text-dimmer);font-size:13px';
-    fb.textContent='Nothing to show — try a more detailed dump or check your connection.';
-    container.appendChild(fb);
-  }
-  const outSc=document.getElementById('outputShortcuts');
-  if(outSc)outSc.innerHTML=modeShortcutsHTML();
-  setModeBar('outputModeBar',r.mode||mode);
-  document.getElementById('output').classList.add('on');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
-function startOver(){
-  document.getElementById('review').classList.remove('on');
-  resetToMain();
-}
-async function checkBestModels(){
-  const suggestion=document.getElementById('modelSuggestion');
-  suggestion.innerHTML='Available models: <strong>claude-haiku-4-5-20251001</strong> (fast, cheap) and <strong>claude-sonnet-4-6</strong> (balanced). Check <a href="https://docs.anthropic.com/en/docs/about-claude/models" target="_blank" style="color:var(--accent)">Anthropic model docs</a> for the latest releases.';
-  suggestion.style.display='block';
-}
-
-function resetToMain(){
-  ['checkin','review','output'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el){el.classList.remove('on');el.style.display='';}
-  });
-  const _ra2=document.getElementById('reviewActions');
-  if(_ra2)_ra2.style.display='none';
-  const ciSum=document.getElementById('ciSummary');
-  if(ciSum)ciSum.style.display='none';
-  const fds=document.getElementById('fullDumpSoon');
-  if(fds)fds.style.display='none';
-  
-
-  showScreen('main');
-  document.getElementById('screenMain').style.display='block';
-  document.getElementById('modePicker').style.display='block';
-  document.getElementById('modeDump').style.display='none';
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-function resetApp(){
-  document.getElementById('output').classList.remove('on');
-  document.getElementById('outCards').innerHTML='';
-  document.getElementById('dumpText').value='';
-  resetToMain();
-}
 
 function modeShortcutsHTML(){
   return `<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
