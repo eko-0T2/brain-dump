@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.11</title>
+<title>Brain Dump v1.3.12</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.11</div>
+  <div class="version-tag">v1.3.12</div>
 </div>
 
 <!-- SETUP -->
@@ -515,6 +515,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <!-- Check-in summary screen -->
 <div id="ciSummary" style="display:none">
   <div id="ciSummaryModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px"></div>
+  <div id="ciSummaryShortcutsTop" style="margin-bottom:4px"></div>
   <div id="ciSummaryCards"></div>
 </div>
 
@@ -548,7 +549,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.11';
+const VERSION='1.3.12';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1149,14 +1150,14 @@ async function loadListsContent(content,listId){
     chip.addEventListener('click',()=>{
       chipStrip.querySelectorAll('span').forEach(c=>{c.style.background='var(--surface)';c.style.color='var(--text-dim)';c.style.borderColor='var(--border)';});
       chip.style.background='var(--accent)';chip.style.color='var(--accent-text)';chip.style.borderColor='var(--accent)';
-      loadListItems(listArea,l.id,l.title,listId);
+      loadListItems(listArea,l.id,l.title,listId,lists);
     });
     chipStrip.appendChild(chip);
-    if(i===0)loadListItems(listArea,l.id,l.title,listId);
+    if(i===0)loadListItems(listArea,l.id,l.title,listId,lists);
   });
 }
 
-async function loadListItems(area,targetListId,listName,mainListId){
+async function loadListItems(area,targetListId,listName,mainListId,allLists){
   area.innerHTML='<div style="padding:10px 14px;font-size:12px;color:var(--text-dimmer)">Loading...</div>';
   try{
     const r=await fetch('https://tasks.googleapis.com/tasks/v1/lists/'+encodeURIComponent(targetListId)+'/tasks?showCompleted=false&maxResults=50',{headers:{Authorization:'Bearer '+gToken}});
@@ -1164,6 +1165,9 @@ async function loadListItems(area,targetListId,listName,mainListId){
     const data=await r.json();
     const items=(data.items||[]).filter(t=>t.status!=='completed');
     area.innerHTML='';
+
+    // "Move to" targets: Main tasks list + every other visible list
+    const moveTargets=[{id:mainListId,title:'Main tasks'},...(allLists||[]).filter(l=>l.id!==targetListId)];
 
     if(!items.length){
       const empty=document.createElement('div');
@@ -1174,7 +1178,10 @@ async function loadListItems(area,targetListId,listName,mainListId){
       items.forEach(t=>{
         const row=document.createElement('div');
         row.id='litem-'+t.id;
-        row.style.cssText='padding:8px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px';
+        row.style.cssText='border-bottom:1px solid var(--border)';
+
+        const mainRow=document.createElement('div');
+        mainRow.style.cssText='padding:8px 14px;display:flex;align-items:center;gap:10px';
         const cb=document.createElement('input');
         cb.type='checkbox';
         cb.style.cssText='width:16px;height:16px;flex-shrink:0;cursor:pointer';
@@ -1186,9 +1193,52 @@ async function loadListItems(area,targetListId,listName,mainListId){
           }
         });
         const label=document.createElement('span');
+        label.id='litemtitle-'+t.id;
         label.style.cssText='font-size:13px;color:var(--text);flex:1';
         label.textContent=t.title;
-        row.appendChild(cb);row.appendChild(label);
+        const editBtn=document.createElement('button');
+        editBtn.className='diff-exclude';
+        editBtn.style.cssText='flex-shrink:0;background:none;border:none;cursor:pointer;padding:2px;color:var(--text-dimmer)';
+        editBtn.innerHTML='<i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i>';
+        editBtn.addEventListener('click',()=>{
+          const ep=document.getElementById('litemep-'+t.id);
+          if(ep)ep.style.display=ep.style.display==='none'?'block':'none';
+        });
+        mainRow.appendChild(cb);mainRow.appendChild(label);mainRow.appendChild(editBtn);
+        row.appendChild(mainRow);
+
+        const ep=document.createElement('div');
+        ep.id='litemep-'+t.id;
+        ep.style.cssText='display:none;padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border)';
+        ep.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+          '<div><div class="edit-field-label">Title</div><input type="text" id="litemname-'+t.id+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div>'+
+          '<div><div class="edit-field-label">Due date</div><input type="date" id="litemdate-'+t.id+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div>'+
+          '</div><div class="edit-field-label" style="margin-bottom:3px">Notes</div>'+
+          '<textarea id="litemnotes-'+t.id+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea>';
+        const saveBtn=document.createElement('button');
+        saveBtn.style.cssText='margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer';
+        saveBtn.textContent='\u2713 Save changes';
+        saveBtn.addEventListener('click',()=>saveListItemEdit(t.id,targetListId));
+        ep.appendChild(saveBtn);
+
+        if(moveTargets.length){
+          const moveWrap=document.createElement('div');
+          moveWrap.style.cssText='margin-top:8px;display:flex;align-items:center;gap:6px';
+          const moveLbl=document.createElement('span');
+          moveLbl.style.cssText='font-size:11px;color:var(--text-dim);flex-shrink:0';
+          moveLbl.textContent='Move to:';
+          const moveSel=document.createElement('select');
+          moveSel.style.cssText='flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--surface);color:var(--text)';
+          moveSel.innerHTML='<option value="">Choose\u2026</option>'+moveTargets.map(l=>'<option value="'+l.id+'">'+l.title+'</option>').join('');
+          moveSel.addEventListener('change',()=>{
+            if(!moveSel.value)return;
+            moveListItem(t.id,targetListId,moveSel.value,row);
+          });
+          moveWrap.appendChild(moveLbl);moveWrap.appendChild(moveSel);
+          ep.appendChild(moveWrap);
+        }
+
+        row.appendChild(ep);
         area.appendChild(row);
       });
     }
@@ -1198,17 +1248,52 @@ async function loadListItems(area,targetListId,listName,mainListId){
     addRow.style.cssText='padding:8px 14px;display:flex;align-items:center;gap:8px;border-top:1px dashed var(--border)';
     addRow.innerHTML='<i class="ti ti-plus" style="font-size:13px;color:var(--text-dimmer)" aria-hidden="true"></i><input type="text" placeholder="Add item..." style="flex:1;border:none;background:transparent;font-size:13px;outline:none;color:var(--text)"><button style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-family:inherit;color:var(--text)">Save</button>';
     const inp=addRow.querySelector('input');
-    const saveBtn=addRow.querySelector('button');
-    saveBtn.addEventListener('click',async()=>{
+    const addSaveBtn=addRow.querySelector('button');
+    addSaveBtn.addEventListener('click',async()=>{
       const title=inp.value.trim();if(!title)return;
-      saveBtn.textContent='...';saveBtn.disabled=true;
+      addSaveBtn.textContent='...';addSaveBtn.disabled=true;
       const task=await addTask(targetListId,title,'','');
-      if(task){inp.value='';saveBtn.textContent='Save';saveBtn.disabled=false;loadListItems(area,targetListId,listName,mainListId);}
-      else{saveBtn.textContent='Save';saveBtn.disabled=false;}
+      if(task){inp.value='';addSaveBtn.textContent='Save';addSaveBtn.disabled=false;loadListItems(area,targetListId,listName,mainListId,allLists);}
+      else{addSaveBtn.textContent='Save';addSaveBtn.disabled=false;}
     });
-    inp.addEventListener('keydown',e=>{if(e.key==='Enter')saveBtn.click();});
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')addSaveBtn.click();});
     area.appendChild(addRow);
   }catch(e){area.innerHTML='<div style="padding:10px 14px;font-size:12px;color:var(--text-dimmer)">Could not load list.</div>';}
+}
+
+async function saveListItemEdit(taskId,listId){
+  const title=document.getElementById('litemname-'+taskId)?.value?.trim();
+  const date=document.getElementById('litemdate-'+taskId)?.value;
+  const notes=document.getElementById('litemnotes-'+taskId)?.value?.trim();
+  if(!title)return;
+  const btn=document.querySelector('#litemep-'+taskId+' button');
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+  try{
+    const body={title,notes:notes||''};
+    if(date){const p=date.split('-');body.due=new Date(parseInt(p[0]),parseInt(p[1])-1,parseInt(p[2]),12,0,0).toISOString();}else{body.due=null;}
+    const res=await fetch('https://tasks.googleapis.com/tasks/v1/lists/'+encodeURIComponent(listId)+'/tasks/'+encodeURIComponent(taskId),{method:'PATCH',headers:{Authorization:'Bearer '+gToken,'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(res.ok){
+      const lbl=document.getElementById('litemtitle-'+taskId);
+      if(lbl)lbl.textContent=title;
+      const ep=document.getElementById('litemep-'+taskId);
+      if(ep)ep.style.display='none';
+      if(btn){btn.textContent='\u2713 Save changes';btn.disabled=false;}
+    } else {
+      if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}
+    }
+  }catch(e){
+    if(btn){btn.textContent='Save failed \u2014 try again';btn.disabled=false;}
+  }
+}
+
+async function moveListItem(taskId,fromListId,toListId,rowEl){
+  const title=document.getElementById('litemname-'+taskId)?.value?.trim()||document.getElementById('litemtitle-'+taskId)?.textContent||'';
+  const notes=document.getElementById('litemnotes-'+taskId)?.value?.trim()||'';
+  const date=document.getElementById('litemdate-'+taskId)?.value||'';
+  if(rowEl)rowEl.style.opacity='0.4';
+  await addTask(toListId,title,notes,date);
+  await deleteTask(fromListId,taskId);
+  setTimeout(()=>{if(rowEl)rowEl.remove();},400);
 }
 
 
@@ -1319,37 +1404,55 @@ function renderDayByDay(container,cal,tasks,taskRowFn){
   return shownIds;
 }
 
-function renderFutureTasksSection(container,tasks,listId,shownIds){
-  // Undated tasks: 3 oldest + 3 random (deduped)
+// Shared row template for the cleanup sections below (undated + future-dated)
+let _otIdx=0;
+function renderOlderTaskRow(card,t,listId,tag,showDateBadge){
+  const fid='ft-'+(_otIdx++);
+  const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
+  const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+  const wrap=document.createElement('div');
+  wrap.innerHTML='<div class="ci-row" id="'+fid+'"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+fid+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'<div class="ci-sub">'+tag+'</div>')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>'+(df&&showDateBadge?'<div class="badge-right"><span style="font-size:10px;color:var(--text-dimmer)">'+df+'</span></div>':'')+'</div><div class="ta-row" id="ta-'+fid+'"><button class="ta ta-done" onclick="ciDone(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still relevant \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Remove</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+fid+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+fid+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+fid+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+fid+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
+  card.appendChild(wrap);
+}
+
+// Undated tasks: 3 oldest + 3 random (deduped) — rendered only when revealed via button
+function renderUndatedSection(container,tasks,listId){
   const undated=tasks.filter(t=>!t.due&&t.status!=='completed');
   const sorted=[...undated].sort((a,b)=>new Date(a.updated||0)-new Date(b.updated||0));
   const oldest=sorted.slice(0,3);
   const pool=sorted.slice(3).sort(()=>Math.random()-0.5).slice(0,3);
-  const shownUndated=[...oldest,...pool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+  const shown=[...oldest,...pool].filter((t,i,a)=>a.findIndex(x=>x.id===t.id)===i).slice(0,6);
+  if(!shown.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:10px 14px;font-size:12px;color:var(--text-dimmer)';
+    empty.textContent='No undated tasks right now.';
+    container.appendChild(empty);
+    return;
+  }
+  const card=document.createElement('div');card.className='ci-card';
+  card.innerHTML='<div class="ci-lbl">\ud83d\uddc2 Undated tasks</div>';
+  shown.forEach(t=>renderOlderTaskRow(card,t,listId,oldest.includes(t)?'oldest':'random',false));
+  container.appendChild(card);
+}
 
-  // Future dated tasks: 3 random from beyond 7-day window, not already shown
+// Future dated tasks: 3 random from beyond the 7-day window, not already shown above — rendered only when revealed via button
+function renderFutureDatedSection(container,tasks,listId,shownIds){
   const futureDated=tasks.filter(t=>{
     if(!t.due||t.status==='completed'||(shownIds&&shownIds.has(t.id)))return false;
     return localDateFromStr(t.due.split('T')[0])>=localMidnight(7);
   }).sort(()=>Math.random()-0.5).slice(0,3);
-
-  const combined=[...shownUndated,...futureDated];
-  if(!combined.length)return;
-
+  if(!futureDated.length){
+    const empty=document.createElement('div');
+    empty.style.cssText='padding:10px 14px;font-size:12px;color:var(--text-dimmer)';
+    empty.textContent='Nothing further out right now.';
+    container.appendChild(empty);
+    return;
+  }
   const card=document.createElement('div');card.className='ci-card';
-  card.innerHTML='<div class="ci-lbl">\ud83d\uddc2 Older tasks <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-dimmer)">undated + upcoming</span></div>';
-
-  let fi=0;
-  combined.forEach(t=>{
-    const isO=oldest.includes(t);
-    const isFuture=futureDated.includes(t);
-    const fid='ft-'+fi++;
-    const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
+  card.innerHTML='<div class="ci-lbl">\ud83c\udfb2 Further out</div>';
+  futureDated.forEach(t=>{
     const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-    const tag=isFuture?df:(isO?'oldest':'random');
-    const wrap=document.createElement('div');
-    wrap.innerHTML='<div class="ci-row" id="'+fid+'"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+fid+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'<div class="ci-sub">'+tag+'</div>')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>'+(df&&isFuture?'<div class="badge-right"><span style="font-size:10px;color:var(--text-dimmer)">'+df+'</span></div>':'')+'</div><div class="ta-row" id="ta-'+fid+'"><button class="ta ta-done" onclick="ciDone(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still relevant \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Remove</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+fid+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+fid+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+fid+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+fid+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
-    card.appendChild(wrap);
+    renderOlderTaskRow(card,t,listId,df,true);
   });
   container.appendChild(card);
 }
@@ -1377,7 +1480,40 @@ function buildCheckin(cal,tasks,listId){
   container.appendChild(buildViewListsPanel(listId));
 
   const shownIds=renderDayByDay(container,cal,tasks,renderTaskRow);
-  renderFutureTasksSection(container,tasks,listId,shownIds);
+
+  // Cleanup section — undated and further-out tasks are hidden behind buttons, not auto-shown
+  const cleanupRow=document.createElement('div');
+  cleanupRow.style.cssText='display:flex;gap:8px;margin-top:4px';
+  const undatedBtn=document.createElement('button');
+  undatedBtn.style.cssText='flex:1;padding:9px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;color:var(--text-dim);display:flex;align-items:center;justify-content:center;gap:5px';
+  undatedBtn.innerHTML='<i class="ti ti-folder" style="font-size:13px" aria-hidden="true"></i> Show undated tasks';
+  const futureBtn=document.createElement('button');
+  futureBtn.style.cssText='flex:1;padding:9px 8px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);cursor:pointer;font-family:inherit;font-size:12px;font-weight:500;color:var(--text-dim);display:flex;align-items:center;justify-content:center;gap:5px';
+  futureBtn.innerHTML='<i class="ti ti-dice" style="font-size:13px" aria-hidden="true"></i> Show future tasks';
+  cleanupRow.appendChild(undatedBtn);cleanupRow.appendChild(futureBtn);
+  container.appendChild(cleanupRow);
+
+  const undatedArea=document.createElement('div');
+  const futureArea=document.createElement('div');
+  container.appendChild(undatedArea);
+  container.appendChild(futureArea);
+
+  undatedBtn.addEventListener('click',()=>{
+    if(undatedArea.dataset.loaded==='1'){
+      undatedArea.style.display=undatedArea.style.display==='none'?'block':'none';
+      return;
+    }
+    undatedArea.dataset.loaded='1';
+    renderUndatedSection(undatedArea,tasks,listId);
+  });
+  futureBtn.addEventListener('click',()=>{
+    if(futureArea.dataset.loaded==='1'){
+      futureArea.style.display=futureArea.style.display==='none'?'block':'none';
+      return;
+    }
+    futureArea.dataset.loaded='1';
+    renderFutureDatedSection(futureArea,tasks,listId,shownIds);
+  });
 
   document.getElementById('checkin').classList.add('on');
   document.getElementById('screenMain').style.display='none';
@@ -1465,6 +1601,8 @@ async function saveCiAndSummary(){
 
   const container=document.getElementById('ciSummaryCards');
   container.innerHTML='';
+  const topSc=document.getElementById('ciSummaryShortcutsTop');
+  if(topSc)topSc.innerHTML=modeShortcutsHTML();
 
   const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
   const tasks=tr.tasks||[];
@@ -1568,8 +1706,6 @@ THOUGHTS — worries, ideas, vague things to consider with no clear action yet.
 - Capture anything that doesn't cleanly fit as a task or list item.
 - RULE: if it could be a task OR thought, thought wins if no clear action yet.
 
-first_move: the single most important next action, plus why. Also include connections to existing tasks/lists and what could be batched or combined.
-
 existing_tasks_to_surface: up to 3 existing TASKS (not list items) relevant to this dump. Do NOT include items that belong on lists.
 
 Respond ONLY with valid JSON, no commentary:
@@ -1579,8 +1715,7 @@ Respond ONLY with valid JSON, no commentary:
   "tasks":[],
   "list_items":[],
   "thoughts":[],
-  "existing_tasks_to_surface":[],
-  "first_move":{"action":"","why":""}
+  "existing_tasks_to_surface":[]
 }
 tasks item: {"text":"...","suggested_due":"today|tomorrow|this_week|next_week|this_month|next_month|none","duplicate_of":null}
 list_item: {"text":"...","suggested_list":"exact name of matching list or suggested new name","where":"store/place or blank","needs_clarification":false,"duplicate_of":null}
@@ -1918,13 +2053,6 @@ async function buildQuickReview(result,listId,tasks,cal){
     container.appendChild(ec);
   }
 
-  // FULL CHECK-IN VIEW BELOW — uses shared renderDayByDay
-  const ciSection=document.createElement('div');
-  ciSection.style.cssText='margin-top:4px';
-  const shownIds=renderDayByDay(ciSection,cal,tasks,(card,t,isOv)=>renderNeedsAttentionRow(card,t,isOv,listId,'qci'));
-  renderFutureTasksSection(ciSection,tasks,listId,shownIds);
-  container.appendChild(ciSection);
-
   const mc=document.getElementById('miniCheckin');if(mc)mc.style.display='none';
   const ra=document.getElementById('reviewActions');if(ra)ra.style.display='block';
   setModeBar('reviewModeBar','quick');
@@ -2049,6 +2177,12 @@ async function setItemType(rowKey,type){
       const due=(selKey==='none'||selKey==='pick')?'':resolveDateKey(selKey);
       const created=(title&&taskListIdForRow)?await addTask(taskListIdForRow,title,notes,due):null;
       if(created?.id){
+        // Clean up a previously-saved list copy, if this row had already been saved to a list
+        const prevSavedListId=wrap.dataset.savedListId;
+        const prevSavedTaskId=wrap.dataset.savedTaskId;
+        if(prevSavedListId&&prevSavedTaskId)await deleteTask(prevSavedListId,prevSavedTaskId);
+        wrap.dataset.savedListId='';
+        wrap.dataset.savedTaskId='';
         wrap.dataset.taskId=created.id;
         quickTaskIds[rowKey]=created.id;
       }
@@ -2092,11 +2226,17 @@ async function setItemType(rowKey,type){
     if(hint)hint.style.display='none';
     if(picker)picker.style.display='none';
     if(listPicker)listPicker.style.display='none';
-    // Delete the task that was auto-created on load
+    // Delete wherever this item currently lives — the original main task and/or
+    // a list copy that was already saved immediately when a destination was chosen
     const taskId=wrap.dataset.taskId;
-    const listId=wrap.dataset.listId;
-    if(taskId&&listId)deleteTask(listId,taskId);
+    const mainListIdForRow=wrap.dataset.listId;
+    if(taskId&&mainListIdForRow)deleteTask(mainListIdForRow,taskId);
+    const savedListId=wrap.dataset.savedListId;
+    const savedTaskId=wrap.dataset.savedTaskId;
+    if(savedListId&&savedTaskId)deleteTask(savedListId,savedTaskId);
     wrap.dataset.taskId=''; // clear so saveAndDone ignores it
+    wrap.dataset.savedListId='';
+    wrap.dataset.savedTaskId='';
   }
 }
 
@@ -2128,17 +2268,43 @@ async function loadListPickerOptions(rowKey,sugList){
   optsEl.appendChild(newOpt);
 }
 
-function selectListForItem(rowKey,listId,listName,optEl){
-  // Highlight selected list option
+// Pure UI highlight — no API calls. Used after a save has already happened elsewhere (e.g. promptNewList).
+function highlightListSelection(rowKey,listId,listName,optEl){
   const optsEl=document.getElementById('qlistopts-'+rowKey);
   if(optsEl)optsEl.querySelectorAll('div').forEach(d=>{d.style.border='1px solid var(--border)';d.style.background='var(--surface)';});
   if(optEl){optEl.style.border='1.5px solid var(--accent)';optEl.style.background='rgba(var(--accent-rgb,99,102,241),0.06)';}
-  // Store selection on the row
   const wrap=document.getElementById('qrow-'+rowKey);
   if(wrap){wrap.dataset.selectedListId=listId;wrap.dataset.selectedListName=listName;}
-  // Update hint
   const hint=document.getElementById('qhint-'+rowKey);
-  if(hint){hint.style.display='block';hint.textContent='\u2713 Will add to: '+listName;}
+  if(hint){hint.style.display='block';hint.innerHTML='<span style="color:var(--green)">\u2713 Saved to: '+listName+'</span>';}
+}
+
+// Picking a list now saves immediately — deletes from wherever the item currently lives
+// (the original main task, or a previously-saved different list) and adds it to the chosen list.
+async function selectListForItem(rowKey,listId,listName,optEl){
+  highlightListSelection(rowKey,listId,listName,optEl);
+  const wrap=document.getElementById('qrow-'+rowKey);
+  if(!wrap)return;
+  const hint=document.getElementById('qhint-'+rowKey);
+  const prevSavedListId=wrap.dataset.savedListId||'';
+  const prevSavedTaskId=wrap.dataset.savedTaskId||'';
+  if(prevSavedListId===listId&&prevSavedTaskId)return; // already saved to this exact list
+  if(hint)hint.innerHTML='<span style="color:var(--text-dimmer)">saving...</span>';
+  const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
+  const notes=wrap.dataset.pendingNotes||document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
+  if(!title){if(hint)hint.innerHTML='<span style="color:var(--red)">save failed</span>';return;}
+  const created=await addTask(listId,title,notes,'');
+  if(created?.id){
+    const cleanupListId=prevSavedListId||wrap.dataset.listId;
+    const cleanupTaskId=prevSavedTaskId||wrap.dataset.taskId;
+    if(cleanupTaskId&&cleanupListId)await deleteTask(cleanupListId,cleanupTaskId);
+    wrap.dataset.taskId='';
+    wrap.dataset.savedListId=listId;
+    wrap.dataset.savedTaskId=created.id;
+    if(hint)hint.innerHTML='<span style="color:var(--green)">\u2713 Saved to: '+listName+'</span>';
+  } else {
+    if(hint)hint.innerHTML='<span style="color:var(--red)">save failed \u2014 try again</span>';
+  }
 }
 
 async function promptNewList(rowKey){
@@ -2170,14 +2336,20 @@ async function promptNewList(rowKey){
   const list=await createProjectList(name.trim());
   if(!list)return;
   // Immediately add the item to the new list
+  const wrap=document.getElementById('qrow-'+rowKey);
   const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
-  const notes=document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
+  const notes=wrap?.dataset.pendingNotes||document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
   if(title){
-    await addTask(list.id,title,notes,'');
-    const wrap=document.getElementById('qrow-'+rowKey);
-    if(wrap){wrap.dataset.selectedListId=list.id;wrap.dataset.selectedListName=list.title;wrap.dataset.alreadySaved='1';}
+    const created=await addTask(list.id,title,notes,'');
+    if(wrap){
+      // Clean up wherever it previously lived (the original main task, if any)
+      if(wrap.dataset.taskId)await deleteTask(wrap.dataset.listId,wrap.dataset.taskId);
+      wrap.dataset.taskId='';
+      wrap.dataset.savedListId=list.id;
+      wrap.dataset.savedTaskId=created?.id||'';
+    }
   }
-  selectListForItem(rowKey,list.id,list.title,null);
+  highlightListSelection(rowKey,list.id,list.title,null);
   loadListPickerOptions(rowKey,'');
 }
 
@@ -2292,16 +2464,16 @@ function toggleQuickEdit(rowKey){
 
 async function saveQuickEdit(rowKey){
   const wrap=document.getElementById('qrow-'+rowKey);
-  const taskId=wrap?.dataset.taskId;
-  const listId=wrap?.dataset.listId;
+  // The row's "live" copy is either a main task (taskId) or an already-saved list item (savedTaskId)
+  const taskId=wrap?.dataset.taskId||wrap?.dataset.savedTaskId;
+  const listId=wrap?.dataset.taskId?wrap?.dataset.listId:wrap?.dataset.savedListId;
   const title=document.getElementById('qename-'+rowKey)?.value.trim();
   const date=document.getElementById('qedate-'+rowKey)?.value;
   const notes=document.getElementById('qenotes-'+rowKey)?.value.trim();
   if(!title)return;
   const btn=document.querySelector('#qep-'+rowKey+' button');
 
-  // If no taskId yet (list item not yet saved), just update the display title
-  // The actual save happens at "Save & see summary"
+  // If nothing has been saved anywhere yet (no destination chosen), just update locally
   if(!taskId){
     const tEl=document.getElementById('qtitle-'+rowKey);
     if(tEl)tEl.textContent=title;
@@ -2350,50 +2522,50 @@ async function saveQExEdit(rowKey,taskId,listId){
 
 async function saveAndDone(){
   const btn=document.querySelector('.abtn-save');
+  btn.disabled=true;btn.textContent='Saving...';
 
-  if(mode==='quick'){
-    btn.disabled=true;btn.textContent='Saving...';
-    // Save list items (delete from main list, add to selected list)
-    // Skip items already saved (e.g. new list creation)
-    // Skip items marked 'skip' (Do nothing)
-    const listItemRows=document.querySelectorAll('[id^="qrow-"][data-item-type="list"]');
-    const listStats={}; // listName -> count
-    await Promise.all(Array.from(listItemRows).map(async wrap=>{
-      const rowKey=wrap.id.replace('qrow-','');
-      if(wrap.dataset.alreadySaved==='1')return; // already saved on new list creation
-      const taskId=wrap.dataset.taskId;
-      const mainListId=wrap.dataset.listId;
-      const selectedListId=wrap.dataset.selectedListId;
-      const selectedListName=wrap.dataset.selectedListName||'list';
-      const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
-      const notes=wrap.dataset.pendingNotes||document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
-      if(!title)return;
-      if(taskId&&mainListId)await deleteTask(mainListId,taskId);
-      if(selectedListId&&title){
-        await addTask(selectedListId,title,notes,'');
-        listStats[selectedListName]=(listStats[selectedListName]||0)+1;
-      }
-    }));
-    // Also count already-saved list items (from promptNewList)
-    document.querySelectorAll('[id^="qrow-"][data-already-saved="1"]').forEach(wrap=>{
-      const n=wrap.dataset.selectedListName||'list';
-      listStats[n]=(listStats[n]||0)+1;
-    });
-    // Count tasks (items with type=task that have a taskId — were auto-created on load)
-    let taskCount=0;
-    document.querySelectorAll('[id^="qrow-"][data-item-type="task"]').forEach(wrap=>{
-      if(wrap.dataset.taskId)taskCount++;
-    });
-    const newlyAdded=new Set();
-    document.querySelectorAll('[id^="qrow-"][data-item-type="task"]').forEach(wrap=>{
-      const rowKey=wrap.id.replace('qrow-','');
-      const tEl=document.getElementById('qtitle-'+rowKey);
-      if(tEl)newlyAdded.add(tEl.textContent);
-    });
-    btn.disabled=false;
-    await renderQuickSummary({taskCount,listStats,done:quickSummaryStats.done,replaced:quickSummaryStats.replaced},newlyAdded,currentResult);
-    return;
-  }
+  // Safety-net sweep — list items now save immediately when a destination is chosen,
+  // so this just catches anything that didn't confirm-save (e.g. a failed request)
+  const listItemRows=document.querySelectorAll('[id^="qrow-"][data-item-type="list"]');
+  const listStats={}; // listName -> count
+  await Promise.all(Array.from(listItemRows).map(async wrap=>{
+    const rowKey=wrap.id.replace('qrow-','');
+    const selectedListId=wrap.dataset.selectedListId;
+    const selectedListName=wrap.dataset.selectedListName||'list';
+    if(!selectedListId)return; // nothing chosen for this row yet
+    if(wrap.dataset.savedListId===selectedListId&&wrap.dataset.savedTaskId){
+      listStats[selectedListName]=(listStats[selectedListName]||0)+1;
+      return; // already confirmed-saved
+    }
+    // Wasn't confirmed-saved — retry now
+    const title=document.getElementById('qtitle-'+rowKey)?.textContent||'';
+    const notes=wrap.dataset.pendingNotes||document.getElementById('qenotes-'+rowKey)?.value?.trim()||'';
+    if(!title)return;
+    const created=await addTask(selectedListId,title,notes,'');
+    if(created?.id){
+      const cleanupListId=wrap.dataset.savedListId||wrap.dataset.listId;
+      const cleanupTaskId=wrap.dataset.savedTaskId||wrap.dataset.taskId;
+      if(cleanupTaskId&&cleanupListId)await deleteTask(cleanupListId,cleanupTaskId);
+      wrap.dataset.taskId='';
+      wrap.dataset.savedListId=selectedListId;
+      wrap.dataset.savedTaskId=created.id;
+      listStats[selectedListName]=(listStats[selectedListName]||0)+1;
+    }
+  }));
+
+  // Count tasks (items with type=task that have a taskId — created on load or when toggled to Task)
+  let taskCount=0;
+  document.querySelectorAll('[id^="qrow-"][data-item-type="task"]').forEach(wrap=>{
+    if(wrap.dataset.taskId)taskCount++;
+  });
+  const newlyAdded=new Set();
+  document.querySelectorAll('[id^="qrow-"][data-item-type="task"]').forEach(wrap=>{
+    const rowKey=wrap.id.replace('qrow-','');
+    const tEl=document.getElementById('qtitle-'+rowKey);
+    if(tEl)newlyAdded.add(tEl.textContent);
+  });
+  btn.disabled=false;
+  await renderQuickSummary({taskCount,listStats,done:quickSummaryStats.done,replaced:quickSummaryStats.replaced},newlyAdded,currentResult);
 }
 
 async function renderQuickSummary(stats,newlyAdded,aiResult){
@@ -2405,6 +2577,8 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
   container.innerHTML='';
   const bar=document.getElementById('modeShortcutsBar');
   if(bar)bar.innerHTML='';
+  const topSc=document.getElementById('ciSummaryShortcutsTop');
+  if(topSc)topSc.innerHTML=modeShortcutsHTML();
 
   // ── STATS CARD ──
   const statsParts=[];
