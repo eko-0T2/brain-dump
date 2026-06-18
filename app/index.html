@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.14</title>
+<title>Brain Dump v1.3.15</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.14</div>
+  <div class="version-tag">v1.3.15</div>
 </div>
 
 <!-- SETUP -->
@@ -504,13 +504,6 @@ textarea::placeholder { color:var(--text-dimmer); }
   <div id="checkinModeBar" style="display:flex;align-items:center;gap:8px;margin-bottom:12px"></div>
   <div id="modeShortcutsBar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap"></div>
   <div id="ciCards"></div>
-  <div class="first-move" id="ciFM" style="display:none">
-    <div class="fm-lbl">Best next action</div>
-    <div class="fm-action" id="ciFMText"></div>
-  </div>
-  <button class="new-dump" onclick="saveCiAndSummary()" style="margin-top:10px;background:var(--btn-save-bg);color:var(--btn-save-color);border:none;font-weight:600">✓ Save & see summary</button>
-  <div style="font-size:11px;color:var(--text-dimmer);text-align:center;margin-top:6px">Free · no credits used</div>
-  <div class="settings-link" style="margin-top:8px"><button onclick="showSetup()">⚙ Settings & theme</button></div>
 </div>
 
 <!-- Check-in summary screen -->
@@ -550,7 +543,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.14';
+const VERSION='1.3.15';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1106,7 +1099,7 @@ async function runCheckin(){
       return;
     }
     const{listId,tasks}=tr;taskListId=listId;
-    buildCheckin(cal,tasks,listId);
+    buildUnifiedCheckin(cal,tasks,listId,{});
   }catch(err){
     stopLoad();
     document.getElementById('loading').classList.remove('on');
@@ -1180,6 +1173,7 @@ async function loadListItems(area,targetListId,listName,mainListId,allLists){
   area.innerHTML='<div style="padding:10px 14px;font-size:12px;color:var(--text-dimmer)">Loading...</div>';
   try{
     const r=await fetch('https://tasks.googleapis.com/tasks/v1/lists/'+encodeURIComponent(targetListId)+'/tasks?showCompleted=false&maxResults=50',{headers:{Authorization:'Bearer '+gToken}});
+    if(r.status===401){area.innerHTML=authExpiredHTML();return;}
     if(!r.ok)throw new Error();
     const data=await r.json();
     const items=(data.items||[]).filter(t=>t.status!=='completed');
@@ -1493,29 +1487,78 @@ function renderFutureDatedSection(container,tasks,listId,shownIds){
 
 // ─────────────────────────────────────────────────
 
-function buildCheckin(cal,tasks,listId){
+// ── UNIFIED CHECK-IN VIEW ──────────────────────────────────────────────────
+// Used by both runCheckin (direct) and renderQuickSummary (after a quick dump).
+// opts.newlyAdded: Set of task titles to badge with "just added"
+// opts.dumpStats: {taskCount, listStats, done, replaced} — shown as a summary card above (quick dump only)
+function buildUnifiedCheckin(cal,tasks,listId,opts){
+  opts=opts||{};
   const container=document.getElementById('ciCards');
   container.innerHTML='';
 
-  function renderTaskRow(card,t,isOv){
-    const id='na-'+(taskIdx++);
-    const ddId='nadd-'+id,slId='nasl-'+id,cpId='nacp-'+id,ciId='naci-'+id;
-    const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
-    const t0=localMidnight(0),t1=localMidnight(1);
-    const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-    const badgeLbl=isOv?'overdue':localDateStr(due||new Date())===localDateStr(t0)?'today':localDateStr(due||new Date())===localDateStr(t1)?'tomorrow':dueFmt;
-    const wrap=document.createElement('div');
-    wrap.innerHTML='<div class="ci-row" id="'+id+'"><div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+id+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+id+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span>'+(dueFmt&&!isOv?'<span style="font-size:10px;color:var(--text-dimmer)">'+dueFmt+'</span>':'')+'</div></div><div class="ta-row" id="ta-'+id+'"><button class="ta ta-done" onclick="ciDone(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still on it \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Not doing it</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+id+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+id+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+id+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+id+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+id+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
-    card.appendChild(wrap);
-  }
-
-  let taskIdx=0;
   // View lists panel at top
   container.appendChild(buildViewListsPanel(listId));
 
+  // Dump stats card (quick dump page 2 only)
+  if(opts.dumpStats){
+    const s=opts.dumpStats;
+    const statsParts=[];
+    if(s.taskCount>0)statsParts.push(s.taskCount+' task'+(s.taskCount!==1?'s':'')+' added');
+    if(s.done>0)statsParts.push(s.done+' marked done');
+    if(s.replaced>0)statsParts.push(s.replaced+' updated');
+    if(s.listStats&&Object.keys(s.listStats).length){
+      Object.entries(s.listStats).forEach(([name,count])=>{
+        statsParts.push(count+'\u2192'+name);
+      });
+    }
+    if(statsParts.length){
+      const sc=document.createElement('div');
+      sc.className='ci-card';
+      sc.style.cssText='border-left:3px solid var(--green);padding:12px 14px';
+      const sl=document.createElement('div');
+      sl.style.cssText='font-size:13px;font-weight:600;color:var(--green)';
+      sl.textContent='\u2713 This dump: '+statsParts.join(' \u00b7 ');
+      sc.appendChild(sl);
+      container.appendChild(sc);
+    }
+    // Calendar insights stub — placeholder, prompt work deferred
+    const stub=document.createElement('div');
+    stub.className='ci-card';
+    stub.style.cssText='padding:12px 14px;border-left:3px solid var(--accent);opacity:0.6';
+    stub.innerHTML='<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px">\ud83d\udcc5 Calendar insights</div><div style="font-size:12px;color:var(--text-dim)">Coming soon \u2014 AI-powered calendar summary will appear here.</div>';
+    container.appendChild(stub);
+  }
+
+  // AI summary card (quick dump only, from aiResult.meta)
+  if(opts.aiResult&&opts.aiResult.meta){
+    const aiCard=document.createElement('div');
+    aiCard.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-bottom:4px;border-radius:0 8px 8px 0';
+    const metaEl=document.createElement('div');
+    metaEl.style.cssText='font-size:12px;color:var(--text-dim)';
+    metaEl.textContent=opts.aiResult.meta;
+    aiCard.appendChild(metaEl);
+    container.appendChild(aiCard);
+  }
+
+  // Interactive task row — full action bar, edit panel, move-to-list
+  function renderTaskRow(card,t,isOv){
+    renderNeedsAttentionRow(card,t,isOv,listId,'ci');
+    if(opts.newlyAdded&&opts.newlyAdded.has(t.title)){
+      const rows=card.querySelectorAll('.ci-text');
+      const lastTitle=rows[rows.length-1];
+      if(lastTitle&&!lastTitle.querySelector('.just-added-badge')){
+        const badge=document.createElement('span');
+        badge.className='just-added-badge';
+        badge.style.cssText='font-size:10px;color:var(--green);font-weight:500;margin-left:4px';
+        badge.textContent='just added';
+        lastTitle.appendChild(badge);
+      }
+    }
+  }
+
   const shownIds=renderDayByDay(container,cal,tasks,renderTaskRow);
 
-  // Cleanup section — undated and further-out tasks are hidden behind buttons, not auto-shown
+  // Cleanup buttons
   const cleanupRow=document.createElement('div');
   cleanupRow.style.cssText='display:flex;gap:8px;margin-top:4px';
   const undatedBtn=document.createElement('button');
@@ -1526,11 +1569,9 @@ function buildCheckin(cal,tasks,listId){
   futureBtn.innerHTML='<i class="ti ti-dice" style="font-size:13px" aria-hidden="true"></i> Show future tasks';
   cleanupRow.appendChild(undatedBtn);cleanupRow.appendChild(futureBtn);
   container.appendChild(cleanupRow);
-
   const undatedArea=document.createElement('div');
   const futureArea=document.createElement('div');
-  container.appendChild(undatedArea);
-  container.appendChild(futureArea);
+  container.appendChild(undatedArea);container.appendChild(futureArea);
 
   undatedBtn.addEventListener('click',()=>{
     const isShown=undatedArea.style.display==='block';
@@ -1557,9 +1598,19 @@ function buildCheckin(cal,tasks,listId){
     }
   });
 
+  // Mode shortcuts + settings link at bottom
+  const sc=document.createElement('div');
+  sc.style.cssText='margin-top:16px;margin-bottom:4px';
+  sc.innerHTML=modeShortcutsHTML();
+  container.appendChild(sc);
+  const settingsLink=document.createElement('div');
+  settingsLink.className='settings-link';
+  settingsLink.style.cssText='margin-top:4px;text-align:center';
+  settingsLink.innerHTML='<button onclick="showSetup()">\u2699 Settings &amp; theme</button>';
+  container.appendChild(settingsLink);
+
   document.getElementById('checkin').classList.add('on');
-  document.getElementById('screenMain').style.display='none';
-  setModeBar('checkinModeBar','checkin');
+  setModeBar('checkinModeBar',opts.dumpStats?'quick':'checkin');
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -1633,69 +1684,6 @@ async function saveTaskEdit(id,taskId,listId){
     if(btn){btn.textContent='Save failed — try again';btn.disabled=false;}
   }
 }
-
-async function saveCiAndSummary(){
-  let updated=0;
-  document.querySelectorAll('.date-set.show').forEach(sl=>{if(sl.textContent.includes('saved'))updated++;});
-
-  document.getElementById('checkin').classList.remove('on');
-  document.getElementById('checkin').style.display='';
-
-  const container=document.getElementById('ciSummaryCards');
-  container.innerHTML='';
-  const topSc=document.getElementById('ciSummaryShortcutsTop');
-  if(topSc)topSc.innerHTML=modeShortcutsHTML();
-
-  authExpired=false;
-  const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
-
-  if(authExpired){
-    container.innerHTML=authExpiredHTML();
-  } else {
-    const tasks=tr.tasks||[];
-
-    if(updated>0){
-      const upd=document.createElement('div');
-      upd.style.cssText='background:rgba(22,163,74,0.1);border-radius:10px;padding:10px 14px;margin-bottom:10px;font-size:13px;color:var(--green)';
-      upd.textContent='\u2713 '+updated+' task'+(updated>1?'s':'')+' updated';
-      container.appendChild(upd);
-    }
-
-    // Read-only task row for summary
-    function sumRow(card,t,isOv){
-      const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
-      const t0=localMidnight(0),t1=localMidnight(1);
-      const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-      const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
-      const row=document.createElement('div');row.className='ci-row';
-      row.innerHTML='<div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-check')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div>';
-      card.appendChild(row);
-    }
-
-    renderDayByDay(container,cal,tasks,sumRow);
-
-    // All-clear
-    if(!container.querySelector('.ci-card')){
-      const all=document.createElement('div');
-      all.style.cssText='text-align:center;padding:30px 20px;color:var(--text-dimmer);font-size:14px';
-      all.textContent='All clear \u2014 nothing urgent right now.';
-      container.appendChild(all);
-    }
-  }
-
-  const _sumSc=document.getElementById('ciSummary').querySelector('.summary-shortcuts');
-  if(!_sumSc){
-    const _sc=document.createElement('div');
-    _sc.className='summary-shortcuts';
-    _sc.style.cssText='margin-top:16px;margin-bottom:4px';
-    _sc.innerHTML=modeShortcutsHTML();
-    container.after(_sc);
-  }
-  document.getElementById('ciSummary').style.display='block';
-  setModeBar('ciSummaryModeBar','checkin');
-  window.scrollTo({top:0,behavior:'smooth'});
-}
-
 
 async function processDump(extraContext){
   const baseTxt=document.getElementById('dumpText').value.trim();
@@ -2623,114 +2611,32 @@ async function renderQuickSummary(stats,newlyAdded,aiResult){
   document.getElementById('review').classList.remove('on');
   document.getElementById('dumpText').value='';
   const ra=document.getElementById('reviewActions');if(ra)ra.style.display='none';
-
-  const container=document.getElementById('ciSummaryCards');
-  container.innerHTML='';
   const bar=document.getElementById('modeShortcutsBar');
   if(bar)bar.innerHTML='';
-  const topSc=document.getElementById('ciSummaryShortcutsTop');
-  if(topSc)topSc.innerHTML=modeShortcutsHTML();
 
-  // ── STATS CARD ──
-  const statsParts=[];
-  if(stats.taskCount>0)statsParts.push(stats.taskCount+' task'+(stats.taskCount!==1?'s':'')+' added');
-  if(stats.replaced>0)statsParts.push(stats.replaced+' replaced');
-  if(stats.done>0)statsParts.push(stats.done+' marked done');
-  if(stats.listStats&&Object.keys(stats.listStats).length){
-    Object.entries(stats.listStats).forEach(([name,count])=>{
-      statsParts.push(count+' item'+(count!==1?'s':'')+' added to '+name);
-    });
-  }
+  // Hide the ciSummary shell — buildUnifiedCheckin uses the checkin screen directly
+  const ciSum=document.getElementById('ciSummary');
+  if(ciSum)ciSum.style.display='none';
 
-  if(statsParts.length){
-    const statsCard=document.createElement('div');
-    statsCard.className='ci-card';
-    statsCard.style.borderLeftColor='var(--green)';
-    statsCard.style.padding='12px 14px';
-    const statsLine=document.createElement('div');
-    statsLine.style.cssText='font-size:14px;font-weight:600;color:var(--green)';
-    statsLine.textContent=statsParts.join(' \u00b7 ');
-    statsCard.appendChild(statsLine);
-    container.appendChild(statsCard);
-  }
-
-  // ── AI SUMMARY CARD ──
-  if(aiResult?.meta||aiResult?.first_move?.action){
-    const aiCard=document.createElement('div');
-    aiCard.style.cssText='background:var(--surface2);border-left:3px solid var(--accent);padding:12px 14px;margin-bottom:4px;border-radius:0 8px 8px 0';
-    if(aiResult.meta){
-      const metaEl=document.createElement('div');
-      metaEl.style.cssText='font-size:12px;color:var(--text-dim);margin-bottom:'+(aiResult.first_move?.action?'10px':'0');
-      metaEl.textContent=aiResult.meta;
-      aiCard.appendChild(metaEl);
-    }
-    if(aiResult.first_move?.action){
-      const fmLabel=document.createElement('div');
-      fmLabel.style.cssText='font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent);margin-bottom:4px';
-      fmLabel.textContent='Your one first move';
-      const fmText=document.createElement('div');
-      fmText.style.cssText='font-size:14px;font-weight:500;color:var(--text)';
-      fmText.textContent=aiResult.first_move.action;
-      aiCard.appendChild(fmLabel);
-      aiCard.appendChild(fmText);
-      if(aiResult.first_move.why){
-        const fmWhy=document.createElement('div');
-        fmWhy.style.cssText='font-size:12px;color:var(--text-dim);margin-top:3px';
-        fmWhy.textContent=aiResult.first_move.why;
-        aiCard.appendChild(fmWhy);
-      }
-    }
-    container.appendChild(aiCard);
-  }
-
-  // ── DAY-BY-DAY CALENDAR + TASKS ──
+  // Fresh fetch for the unified check-in view
   startLoad();document.getElementById('loading').classList.add('on');
   authExpired=false;
   try{
     const[cal,tr]=await Promise.all([fetchCal(),fetchTasks()]);
     stopLoad();document.getElementById('loading').classList.remove('on');
     if(authExpired){
-      const expDiv=document.createElement('div');
-      expDiv.innerHTML=authExpiredHTML();
-      container.appendChild(expDiv);
-    } else {
-      const{listId,tasks}=tr;taskListId=listId;
-
-      function sumRow(card,t,isOv){
-        const due=t.due?localDateFromStr(t.due.split('T')[0]):null;
-        const t0=localMidnight(0),t1=localMidnight(1);
-        const isNew=newlyAdded&&newlyAdded.has(t.title);
-        const dueFmt=due?due.toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
-        const badgeLbl=isOv?'overdue':due&&localDateStr(due)===localDateStr(t0)?'today':due&&localDateStr(due)===localDateStr(t1)?'tomorrow':dueFmt;
-        const row=document.createElement('div');row.className='ci-row';
-        row.innerHTML='<div class="ci-icon '+(isOv?'ic-red':'ic-orange')+'"><i class="ti '+(isOv?'ti-alert-circle':'ti-list')+'" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text">'+t.title+(isNew?'<span style="font-size:10px;color:var(--green);font-weight:500;margin-left:4px">just added</span>':'')+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'')+'</div><div class="badge-right"><span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span></div>';
-        card.appendChild(row);
-      }
-      renderDayByDay(container,cal,tasks,sumRow);
+      // Show reconnect on the checkin screen
+      document.getElementById('ciCards').innerHTML=authExpiredHTML();
+      document.getElementById('checkin').classList.add('on');
+      setModeBar('checkinModeBar','quick');
+      return;
     }
+    const{listId,tasks}=tr;taskListId=listId;
+    buildUnifiedCheckin(cal,tasks,listId,{dumpStats:stats,newlyAdded,aiResult});
   }catch(err){
     stopLoad();document.getElementById('loading').classList.remove('on');
     console.error('renderQuickSummary:',err);
   }
-
-  // ── SHORTCUTS AT BOTTOM ──
-  const _sumSc=document.getElementById('ciSummary').querySelector('.summary-shortcuts');
-  if(!_sumSc){
-    const sc=document.createElement('div');
-    sc.className='summary-shortcuts';
-    sc.style.cssText='margin-top:20px';
-    sc.innerHTML=modeShortcutsHTML();
-    const settingsLink=document.createElement('div');
-    settingsLink.className='settings-link';
-    settingsLink.style.cssText='margin-top:12px;text-align:center';
-    settingsLink.innerHTML='<button onclick="showSetup()">\u2699 Settings &amp; theme</button>';
-    container.after(settingsLink);
-    container.after(sc);
-  }
-
-  document.getElementById('ciSummary').style.display='block';
-  setModeBar('ciSummaryModeBar','quick');
-  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 
