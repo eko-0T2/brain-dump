@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.17</title>
+<title>Brain Dump v1.3.18</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.17</div>
+  <div class="version-tag">v1.3.18</div>
 </div>
 
 <!-- SETUP -->
@@ -543,7 +543,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.17';
+const VERSION='1.3.18';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -1223,11 +1223,32 @@ async function loadListItems(area,targetListId,listName,mainListId,allLists){
         const ep=document.createElement('div');
         ep.id='litemep-'+t.id;
         ep.style.cssText='display:none;padding:10px 14px;background:var(--surface2);border-top:1px solid var(--border)';
-        ep.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
+
+        if(moveTargets.length){
+          const moveWrap=document.createElement('div');
+          moveWrap.style.cssText='margin-bottom:10px;display:flex;align-items:center;gap:6px';
+          const moveLbl=document.createElement('span');
+          moveLbl.style.cssText='font-size:11px;color:var(--text-dim);flex-shrink:0';
+          moveLbl.textContent='Move to:';
+          const moveSel=document.createElement('select');
+          moveSel.style.cssText='flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--surface);color:var(--text)';
+          moveSel.innerHTML='<option value="">Choose\u2026</option>'+moveTargets.map(l=>'<option value="'+l.id+'">'+l.title+'</option>').join('');
+          moveSel.addEventListener('change',()=>{
+            if(!moveSel.value)return;
+            moveListItem(t.id,targetListId,moveSel.value,row);
+          });
+          moveWrap.appendChild(moveLbl);moveWrap.appendChild(moveSel);
+          ep.appendChild(moveWrap);
+        }
+
+        const fieldsDiv=document.createElement('div');
+        fieldsDiv.innerHTML='<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">'+
           '<div><div class="edit-field-label">Title</div><input type="text" id="litemname-'+t.id+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div>'+
           '<div><div class="edit-field-label">Due date</div><input type="date" id="litemdate-'+t.id+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div>'+
           '</div><div class="edit-field-label" style="margin-bottom:3px">Notes</div>'+
           '<textarea id="litemnotes-'+t.id+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea>';
+        ep.appendChild(fieldsDiv);
+
         const saveBtn=document.createElement('button');
         saveBtn.style.cssText='margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer';
         saveBtn.textContent='\u2713 Save changes';
@@ -1244,23 +1265,6 @@ async function loadListItems(area,targetListId,listName,mainListId,allLists){
           setTimeout(()=>{if(row.parentElement)row.remove();},350);
         });
         ep.appendChild(delBtn);
-
-        if(moveTargets.length){
-          const moveWrap=document.createElement('div');
-          moveWrap.style.cssText='margin-top:8px;display:flex;align-items:center;gap:6px';
-          const moveLbl=document.createElement('span');
-          moveLbl.style.cssText='font-size:11px;color:var(--text-dim);flex-shrink:0';
-          moveLbl.textContent='Move to:';
-          const moveSel=document.createElement('select');
-          moveSel.style.cssText='flex:1;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:inherit;background:var(--surface);color:var(--text)';
-          moveSel.innerHTML='<option value="">Choose\u2026</option>'+moveTargets.map(l=>'<option value="'+l.id+'">'+l.title+'</option>').join('');
-          moveSel.addEventListener('change',()=>{
-            if(!moveSel.value)return;
-            moveListItem(t.id,targetListId,moveSel.value,row);
-          });
-          moveWrap.appendChild(moveLbl);moveWrap.appendChild(moveSel);
-          ep.appendChild(moveWrap);
-        }
 
         row.appendChild(ep);
         area.appendChild(row);
@@ -1434,8 +1438,10 @@ function renderOlderTaskRow(card,t,listId,tag,showDateBadge){
   const fid='ft-'+(_otIdx++);
   const ddId='fdd-'+fid,slId='fsl-'+fid,cpId='fcp-'+fid,ciId='fci-'+fid;
   const df=t.due?localDateFromStr(t.due.split('T')[0]).toLocaleDateString('en-CA',{weekday:'short',month:'short',day:'numeric'}):'';
+  // When showDateBadge is true, tag IS the same date already shown in the badge — don't duplicate it as sub-text
+  const subFallback=showDateBadge?'':tag;
   const wrap=document.createElement('div');
-  wrap.innerHTML='<div class="ci-row" id="'+fid+'"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+fid+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':'<div class="ci-sub">'+tag+'</div>')+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>'+(df&&showDateBadge?'<div class="badge-right"><span style="font-size:10px;color:var(--text-dimmer)">'+df+'</span></div>':'')+'</div><div class="ta-row" id="ta-'+fid+'"><button class="ta ta-done" onclick="ciDone(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still relevant \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Remove</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+fid+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+fid+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+fid+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+fid+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
+  wrap.innerHTML='<div class="ci-row" id="'+fid+'"><div class="ci-icon ic-gray"><i class="ti ti-clock" aria-hidden="true"></i></div><div class="ci-body"><div class="ci-text" id="title-'+fid+'">'+t.title+'</div>'+(t.notes?'<div class="ci-sub">'+t.notes+'</div>':(subFallback?'<div class="ci-sub">'+subFallback+'</div>':''))+'</div><button class="diff-exclude" onclick="toggleTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-right:4px;flex-shrink:0"><i class="ti ti-pencil" style="font-size:13px" aria-hidden="true"></i></button>'+(df&&showDateBadge?'<div class="badge-right"><span style="font-size:10px;color:var(--text-dimmer)">'+df+'</span></div>':'')+'</div><div class="ta-row" id="ta-'+fid+'"><button class="ta ta-done" onclick="ciDone(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button><button class="ta ta-still" onclick="toggleDD(\''+ddId+'\')">Still relevant \u25be</button><button class="ta ta-skip" onclick="ciSkip(\''+fid+'\',\'ta-'+fid+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">Remove</button>'+buildCiDateDD(ddId,slId,cpId,ciId,t.id,listId)+'</div><div class="edit-panel" id="ep-'+fid+'" style="display:none;padding:10px 14px;background:var(--surface2);border-bottom:1px solid var(--border)"><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px"><div><div class="edit-field-label">Title</div><input type="text" id="etitle-'+fid+'" value="'+t.title.replace(/"/g,'&quot;')+'" class="edit-input"></div><div><div class="edit-field-label">Due date</div><input type="date" id="edate-'+fid+'" value="'+(t.due?t.due.split('T')[0]:'')+'" class="edit-input"></div></div><div class="edit-field-label" style="margin-bottom:3px">Notes</div><textarea id="enotes-'+fid+'" class="edit-input" style="resize:none;min-height:44px">'+(t.notes||'')+'</textarea><button onclick="saveTaskEdit(\''+fid+'\',\''+t.id+'\',\''+listId+'\')" style="margin-top:6px;width:100%;padding:8px;border-radius:8px;border:none;background:var(--green);color:white;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer">\u2713 Save changes</button></div>';
   card.appendChild(wrap);
 }
 
