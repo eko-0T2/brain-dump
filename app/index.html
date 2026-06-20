@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Brain Dump v1.3.18</title>
+<title>Brain Dump v1.3.19</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
 <style>
@@ -363,7 +363,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 <div class="header">
   <div class="header-title">Brain Dump</div>
   <div class="header-sub">sort the noise · find the signal · one first move</div>
-  <div class="version-tag">v1.3.18</div>
+  <div class="version-tag">v1.3.19</div>
 </div>
 
 <!-- SETUP -->
@@ -543,7 +543,7 @@ textarea::placeholder { color:var(--text-dimmer); }
 </div>
 
 <script>
-const VERSION='1.3.18';
+const VERSION='1.3.19';
 
 // Local timezone date helpers
 function localDateStr(d){
@@ -2148,7 +2148,7 @@ function renderNeedsAttentionRow(card,t,isOv,listId,prefix){
     +'</div>'
     +'<div class="badge-right">'
     +'<span class="ci-badge '+(isOv?'cb-red':'cb-orange')+'">'+badgeLbl+'</span>'
-    +(dueFmt&&!isOv&&badgeLbl!==dueFmt?'<span style="font-size:10px;color:var(--text-dimmer)">'+dueFmt+'</span>':'')
+    +''
     +'<div style="display:flex;gap:4px;margin-top:2px">'
     +'<button class="ta ta-done" style="flex-shrink:0" onclick="ciDone(\''+id+'\',\'ta-'+id+'\',\''+slId+'\',\''+t.id+'\',\''+listId+'\')">\u2713 Done</button>'
     +'<button class="diff-exclude" onclick="toggleActionPanel(\'ap-'+id+'\')" style="flex-shrink:0" title="More actions"><i class="ti ti-dots" style="font-size:13px" aria-hidden="true"></i></button>'
